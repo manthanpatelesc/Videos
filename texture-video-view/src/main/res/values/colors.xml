@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  ~ Created on 18-9-20 下午5:20.
+  ~ Copyright © 2018 刘振林. All rights reserved.
+  -->
+
+<resources>
+    <color name="black_translucent">#80000000</color>
+    <color name="white_translucent">#80FFFFFF</color>
+
+    <color name="bg_popup">#C0292929</color>
+    <color name="videoScrimColor">#55000000</color>
+</resources>

@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/white"
+    android:fitsSystemWindows="true"
+    android:orientation="vertical"
+    tools:context=".view.activity.FeedbackActivity">
+
+    <RelativeLayout
+        android:id="@+id/title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="10dp">
+
+        <TextView
+            android:id="@+id/bt_back"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentLeft="true"
+            android:layout_alignParentStart="true"
+            android:drawablePadding="5dp"
+            android:text="@string/goBack"
+            android:textSize="@dimen/title_text_size"
+            android:textColor="@color/color_selector_color_accent" />
+
+        <TextView
+            android:id="@+id/text_adviceAndFeedback"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerHorizontal="true"
+            android:text="@string/adviceAndFeedback"
+            android:textSize="@dimen/title_text_size"
+            android:textColor="@android:color/black" />
+
+        <TextView
+            android:id="@+id/bt_saveFeedback"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentRight="true"
+            android:layout_alignParentEnd="true"
+            android:text="@string/save"
+            android:textSize="@dimen/title_text_size"
+            android:textColor="@color/color_selector_color_accent"
+            tools:ignore="RelativeOverlap" />
+    </RelativeLayout>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:overScrollMode="never"
+        android:scrollbarThumbVertical="@android:color/transparent"
+        android:background="@color/gray_rgb240">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="10dp"
+                android:background="@android:color/white">
+
+                <EditText
+                    android:id="@+id/editor_enterProblemsOrAdvice"
+                    android:layout_width="match_parent"
+                    android:layout_height="90dp"
+                    android:background="@null"
+                    android:hint="@string/pleaseEnterTheProblemsYouMeetOrYourAdvice"
+                    android:textSize="@dimen/primary_text_size"
+                    android:textColor="@android:color/black"
+                    android:maxLength="500"
+                    android:maxLines="3"
+                    android:inputType="textMultiLine"
+                    android:textAlignment="viewStart"
+                    android:gravity="top|start" />
+
+                <TextView
+                    android:id="@+id/text_wordCountIndicator"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentRight="true"
+                    android:layout_alignParentEnd="true"
+                    android:layout_alignBottom="@id/editor_enterProblemsOrAdvice"
+                    android:text="0/500"
+                    android:textSize="@dimen/secondary_text_size"
+                    tools:ignore="HardcodedText" />
+            </RelativeLayout>
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:padding="10dp"
+                android:background="@android:color/white">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/picture"
+                    android:textSize="@dimen/primary_text_size"
+                    android:textColor="@android:color/black"
+                    tools:ignore="RelativeOverlap" />
+
+                <TextView
+                    android:id="@+id/text_pictureCountIndicator"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentRight="true"
+                    android:layout_alignParentEnd="true"
+                    android:text="0/3"
+                    android:textSize="@dimen/secondary_text_size"
+                    tools:ignore="HardcodedText" />
+
+                <GridView
+                    android:id="@+id/grid_pictures"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12.5dp"
+                    android:layout_marginBottom="2.5dp"
+                    android:layout_below="@id/text_pictureCountIndicator"
+                    android:scrollbars="none"
+                    android:overScrollMode="never"
+                    android:numColumns="3"
+                    android:horizontalSpacing="5dp"
+                    android:verticalSpacing="5dp"
+                    android:stretchMode="columnWidth"
+                    tools:ignore="NestedScrolling" />
+            </RelativeLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:padding="10dp"
+                android:background="@android:color/white">
+
+                <TextView
+                    android:id="@+id/text_contactWay"
+                    android:layout_width="wrap_content"
+                    android:layout_height="30dp"
+                    android:layout_weight="0"
+                    android:layout_gravity="center_vertical"
+                    android:layout_marginRight="20dp"
+                    android:layout_marginEnd="20dp"
+                    android:text="@string/contactWay"
+                    android:textSize="@dimen/primary_text_size"
+                    android:textColor="@android:color/black"
+                    android:gravity="center_vertical" />
+
+                <EditText
+                    android:id="@+id/editor_enterContactWay"
+                    android:layout_width="0dp"
+                    android:layout_height="30dp"
+                    android:layout_weight="1"
+                    android:layout_gravity="center_vertical"
+                    android:background="@null"
+                    android:hint="@string/itIsOptionalForMeToContactWithYou"
+                    android:textSize="@dimen/primary_text_size"
+                    android:textColor="@android:color/black"
+                    android:inputType="text"
+                    android:singleLine="true"
+                    android:textAlignment="viewStart"
+                    android:gravity="center_vertical|start" />
+            </LinearLayout>
+
+            <Button
+                android:id="@+id/bt_commit"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="10dp"
+                android:layout_marginTop="20dp"
+                android:layout_marginRight="10dp"
+                android:layout_marginBottom="20dp"
+                android:background="@drawable/bg_commit_button"
+                android:enabled="false"
+                android:text="@string/commit"
+                android:textSize="@dimen/primary_text_size"
+                android:textColor="@android:color/white" />
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

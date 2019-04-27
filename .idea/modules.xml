@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/VideoPlayer.iml" filepath="$PROJECT_DIR$/VideoPlayer.iml" />
+      <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/circular-checkbox/circular-checkbox.iml" filepath="$PROJECT_DIR$/circular-checkbox/circular-checkbox.iml" />
+      <module fileurl="file://$PROJECT_DIR$/floating-menu/floating-menu.iml" filepath="$PROJECT_DIR$/floating-menu/floating-menu.iml" />
+      <module fileurl="file://$PROJECT_DIR$/gallery-viewer/gallery-viewer.iml" filepath="$PROJECT_DIR$/gallery-viewer/gallery-viewer.iml" />
+      <module fileurl="file://$PROJECT_DIR$/sliding-drawer-layout/sliding-drawer-layout.iml" filepath="$PROJECT_DIR$/sliding-drawer-layout/sliding-drawer-layout.iml" />
+      <module fileurl="file://$PROJECT_DIR$/slidingitemmenu-recyclerview/slidingitemmenu-recyclerview.iml" filepath="$PROJECT_DIR$/slidingitemmenu-recyclerview/slidingitemmenu-recyclerview.iml" />
+      <module fileurl="file://$PROJECT_DIR$/swipeback/swipeback.iml" filepath="$PROJECT_DIR$/swipeback/swipeback.iml" />
+      <module fileurl="file://$PROJECT_DIR$/texture-video-view/texture-video-view.iml" filepath="$PROJECT_DIR$/texture-video-view/texture-video-view.iml" />
+    </modules>
+  </component>
+</project>

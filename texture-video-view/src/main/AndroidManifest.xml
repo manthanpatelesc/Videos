@@ -1,0 +1,18 @@
+<!--
+  ~ Created on 18-9-16 下午4:04.
+  ~ Copyright © 2018 刘振林. All rights reserved.
+  -->
+
+<manifest package="com.liuzhenlin.texturevideoview"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+
+    <application>
+        <receiver android:name=".receiver.HeadsetButtonReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.MEDIA_BUTTON" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>

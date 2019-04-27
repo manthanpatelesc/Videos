@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  ~ Created on 18-9-27 上午12:10.
+  ~ Copyright © 2018 刘振林. All rights reserved.
+  -->
+
+<merge xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <com.liuzhenlin.texturevideoview.ConstraintLayout
+        android:id="@+id/content_videoview"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <TextureView
+            android:id="@+id/textureView"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
+
+        <View
+            android:id="@+id/scrim"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            android:background="@color/videoScrimColor"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/text_seekingVideoThumb"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintVertical_bias="0.33"
+            android:drawablePadding="9dp"
+            android:textSize="@dimen/seeking_video_thumb_text_size"
+            android:textColor="@android:color/white"
+            android:gravity="center_horizontal"
+            android:visibility="gone" />
+
+        <LinearLayout
+            android:id="@+id/frame_seekingTextProgress"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintVertical_bias="0.33"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/text_seeking_progress_duration"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="25dp"
+                android:layout_marginRight="25dp"
+                android:textSize="@dimen/seeking_progress_duration_text_size"
+                android:textColor="@android:color/white" />
+
+            <ProgressBar
+                android:id="@+id/pb_seekingProgress"
+                android:layout_width="match_parent"
+                android:layout_height="2dp"
+                android:minHeight="0dp"
+                android:layout_marginTop="9dp"
+                style="@style/Widget.AppCompat.ProgressBar.Horizontal" />
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/image_loading"
+            android:layout_width="@dimen/circular_progress_size"
+            android:layout_height="@dimen/circular_progress_size"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            android:contentDescription="@string/videoIsLoading"
+            android:visibility="gone" />
+
+        <FrameLayout
+            android:id="@+id/frame_topControls"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:paddingTop="2.5dp"
+            android:paddingBottom="5dp"
+            android:background="@drawable/shadow_top"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toTopOf="@id/text_brightness">
+
+            <TextView
+                android:id="@+id/text_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingLeft="5dp"
+                android:paddingRight="5dp"
+                android:drawableLeft="@drawable/bt_navigate_before_38dp"
+                android:drawableStart="@drawable/bt_navigate_before_38dp"
+                android:text="@string/goBack"
+                android:textColor="@color/color_selector_white_color_accent"
+                android:textSize="@dimen/video_title_text_size"
+                android:gravity="center_vertical" />
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/text_brightness"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="15dp"
+            android:layout_marginStart="15dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/text_volume"
+            app:layout_constraintHorizontal_chainStyle="spread_inside"
+            app:layout_constraintTop_toBottomOf="@id/frame_topControls"
+            app:layout_constraintBottom_toTopOf="@id/sb_brightness"
+            android:text="@string/brightness"
+            android:textColor="@android:color/white"
+            android:textSize="@dimen/widget_small_text_size"
+            android:visibility="invisible" />
+
+        <com.liuzhenlin.texturevideoview.VerticalSeekBar
+            android:id="@+id/sb_brightness"
+            android:layout_width="wrap_content"
+            android:layout_height="0dp"
+            app:layout_constraintStart_toStartOf="@id/text_brightness"
+            app:layout_constraintEnd_toEndOf="@id/text_brightness"
+            app:layout_constraintTop_toBottomOf="@id/text_brightness"
+            app:layout_constraintBottom_toTopOf="@id/text_brightnessValue"
+            android:visibility="invisible" />
+
+        <TextView
+            android:id="@+id/text_brightnessValue"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintStart_toStartOf="@id/text_brightness"
+            app:layout_constraintEnd_toEndOf="@id/text_brightness"
+            app:layout_constraintTop_toBottomOf="@id/sb_brightness"
+            app:layout_constraintBottom_toTopOf="@id/frame_bottomControls"
+            android:text="40%"
+            android:textColor="@android:color/white"
+            android:textSize="@dimen/widget_small_text_size"
+            android:visibility="invisible"
+            tools:ignore="HardcodedText" />
+
+        <TextView
+            android:id="@+id/text_volume"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginRight="15dp"
+            android:layout_marginEnd="15dp"
+            app:layout_constraintStart_toEndOf="@id/text_brightness"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/text_brightness"
+            app:layout_constraintBottom_toBottomOf="@id/text_brightness"
+            android:text="@string/volume"
+            android:textColor="@android:color/white"
+            android:textSize="@dimen/widget_small_text_size"
+            android:visibility="invisible" />
+
+        <com.liuzhenlin.texturevideoview.VerticalSeekBar
+            android:id="@+id/sb_volume"
+            android:layout_width="wrap_content"
+            android:layout_height="0dp"
+            app:layout_constraintStart_toStartOf="@id/text_volume"
+            app:layout_constraintEnd_toEndOf="@id/text_volume"
+            app:layout_constraintTop_toTopOf="@id/sb_brightness"
+            app:layout_constraintBottom_toBottomOf="@id/sb_brightness"
+            android:visibility="invisible" />
+
+        <TextView
+            android:id="@+id/text_volumeValue"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintStart_toStartOf="@id/text_volume"
+            app:layout_constraintEnd_toEndOf="@id/text_volume"
+            app:layout_constraintTop_toTopOf="@id/text_brightnessValue"
+            app:layout_constraintBottom_toBottomOf="@id/text_brightnessValue"
+            android:text="67%"
+            android:textColor="@android:color/white"
+            android:textSize="@dimen/widget_small_text_size"
+            android:visibility="invisible"
+            tools:ignore="HardcodedText" />
+
+        <FrameLayout
+            android:id="@+id/frame_bottomControls"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/text_brightnessValue"
+            app:layout_constraintBottom_toBottomOf="parent"
+            android:background="@drawable/shadow_bottom">
+
+            <!--<include layout="@layout/bottom_controls_fullscreen" />-->
+        </FrameLayout>
+    </com.liuzhenlin.texturevideoview.ConstraintLayout>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recycler_playlist"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/bg_popup"
+        android:scrollbars="vertical"
+        android:layout_gravity="end|center_vertical" />
+</merge>

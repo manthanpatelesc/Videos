@@ -1,0 +1,2 @@
+include ':app', ':slidingitemmenu-recyclerview', ':sliding-drawer-layout', ':texture-video-view',
+        ':gallery-viewer', ':swipeback', ':circular-checkbox', ':floating-menu'

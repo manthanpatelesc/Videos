@@ -1,0 +1,56 @@
+apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android-extensions'
+apply plugin: 'kotlin-android'
+
+android {
+    compileSdkVersion 28
+    buildToolsVersion '28.0.3'
+
+    defaultConfig {
+        applicationId "com.liuzhenlin.videoplayer"
+        minSdkVersion 14
+        targetSdkVersion 28
+        versionCode 28
+        versionName "1.7"
+
+        vectorDrawables.useSupportLibrary = true
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation 'androidx.appcompat:appcompat:1.0.2'
+    implementation 'androidx.palette:palette:1.0.0'
+    implementation 'com.google.code.gson:gson:2.8.5'
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+    implementation 'androidx.core:core-ktx:1.0.1'
+
+    implementation 'pub.devrel:easypermissions:2.0.0'
+
+    implementation 'com.github.bumptech.glide:glide:4.8.0'
+    annotationProcessor 'com.github.bumptech.glide:compiler:4.8.0'
+
+    implementation project(':slidingitemmenu-recyclerview')
+    implementation project(':sliding-drawer-layout')
+    implementation project(':texture-video-view')
+    implementation project(':gallery-viewer')
+    implementation project(':swipeback')
+    implementation project(':circular-checkbox')
+    implementation project(':floating-menu')
+
+    implementation 'com.sun.mail:android-mail:1.5.6'
+    implementation 'com.sun.mail:android-activation:1.5.6'
+
+    testImplementation 'junit:junit:4.12'
+    androidTestImplementation 'androidx.test:runner:1.2.0-alpha04'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0-alpha04'
+}

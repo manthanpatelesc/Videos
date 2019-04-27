@@ -1,0 +1,419 @@
+/*
+ * Created on 2017/12/07.
+ * Copyright © 2017 刘振林. All rights reserved.
+ */
+
+package com.liuzhenlin.videoplayer.dao;
+
+import android.content.ContentResolver;
+import android.content.ContentValues;
+import android.content.Context;
+import android.database.Cursor;
+import android.database.SQLException;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteOpenHelper;
+import android.graphics.Bitmap;
+import android.media.MediaMetadataRetriever;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
+import com.liuzhenlin.videoplayer.BuildConfig;
+import com.liuzhenlin.videoplayer.Consts;
+import com.liuzhenlin.videoplayer.model.Video;
+import com.liuzhenlin.videoplayer.model.VideoDirectory;
+import com.liuzhenlin.videoplayer.model.VideoListItem;
+
+import java.io.File;
+
+/**
+ * @author 刘振林
+ */
+public class VideoDaoHelper extends SQLiteOpenHelper implements IVideoDao {
+
+    private static volatile VideoDaoHelper sHelper;
+
+    private final ContentResolver mContentResolver;
+    private final SQLiteDatabase mDataBase;
+
+    private static final String[] PROJECTION_VIDEO_URI = {
+            VIDEO_ID, VIDEO_NAME, VIDEO_PATH, VIDEO_SIZE, VIDEO_DURATION, VIDEO_RESOLUTION
+    };
+
+    private static final String SEPARATOR_RESOLUTION = "x";
+
+    private static final String TABLE_VIDEOS = "videos";
+    private static final String VIDEOS_COL_ID = VIDEO_ID;
+    private static final String VIDEOS_COL_PROGRESS = "progress";
+    private static final String VIDEOS_COL_IS_TOPPED = "isTopped";
+
+    private static final String TABLE_VIDEODIRS = "videodirs";
+    private static final String VIDEODIRS_COL_NAME = "name";
+    private static final String VIDEODIRS_COL_PATH = "path";
+    private static final String VIDEODIRS_COL_IS_TOPPED = "isTopped";
+
+    private VideoDaoHelper(Context context) {
+        super(context, "VideoPlayer.db", null, 1);
+        mContentResolver = context.getContentResolver();
+        mDataBase = getWritableDatabase();
+    }
+
+    public static VideoDaoHelper getInstance(@NonNull Context context) {
+        if (sHelper == null) {
+            synchronized (VideoDaoHelper.class) {
+                if (sHelper == null) {
+                    sHelper = new VideoDaoHelper(context.getApplicationContext());
+                }
+            }
+        }
+        return sHelper;
+    }
+
+    @Override
+    public void onCreate(SQLiteDatabase db) {
+        //@formatter:off
+        db.execSQL("CREATE TABLE " + TABLE_VIDEOS + "("
+                + VIDEOS_COL_ID + " long PRIMARY KEY, "
+                + VIDEOS_COL_PROGRESS + " int NOT NULL DEFAULT 0, "
+                + VIDEOS_COL_IS_TOPPED + " int NOT NULL DEFAULT 0" +
+                        " CHECK(" + VIDEOS_COL_IS_TOPPED + " IN (0,1)))");
+        db.execSQL("CREATE TABLE " + TABLE_VIDEODIRS + "("
+                + VIDEODIRS_COL_NAME + " text NOT NULL" +
+                        " CHECK(LENGTH(" + VIDEODIRS_COL_NAME + ") > 0), "
+                + VIDEODIRS_COL_PATH + " text PRIMARY KEY COLLATE NOCASE, "
+                + VIDEODIRS_COL_IS_TOPPED + " int NOT NULL DEFAULT 0" +
+                        " CHECK(" + VIDEODIRS_COL_IS_TOPPED + " IN (0,1)))");
+        //@formatter:on
+    }
+
+    @Override
+    public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+        try {
+            db.execSQL("CREATE TABLE tmp AS SELECT * FROM " + TABLE_VIDEOS);
+            onCreate(db);
+            db.execSQL("INSERT INTO " + TABLE_VIDEOS + " SELECT * FROM tmp");
+        } catch (SQLException e) {
+            if (BuildConfig.DEBUG) {
+                e.printStackTrace();
+            }
+            db.execSQL("DROP TABLE IF EXISTS " + TABLE_VIDEOS);
+            onCreate(db);
+        }
+    }
+
+    @Override
+    public boolean insertVideo(@NonNull Video video) {
+        ContentValues values = new ContentValues(5);
+        values.put(VIDEO_NAME, video.getName());
+        values.put(VIDEO_PATH, video.getPath());
+        values.put(VIDEO_SIZE, video.getSize());
+        values.put(VIDEO_DURATION, video.getDuration());
+        values.put(VIDEO_RESOLUTION, video.getWidth() + SEPARATOR_RESOLUTION + video.getHeight());
+
+        // FIXME: It doesn't work
+        if (mContentResolver.insert(VIDEO_URI, values) == null) {
+            return false;
+        }
+
+        values.clear();
+        values.put(VIDEOS_COL_ID, video.getId());
+        values.put(VIDEOS_COL_PROGRESS, video.getProgress());
+        values.put(VIDEOS_COL_IS_TOPPED, video.isTopped() ? 1 : 0);
+        return mDataBase.insert(TABLE_VIDEOS, null, values) != Consts.NO_ID;
+    }
+
+    @Override
+    public boolean deleteVideo(long id) {
+        mDataBase.delete(TABLE_VIDEOS, VIDEOS_COL_ID + "=" + id, null);
+        return mContentResolver.delete(VIDEO_URI, VIDEO_ID + "=" + id, null) == 1;
+    }
+
+    @Override
+    public boolean updateVideo(@NonNull Video video) {
+        ContentValues values = new ContentValues(5);
+        values.put(VIDEO_NAME, video.getName());
+        values.put(VIDEO_PATH, video.getPath());
+        values.put(VIDEO_SIZE, video.getSize());
+        values.put(VIDEO_DURATION, video.getDuration());
+        values.put(VIDEO_RESOLUTION, video.getWidth() + SEPARATOR_RESOLUTION + video.getHeight());
+
+        final long id = video.getId();
+        if (mContentResolver.update(VIDEO_URI, values,
+                VIDEO_ID + "=" + id, null) == 1) {
+            values.clear();
+            values.put(VIDEOS_COL_PROGRESS, video.getProgress());
+            values.put(VIDEOS_COL_IS_TOPPED, video.isTopped() ? 1 : 0);
+
+            if (mDataBase.update(TABLE_VIDEOS, values,
+                    VIDEOS_COL_ID + "=" + id, null) == 1) {
+                return true;
+            }
+
+            values.put(VIDEOS_COL_ID, id);
+            return mDataBase.insert(TABLE_VIDEOS, null, values) > 0;
+        }
+        return false;
+    }
+
+    @Nullable
+    @Override
+    public Video queryVideoByPath(@Nullable String path) {
+        if (path == null) return null;
+
+        Cursor cursor = mContentResolver.query(VIDEO_URI, PROJECTION_VIDEO_URI,
+                VIDEO_PATH + "='" + path + "' COLLATE NOCASE", null, null);
+        if (cursor != null) {
+            try {
+                if (cursor.moveToFirst()) {
+                    return buildVideo(cursor);
+                }
+            } finally {
+                cursor.close();
+            }
+        }
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public Video queryVideoById(long id) {
+        Cursor cursor = mContentResolver.query(VIDEO_URI, PROJECTION_VIDEO_URI,
+                VIDEO_ID + "=" + id, null, null);
+        if (cursor != null) {
+            try {
+                if (cursor.moveToFirst()) {
+                    return buildVideo(cursor);
+                }
+            } finally {
+                cursor.close();
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public Cursor queryAllVideos() {
+        return mContentResolver.query(VIDEO_URI, PROJECTION_VIDEO_URI,
+                null, null, VIDEO_NAME + " COLLATE NOCASE");
+    }
+
+    @Nullable
+    @Override
+    public Cursor queryAllVideosInDirectory(@Nullable String directory) {
+        if (directory == null) return null;
+
+        final int strlength = directory.length();
+        return mContentResolver.query(VIDEO_URI, PROJECTION_VIDEO_URI
+                , "SUBSTR(" + VIDEO_PATH + ",1," + strlength + ")='" + directory + "' " +
+                        "COLLATE NOCASE AND SUBSTR(" + VIDEO_PATH + "," + strlength + 2 + ") " +
+                        "NOT LIKE '%" + File.separator + "%'", null
+                , VIDEO_NAME + " COLLATE NOCASE");
+    }
+
+    @Override
+    public boolean insertVideoDir(@NonNull VideoDirectory videodir) {
+        ContentValues values = new ContentValues(3);
+        values.put(VIDEODIRS_COL_NAME, videodir.getName());
+        values.put(VIDEODIRS_COL_PATH, videodir.getPath());
+        values.put(VIDEODIRS_COL_IS_TOPPED, videodir.isTopped() ? 1 : 0);
+        return mDataBase.insert(TABLE_VIDEODIRS, null, values) != Consts.NO_ID;
+    }
+
+    @Override
+    public boolean deleteVideoDir(@Nullable String path) {
+        if (path == null) return false;
+        return mDataBase.delete(TABLE_VIDEODIRS,
+                VIDEODIRS_COL_PATH + "='" + path + "'", null) == 1;
+    }
+
+    @Override
+    public boolean updateVideoDir(@NonNull VideoDirectory videodir) {
+        ContentValues values = new ContentValues(2);
+        values.put(VIDEODIRS_COL_NAME, videodir.getName());
+        values.put(VIDEODIRS_COL_IS_TOPPED, videodir.isTopped() ? 1 : 0);
+        return mDataBase.update(TABLE_VIDEODIRS, values,
+                VIDEODIRS_COL_PATH + "='" + videodir.getPath() + "'", null) == 1;
+    }
+
+    @Override
+    @Nullable
+    public VideoDirectory queryVideoDirByPath(@Nullable String path) {
+        if (path == null) return null;
+
+        Cursor cursor = mDataBase.rawQuery("SELECT * FROM " + TABLE_VIDEODIRS + " WHERE " +
+                VIDEODIRS_COL_PATH + "='" + path + "'", null);
+        if (cursor != null) {
+            try {
+                if (cursor.moveToFirst()) {
+                    VideoDirectory videodir = new VideoDirectory();
+                    videodir.setName(cursor.getString(0));
+                    videodir.setPath(cursor.getString(1));
+                    videodir.setTopped(cursor.getInt(2) != 0);
+                    return videodir;
+                }
+            } finally {
+                cursor.close();
+            }
+        }
+        return null;
+    }
+
+    @Nullable
+    public Video buildVideo(@NonNull Cursor cursor) {
+        Video video = new Video();
+
+        final String[] columnNames = cursor.getColumnNames();
+        for (int i = 0; i < columnNames.length; i++)
+            switch (columnNames[i]) {
+                case VIDEO_ID:
+                    video.setId(cursor.getLong(i));
+                    break;
+                case VIDEO_NAME:
+                    video.setName(cursor.getString(i));
+                    break;
+                case VIDEO_PATH:
+                    video.setPath(cursor.getString(i));
+                    break;
+                case VIDEO_SIZE:
+                    video.setSize(cursor.getLong(i));
+                    break;
+                case VIDEO_DURATION:
+                    video.setDuration((int) cursor.getLong(i));
+                    break;
+                case VIDEO_RESOLUTION:
+                    final String resolution = cursor.getString(i);
+                    if (resolution != null) {
+                        final int infix = resolution.indexOf(SEPARATOR_RESOLUTION);
+                        video.setWidth(Integer.parseInt(resolution.substring(0, infix)));
+                        video.setHeight(Integer.parseInt(resolution.substring(infix + 1)));
+                    }
+                    break;
+            }
+        if (video.getDuration() <= 0 || video.getWidth() <= 0 || video.getHeight() <= 0) {
+            if (invalidateVideoDurationAndResolution(video)) {
+                updateVideo(video);
+            } else {
+                return null;
+            }
+        }
+
+        Cursor cursor2 = mDataBase.rawQuery("SELECT " +
+                VIDEOS_COL_PROGRESS + "," + VIDEOS_COL_IS_TOPPED +
+                " FROM " + TABLE_VIDEOS + " WHERE " + VIDEOS_COL_ID + "=" + video.getId(), null);
+        if (cursor2 != null) {
+            if (cursor2.moveToFirst()) {
+                video.setProgress(cursor2.getInt(0));
+                video.setTopped(cursor2.getInt(1) != 0);
+            }
+            cursor2.close();
+        }
+
+        return video;
+    }
+
+    public boolean invalidateVideoDurationAndResolution(@NonNull Video video) {
+        MediaMetadataRetriever mmr = new MediaMetadataRetriever();
+        try {
+            mmr.setDataSource(video.getPath());
+            final int duration = Integer.parseInt(
+                    mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION));
+//            final int width = Integer.parseInt(
+//                    mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH));
+//            final int height = Integer.parseInt(
+//                    mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT));
+            // 获取视频某一帧时的bitmap对象
+            Bitmap frame = mmr.getFrameAtTime();
+            final int width = frame.getWidth();
+            final int height = frame.getHeight();
+            frame.recycle();
+
+            video.setDuration(duration);
+            video.setWidth(width);
+            video.setHeight(height);
+
+            return true;
+        } catch (IllegalArgumentException e) {
+            if (BuildConfig.DEBUG) {
+                e.printStackTrace();
+            }
+            return false;
+        } catch (RuntimeException e) {
+            if (BuildConfig.DEBUG) {
+                e.printStackTrace();
+            }
+            return false;
+        } finally {
+            mmr.release();
+        }
+    }
+
+    public boolean setVideoProgress(long id, int progress) {
+        ContentValues values = new ContentValues(1);
+        values.put(VIDEOS_COL_PROGRESS, progress);
+
+        if (mDataBase.update(TABLE_VIDEOS, values,
+                VIDEOS_COL_ID + "=" + id, null) == 1) {
+            return true;
+        }
+
+        values.put(VIDEOS_COL_ID, id);
+        return mDataBase.insert(TABLE_VIDEOS, null, values) > 0;
+    }
+
+    public int getVideoProgress(long id) {
+        Cursor cursor = mDataBase.rawQuery("SELECT " + VIDEOS_COL_PROGRESS +
+                " FROM " + TABLE_VIDEOS + " WHERE " + VIDEOS_COL_ID + "=" + id, null);
+        if (cursor != null) {
+            try {
+                if (cursor.moveToFirst()) {
+                    return cursor.getInt(0);
+                }
+            } finally {
+                cursor.close();
+            }
+        }
+        return 0;
+    }
+
+    public boolean setVideoListItemTopped(@NonNull VideoListItem item, boolean topped) {
+        ContentValues values = new ContentValues(1);
+        if (item instanceof Video) {
+            final long id = ((Video) item).getId();
+
+            values.put(VIDEOS_COL_IS_TOPPED, topped ? 1 : 0);
+            if (mDataBase.update(TABLE_VIDEOS, values,
+                    VIDEOS_COL_ID + "=" + id, null) == 1) {
+                return true;
+            }
+
+            values.put(VIDEOS_COL_ID, id);
+            return mDataBase.insert(TABLE_VIDEOS, null, values) > 0;
+            // VideoDirectory
+        } else {
+            values.put(VIDEODIRS_COL_IS_TOPPED, topped ? 1 : 0);
+            return mDataBase.update(TABLE_VIDEODIRS, values,
+                    VIDEODIRS_COL_PATH + "='" + item.getPath() + "'", null) == 1;
+        }
+    }
+
+    public boolean isVideoListItemTopped(@NonNull VideoListItem item) {
+        Cursor cursor;
+        if (item instanceof Video) {
+            cursor = mDataBase.rawQuery("SELECT " + VIDEOS_COL_IS_TOPPED + " FROM " + TABLE_VIDEOS
+                    + " WHERE " + VIDEOS_COL_ID + "=" + ((Video) item).getId(), null);
+        } else {
+            cursor = mDataBase.rawQuery("SELECT " + VIDEODIRS_COL_IS_TOPPED + " FROM " + TABLE_VIDEODIRS
+                    + " WHERE " + VIDEODIRS_COL_PATH + "='" + item.getPath() + "'", null);
+        }
+        if (cursor != null) {
+            try {
+                if (cursor.moveToFirst()) {
+                    return cursor.getInt(0) != 0;
+                }
+            } finally {
+                cursor.close();
+            }
+        }
+        return false;
+    }
+}

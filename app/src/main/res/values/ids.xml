@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="bt_cancel_deleteVideoListItemDialog" type="id" />
+    <item name="bt_confirm_deleteVideoListItemDialog" type="id" />
+
+    <item name="changeTextColor" type="id" />
+    <item name="changeStatusTextColor" type="id" />
+</resources>
