@@ -49,7 +49,7 @@ import com.liuzhenlin.videoplayer.App;
 import com.liuzhenlin.videoplayer.Consts;
 import com.liuzhenlin.videoplayer.R;
 import com.liuzhenlin.videoplayer.dao.FeedbackSharedPreferences;
-import com.liuzhenlin.videoplayer.utils.BitmapUtils;
+import com.liuzhenlin.videoplayer.utils.BitmapUtils2;
 import com.liuzhenlin.videoplayer.utils.DisplayCutoutUtils;
 import com.liuzhenlin.videoplayer.utils.FileUtils;
 import com.liuzhenlin.videoplayer.utils.MailUtil;
@@ -492,8 +492,8 @@ public class FeedbackActivity extends SwipeBackActivity implements View.OnClickL
         PictureGridAdapter(@NonNull Context context) {
             mContext = context;
             //noinspection all
-            mPictures.add(BitmapUtils.drawableToBitmap(ContextCompat.getDrawable(
-                    mContext, R.drawable.ic_add_photo_36dp)));
+            mPictures.add(BitmapUtils2.drawableToBitmap(ContextCompat.getDrawable(
+                    mContext, R.drawable.ic_add_photo_gray_36dp)));
         }
 
         @Override
@@ -582,7 +582,7 @@ public class FeedbackActivity extends SwipeBackActivity implements View.OnClickL
 
                 View view = View.inflate(mContext,
                         R.layout.dialog_picture_preview,
-                        (ViewGroup) mWindow.getDecorView().findViewById(Window.ID_ANDROID_CONTENT));
+                        mWindow.getDecorView().findViewById(Window.ID_ANDROID_CONTENT));
                 mDeleteFrame = view.findViewById(R.id.frame_bt_delete);
                 mDeleteFrame.setOnClickListener(this);
                 view.findViewById(R.id.bt_delete).setOnClickListener(this);

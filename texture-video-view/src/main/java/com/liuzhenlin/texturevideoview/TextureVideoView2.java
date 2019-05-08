@@ -1,0 +1,459 @@
+/*
+ * Created on 5/7/19 9:45 AM.
+ * Copyright © 2019 刘振林. All rights reserved.
+ */
+
+package com.liuzhenlin.texturevideoview;
+
+import android.content.Context;
+import android.media.AudioFocusRequest;
+import android.media.AudioManager;
+import android.net.Uri;
+import android.os.Build;
+import android.support.v4.media.session.MediaSessionCompat;
+import android.util.AttributeSet;
+import android.util.Log;
+import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.core.util.ObjectsCompat;
+
+import com.google.android.exoplayer2.C;
+import com.google.android.exoplayer2.ExoPlaybackException;
+import com.google.android.exoplayer2.ExoPlayer;
+import com.google.android.exoplayer2.ExoPlayerFactory;
+import com.google.android.exoplayer2.PlaybackParameters;
+import com.google.android.exoplayer2.Player;
+import com.google.android.exoplayer2.SimpleExoPlayer;
+import com.google.android.exoplayer2.analytics.AnalyticsListener;
+import com.google.android.exoplayer2.audio.AudioAttributes;
+import com.google.android.exoplayer2.source.ExtractorMediaSource;
+import com.google.android.exoplayer2.source.MediaSource;
+import com.google.android.exoplayer2.source.MediaSourceEventListener;
+import com.google.android.exoplayer2.source.ads.AdsMediaSource;
+import com.google.android.exoplayer2.upstream.DataSource;
+import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
+import com.google.android.exoplayer2.util.Util;
+import com.liuzhenlin.texturevideoview.receiver.HeadsetEventsReceiver;
+import com.liuzhenlin.texturevideoview.utils.TimeUtil;
+
+/**
+ * A sub implementation class of {@link AbsTextureVideoView} to deal with the audio/video playback
+ * logic related to the media player component through an {@link ExoPlayer} object.
+ *
+ * @author 刘振林
+ */
+public class TextureVideoView2 extends AbsTextureVideoView {
+
+    private static final String TAG = "TextureVideoView2";
+
+    private SimpleExoPlayer mExoPlayer;
+    private AdsMediaSource.MediaSourceFactory mMediaSourceFactory;
+    private final String mUserAgent;
+
+    private final AudioAttributes mAudioAttrs;
+    private final AudioFocusRequest mAudioFocusRequest;
+    private final AudioManager.OnAudioFocusChangeListener mOnAudioFocusChangeListener
+            = new AudioManager.OnAudioFocusChangeListener() {
+        @Override
+        public void onAudioFocusChange(int focusChange) {
+            switch (focusChange) {
+                // Audio focus gained
+                case AudioManager.AUDIOFOCUS_GAIN:
+                    if (mExoPlayer.getVolume() != 1.0f) {
+                        mExoPlayer.setVolume(1.0f);
+                    }
+                    play();
+                    break;
+
+                // Loss of audio focus of unknown duration.
+                // This usually happens when the user switches to another audio/video application
+                // that causes our view to stop playing, so the video can be thought of as
+                // being paused/closed by the user.
+                case AudioManager.AUDIOFOCUS_LOSS:
+                    if (getWindowVisibility() == VISIBLE) {
+                        // If the window container of this view is still visible to the user,
+                        // pauses the video only.
+                        pause(true);
+                    } else {
+                        // But if this occurs during background playback, we must close the video
+                        // to release the resources associated with it.
+                        closeVideoInternal(true);
+                    }
+                    break;
+
+                // Temporarily lose the audio focus and will probably gain it again soon.
+                // Must stop the video playback but no need for releasing the ExoPlayer here.
+                case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT:
+                    pause(false);
+                    break;
+
+                // Temporarily lose the audio focus but the playback can continue.
+                // The volume of the playback needs to be turned down.
+                case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK:
+                    mExoPlayer.setVolume(0.5f);
+                    break;
+            }
+        }
+    };
+
+    /* class initializer */ {
+        mAudioAttrs = new AudioAttributes.Builder()
+                .setUsage(C.USAGE_MEDIA)
+                .setContentType(C.CONTENT_TYPE_MOVIE)
+                .build();
+        mAudioFocusRequest = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ?
+                new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+                        .setAudioAttributes(mAudioAttrs.getAudioAttributesV21())
+                        .setOnAudioFocusChangeListener(mOnAudioFocusChangeListener)
+                        .setAcceptsDelayedFocusGain(true)
+                        .build()
+                : null;
+    }
+
+    public TextureVideoView2(Context context) {
+        this(context, null);
+    }
+
+    public TextureVideoView2(Context context, AttributeSet attrs) {
+        this(context, attrs, 0);
+    }
+
+    public TextureVideoView2(Context context, AttributeSet attrs, int defStyleAttr) {
+        super(context, attrs, defStyleAttr);
+        mUserAgent = Util.getUserAgent(context, mResources.getString(context.getApplicationInfo().labelRes));
+    }
+
+    /**
+     * @return the {@link ExtractorMediaSource.Factory} used for read the media content
+     */
+    @Nullable
+    public AdsMediaSource.MediaSourceFactory getMediaSourceFactory() {
+        return mMediaSourceFactory;
+    }
+
+    /**
+     * Sets a MediaSourceFactory for creating {@link MediaSource}s to play the provided
+     * media stream content (if any) or `null` a {@link ExtractorMediaSource.Factory} with
+     * {@link DefaultDataSourceFactory} will be created to read the media(s).
+     *
+     * @param factory a subclass instance of {@link AdsMediaSource.MediaSourceFactory}
+     */
+    public void setMediaSourceFactory(@Nullable AdsMediaSource.MediaSourceFactory factory) {
+        mMediaSourceFactory = factory;
+    }
+
+    /**
+     * @return a user agent string based on the application name resolved from this view's
+     * context object and the `exoplayer-core` library version, which can be used to create a
+     * {@link DataSource.Factory} instance for the {@link AdsMediaSource.MediaSourceFactory} subclasses.
+     */
+    @NonNull
+    public String getUserAgent() {
+        return mUserAgent;
+    }
+
+    @Override
+    public void setVideoResourceId(int resId) {
+        setVideoPath(resId == 0 ? null : "rawresource:///" + resId);
+    }
+
+    @Override
+    public void setVideoUri(@Nullable Uri uri) {
+        if (!ObjectsCompat.equals(uri, mVideoUri)) {
+            mVideoUri = uri;
+            mVideoDuration = 0;
+            mVideoDurationString = DEFAULT_STRING_VIDEO_DURATION;
+            mPrivateFlags &= ~PFLAG_VIDEO_INFO_RESOLVED;
+            if (mExoPlayer == null) {
+                // Removes the flags PFLAG_VIDEO_PLAYBACK_COMPLETED and PFLAG_VIDEO_PAUSED_BY_USER
+                // and resets mSeekOnPlay to 0 in case the ExoPlayer was previously released
+                // and has not been initialized yet.
+                mPrivateFlags &= ~(PFLAG_VIDEO_PLAYBACK_COMPLETED | PFLAG_VIDEO_PAUSED_BY_USER);
+                mSeekOnPlay = 0;
+                openVideoInternal();
+            } else {
+                restartVideo();
+            }
+        }
+    }
+
+    @Override
+    void openVideoInternal() {
+        if (mExoPlayer == null && mSurface != null && mVideoUri != null
+                && (mPrivateFlags & PFLAG_VIDEO_PAUSED_BY_USER) == 0) {
+            mExoPlayer = ExoPlayerFactory.newSimpleInstance(mContext);
+            mExoPlayer.setVideoSurface(isPureAudioPlayback() ? null : mSurface);
+            mExoPlayer.setAudioAttributes(mAudioAttrs);
+            setPlaybackSpeed(mUserPlaybackSpeed);
+            mExoPlayer.setRepeatMode(
+                    isSingleVideoLoopPlayback() ? Player.REPEAT_MODE_ONE : Player.REPEAT_MODE_OFF);
+            mExoPlayer.addAnalyticsListener(new AnalyticsListener() {
+                @Override
+                public void onLoadCompleted(EventTime eventTime, MediaSourceEventListener.LoadEventInfo loadEventInfo, MediaSourceEventListener.MediaLoadData mediaLoadData) {
+                    mVideoDuration = (int) mExoPlayer.getDuration();
+                    mVideoDurationString = TimeUtil.formatTimeByColon(mVideoDuration);
+                    mPrivateFlags |= PFLAG_VIDEO_INFO_RESOLVED;
+
+                    mPrivateFlags &= ~PFLAG_PLAYER_IS_PREPARING;
+                    play();
+                }
+
+                @Override
+                public void onLoadingChanged(EventTime eventTime, boolean isLoading) {
+                    if (!isLoading) {
+                        mPrivateFlags &= ~PFLAG_PLAYER_IS_PREPARING;
+                    }
+                }
+
+                @Override
+                public void onPlayerStateChanged(EventTime eventTime, boolean playWhenReady, int playbackState) {
+                    showLoadingView(playbackState == Player.STATE_BUFFERING);
+
+                    if (playbackState == Player.STATE_ENDED) {
+                        onPlaybackCompleted();
+                    }
+                }
+
+                @Override
+                public void onPlayerError(EventTime eventTime, ExoPlaybackException error) {
+                    if (BuildConfig.DEBUG) {
+                        error.printStackTrace();
+                    }
+                    final int resId;
+                    if (error.type == ExoPlaybackException.TYPE_SOURCE) {
+                        resId = R.string.failedToLoadThisVideo;
+                    } else {
+                        resId = R.string.unknownErrorOccurredWhenVideoIsPlaying;
+                    }
+                    Toast.makeText(mContext, resId, Toast.LENGTH_SHORT).show();
+
+                    mPrivateFlags |= PFLAG_ERROR_OCCURRED_WHILE_PLAYING_VIDEO;
+                    mPrivateFlags &= ~(PFLAG_PLAYER_IS_PREPARING | PFLAG_VIDEO_PLAYBACK_COMPLETED);
+                    pause(false);
+                }
+
+                @Override
+                public void onVideoSizeChanged(EventTime eventTime, int width, int height, int unappliedRotationDegrees, float pixelWidthHeightRatio) {
+                    TextureVideoView2.this.onVideoSizeChanged(width, height);
+                }
+            });
+            startVideo();
+
+            mSession = new MediaSessionCompat(mContext, TAG);
+            mSession.setCallback(new SessionCallback());
+            mSession.setActive(true);
+            mHeadsetEventsReceiver = new HeadsetEventsReceiver(mContext) {
+                @Override
+                public void onHeadsetPluggedOutOrBluetoothDisconnected() {
+                    pause(true);
+                }
+            };
+            mHeadsetEventsReceiver.register(AudioManager.ACTION_AUDIO_BECOMING_NOISY);
+        }
+    }
+
+    private void startVideo() {
+        if (mVideoUri != null) {
+            mPrivateFlags |= PFLAG_PLAYER_IS_PREPARING;
+            if (mMediaSourceFactory == null) {
+                mMediaSourceFactory = new ExtractorMediaSource.Factory(
+                        new DefaultDataSourceFactory(mContext, mUserAgent));
+            }
+            mExoPlayer.prepare(mMediaSourceFactory.createMediaSource(mVideoUri));
+        } else {
+            mExoPlayer.stop(true);
+        }
+        cancelDraggingVideoSeekBar();
+    }
+
+    @Override
+    public void restartVideo() {
+        // Resets mSeekOnPlay to 0 and removes the PFLAG_VIDEO_PLAYBACK_COMPLETED flag in case
+        // the ExoPlayer object is (being) released. This ensures the video to be started
+        // at its beginning position when the next time it resumes.
+        mSeekOnPlay = 0;
+        mPrivateFlags &= ~PFLAG_VIDEO_PLAYBACK_COMPLETED;
+        if (mExoPlayer != null && (mPrivateFlags & PFLAG_VIDEO_IS_CLOSING) == 0) {
+            // Not clear the PFLAG_VIDEO_INFO_RESOLVED flag
+            mPrivateFlags &= ~(PFLAG_PLAYER_IS_PREPARING
+                    | PFLAG_ERROR_OCCURRED_WHILE_PLAYING_VIDEO
+                    | PFLAG_VIDEO_PAUSED_BY_USER);
+            pause(false);
+            startVideo();
+        }
+    }
+
+    @Override
+    public void play() {
+        if ((mPrivateFlags & PFLAG_VIDEO_IS_CLOSING) != 0) {
+            // In case the video playback is closing
+            return;
+        }
+
+        if (mExoPlayer == null) {
+            // Maybe the ExoPlayer has not been created since this page showed again after
+            // the video had been paused by the user instead of our program itself or ended
+            // in the last playback. Initialize it here as the user hits play.
+            if ((mPrivateFlags & (PFLAG_VIDEO_PAUSED_BY_USER | PFLAG_VIDEO_PLAYBACK_COMPLETED)) != 0) {
+                mPrivateFlags &= ~PFLAG_VIDEO_PAUSED_BY_USER;
+                openVideoInternal();
+            }
+            return;
+            // Already in the preparing or playing state
+        } else if ((mPrivateFlags & (PFLAG_PLAYER_IS_PREPARING | PFLAG_VIDEO_IS_PLAYING)) != 0) {
+            return;
+        }
+
+        if ((mPrivateFlags & PFLAG_ERROR_OCCURRED_WHILE_PLAYING_VIDEO) != 0) {
+            mPrivateFlags &= ~PFLAG_ERROR_OCCURRED_WHILE_PLAYING_VIDEO;
+            // Retries the failed playback after error occurred
+            mExoPlayer.retry();
+
+            // Starts the video only if we have prepared it for the player,
+            // i.e., mExoPlayer != null && (mPrivateFlags & PFLAG_VIDEO_INFO_RESOLVED) != 0
+        } else if ((mPrivateFlags & PFLAG_VIDEO_INFO_RESOLVED) != 0) {
+            //@formatter:off
+            final int result = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ?
+                    mAudioManager.requestAudioFocus(mAudioFocusRequest)
+                  : mAudioManager.requestAudioFocus(mOnAudioFocusChangeListener,
+                            AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
+            //@formatter:on
+            switch (result) {
+                case AudioManager.AUDIOFOCUS_REQUEST_FAILED:
+                    if (BuildConfig.DEBUG) {
+                        Log.e(TAG, "Failed to request audio focus");
+                    }
+                    // Starts to play video even if the audio focus is not gained, but it is best
+                    // not to happen.
+                case AudioManager.AUDIOFOCUS_REQUEST_GRANTED:
+                    // Ensure the player's volume is at its maximum
+                    if (mExoPlayer.getVolume() != 1.0f) {
+                        mExoPlayer.setVolume(1.0f);
+                    }
+                    mExoPlayer.setPlayWhenReady(true);
+                    if (mSeekOnPlay != 0) {
+                        mExoPlayer.seekTo(mSeekOnPlay);
+                        mSeekOnPlay = 0;
+                    } else if (isPlaybackCompleted()) {
+                        mExoPlayer.seekToDefaultPosition();
+                    }
+                    mPrivateFlags &= ~(PFLAG_VIDEO_PAUSED_BY_USER | PFLAG_VIDEO_PLAYBACK_COMPLETED);
+                    onVideoStarted();
+                    break;
+
+                case AudioManager.AUDIOFOCUS_REQUEST_DELAYED:
+                    // do nothing
+                    break;
+            }
+        }
+    }
+
+    @Override
+    public void pause(boolean fromUser) {
+        if (isPlaying()) {
+            mExoPlayer.setPlayWhenReady(false);
+            mPrivateFlags = mPrivateFlags & ~PFLAG_VIDEO_PAUSED_BY_USER
+                    | (fromUser ? PFLAG_VIDEO_PAUSED_BY_USER : 0);
+            onVideoStopped();
+        }
+    }
+
+    @Override
+    void closeVideoInternal(boolean fromUser) {
+        if (mExoPlayer != null && (mPrivateFlags & PFLAG_VIDEO_IS_CLOSING) == 0) {
+            mPrivateFlags |= PFLAG_VIDEO_IS_CLOSING;
+
+            if (!isPlaybackCompleted()) {
+                mSeekOnPlay = getVideoProgress();
+            }
+            pause(fromUser);
+            abandonAudioFocus();
+            mExoPlayer.release();
+            mExoPlayer = null;
+            mMediaSourceFactory = null;
+            // Not clear the flags PFLAG_VIDEO_PLAYBACK_COMPLETED and PFLAG_VIDEO_INFO_RESOLVED
+            mPrivateFlags &= ~(PFLAG_PLAYER_IS_PREPARING | PFLAG_ERROR_OCCURRED_WHILE_PLAYING_VIDEO);
+            // Resets the cached playback speed to prepare for the next resume of the video player
+            mPlaybackSpeed = DEFAULT_PLAYBACK_SPEED;
+
+            mSession.setActive(false);
+            mSession.release();
+            mSession = null;
+            mHeadsetEventsReceiver.unregister();
+            mHeadsetEventsReceiver = null;
+
+            mPrivateFlags &= ~PFLAG_VIDEO_IS_CLOSING;
+
+            showLoadingView(false);
+        }
+        cancelDraggingVideoSeekBar();
+    }
+
+    private void abandonAudioFocus() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            mAudioManager.abandonAudioFocusRequest(mAudioFocusRequest);
+        } else {
+            mAudioManager.abandonAudioFocus(mOnAudioFocusChangeListener);
+        }
+    }
+
+    @Override
+    public void seekTo(int progress) {
+        if (isPlaying()) {
+            mExoPlayer.seekTo(progress);
+        } else {
+            mSeekOnPlay = progress;
+            play();
+        }
+    }
+
+    @Override
+    public int getVideoProgress() {
+        if (mExoPlayer != null) {
+            return (int) mExoPlayer.getCurrentPosition();
+        }
+        return mSeekOnPlay;
+    }
+
+    @Override
+    public int getVideoBufferedProgress() {
+        if (mExoPlayer != null) {
+            return (int) mExoPlayer.getBufferedPosition();
+        }
+        return 0;
+    }
+
+    @Override
+    public void setPureAudioPlayback(boolean audioOnly) {
+        if (audioOnly != isPureAudioPlayback()) {
+            if (mExoPlayer != null) {
+                mExoPlayer.setVideoSurface(audioOnly ? null : mSurface);
+            }
+            super.setPureAudioPlayback(audioOnly);
+        }
+    }
+
+    @Override
+    public void setSingleVideoLoopPlayback(boolean looping) {
+        if (looping != isSingleVideoLoopPlayback()) {
+            if (mExoPlayer != null) {
+                mExoPlayer.setRepeatMode(looping ? Player.REPEAT_MODE_ONE : Player.REPEAT_MODE_OFF);
+            }
+            super.setSingleVideoLoopPlayback(looping);
+        }
+    }
+
+    @Override
+    public void setPlaybackSpeed(float speed) {
+        if (speed != mPlaybackSpeed) {
+            mUserPlaybackSpeed = speed;
+            if (mExoPlayer != null) {
+                mExoPlayer.setPlaybackParameters(new PlaybackParameters(speed));
+                mPlaybackSpeed = speed;
+                super.setPlaybackSpeed(speed);
+            }
+        }
+    }
+}

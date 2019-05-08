@@ -1,0 +1,15 @@
+<!--
+  ~ Created on 18-9-20 下午1:39.
+  ~ Copyright © 2018 刘振林. All rights reserved.
+  -->
+
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="38dp"
+    android:height="38dp"
+    android:viewportWidth="24.0"
+    android:viewportHeight="24.0">
+
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M8.293,7.414  l1.414,-1.414 6,6 -6,6 -1.414,-1.414  L12.879,12  z" />
+</vector>

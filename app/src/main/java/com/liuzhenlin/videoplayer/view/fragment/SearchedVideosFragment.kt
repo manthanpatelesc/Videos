@@ -69,7 +69,14 @@ class SearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLongClic
     private val PAYLOAD_HIGHLIGHT_SELECTED_ITEM_IF_EXISTS = PAYLOAD_REFRESH_VIDEO_PROGRESS_DURATION shl 3
 
     private var mLoadVideosTask: LoadVideosTask? = null
-    private val mVideos = ArrayList<Video>()
+    private var _mVideos: ArrayList<Video>? = null
+    private val mVideos: ArrayList<Video>
+        inline get() {
+            if (_mVideos == null) {
+                _mVideos = arguments?.getParcelableArrayList(KEY_VIDEOS) ?: arrayListOf()
+            }
+            return _mVideos!!
+        }
 
     private var mVideoOptionsMenu: FloatingMenu? = null
     private var mDownX = 0
@@ -92,8 +99,6 @@ class SearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLongClic
             mLifecycleCallback = context
             context.onFragmentAttached(this)
         }
-
-        mVideos.set(arguments?.getParcelableArrayList(KEY_VIDEOS) ?: return)
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
@@ -135,12 +140,13 @@ class SearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLongClic
             requireFragmentManager().popBackStackImmediate()
         }
 
-        mSearchResultText = View.inflate(mActivity, R.layout.text_search_result, null) as TextView
-        mAdapterWrapper.addHeaderView(mSearchResultText)
-
         mRecyclerView = contentView.findViewById(R.id.recycler_searchedVideoList)
         mRecyclerView.layoutManager = LinearLayoutManager(mActivity)
-        mRecyclerView.adapter = mAdapterWrapper
+        mRecyclerView.adapter = mAdapterWrapper.also {
+            mSearchResultText = LayoutInflater.from(mActivity)
+                    .inflate(R.layout.text_search_result, mRecyclerView, false) as TextView
+            it.addHeaderView(mSearchResultText)
+        }
         mRecyclerView.addItemDecoration(DividerItemDecoration(mActivity))
         mRecyclerView.setHasFixedSize(true)
 //        mRecyclerView.setOnTouchListener(this) // not work

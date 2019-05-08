@@ -4,6 +4,6 @@
   -->
 
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:drawable="@drawable/ic_skip_next_36dp" android:state_pressed="false" />
-    <item android:drawable="@drawable/ic_skip_next_pressed_36dp" android:state_pressed="true" />
+    <item android:drawable="@drawable/ic_skip_next_white_36dp" android:state_pressed="false" />
+    <item android:drawable="@drawable/ic_skip_next_color_accent_36dp" android:state_pressed="true" />
 </selector>

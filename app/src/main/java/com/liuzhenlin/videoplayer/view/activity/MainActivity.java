@@ -62,7 +62,7 @@ import com.liuzhenlin.videoplayer.BuildConfig;
 import com.liuzhenlin.videoplayer.Consts;
 import com.liuzhenlin.videoplayer.R;
 import com.liuzhenlin.videoplayer.dao.AppSharedPreferences;
-import com.liuzhenlin.videoplayer.utils.BitmapUtils;
+import com.liuzhenlin.videoplayer.utils.BitmapUtils2;
 import com.liuzhenlin.videoplayer.utils.ColorUtils;
 import com.liuzhenlin.videoplayer.utils.FileUtils;
 import com.liuzhenlin.videoplayer.utils.NetworkUtil;
@@ -322,7 +322,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 asp.setDrawerBackgroundPath(path);
 
                 final boolean lightBackground = ColorUtils.isLightColor(
-                        BitmapUtils.getDominantColor(bitmap));
+                        BitmapUtils2.getDominantColor(bitmap));
                 setLightDrawerStatus(lightBackground);
                 mDrawerListAdapter.setLightDrawerListForeground(!lightBackground);
             }
@@ -664,10 +664,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         StringBuilder text = null;
 
-        BufferedReader reader = null;
-        try {
-            reader = new BufferedReader(new InputStreamReader(
-                    getAssets().open("updateLogs.txt"), "utf-8"));
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(
+                getAssets().open("updateLogs.txt"), "utf-8"))) {
             final char[] buffer = new char[1024];
             int len;
             while ((len = reader.read(buffer)) != -1) {
@@ -679,14 +677,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         } catch (IOException e) {
             e.printStackTrace();
             return;
-        } finally {
-            if (reader != null) {
-                try {
-                    reader.close();
-                } catch (IOException e) {
-                    //
-                }
-            }
         }
 
         if (text == null) return;

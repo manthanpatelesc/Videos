@@ -4,10 +4,14 @@
   -->
 <resources>
     <string name="goBack">返回</string>
-    <string name="brightness">亮度</string>
-    <string name="volume">音量</string>
-    <string name="progress">%.0f%%</string>
+    <string name="share">分享</string>
+    <string name="more">更多</string>
+    <string name="brightness_progress">亮度：%.0f%%</string>
+    <string name="brightness_followsSystem">亮度：跟随系统</string>
+    <string name="volume_progress">音量：%.0f%%</string>
     <string name="progress_duration">%s/%s</string>
+    <string name="lock">锁定</string>
+    <string name="unlock">不锁定</string>
     <string name="play">播放</string>
     <string name="pause">暂停</string>
     <string name="fastForward">快进</string>
@@ -17,6 +21,13 @@
     <string name="fullscreen">全屏</string>
     <string name="speed">倍速</string>
     <string name="chooseAnEpisode">选集</string>
+    <string name="fullscreenPlayback">满屏观影</string>
+    <string name="singleVideoLoopPlayback">单视频循环播放</string>
+    <string name="audioPlayback">音频播放</string>
+    <string name="timedOff">定时关闭：</string>
+    <string name="whenThisEpisodeEnds">播完本集</string>
+    <string name="_30Minutes">30分钟</string>
+    <string name="anHour">1小时</string>
     <string name="videoIsLoading">载入视频…</string>
     <string name="failedToLoadThisVideo">无法加载此视频！</string>
     <string name="loadTimedOut">加载超时！</string>

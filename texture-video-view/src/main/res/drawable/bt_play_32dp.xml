@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  ~ Created on 18-9-21 下午3:10.
+  ~ Copyright © 2018 刘振林. All rights reserved.
+  -->
+
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@drawable/ic_play_white_32dp" android:state_pressed="false" />
+    <item android:drawable="@drawable/ic_play_color_accent_32dp" android:state_pressed="true" />
+</selector>

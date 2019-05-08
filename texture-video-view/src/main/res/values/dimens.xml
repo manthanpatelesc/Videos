@@ -7,6 +7,7 @@
     <dimen name="video_title_text_size">16sp</dimen>
     <dimen name="widget_large_text_size">15.5sp</dimen>
     <dimen name="widget_small_text_size">14sp</dimen>
+    <dimen name="spinner_item_text_size">@dimen/widget_large_text_size</dimen>
     <dimen name="spinner_dropdown_item_text_size">15sp</dimen>
     <dimen name="seeking_video_thumb_text_size">16sp</dimen>
     <dimen name="seeking_progress_duration_text_size">17sp</dimen>
@@ -16,4 +17,10 @@
 
     <dimen name="seekingViewHorizontalOffset">20dp</dimen>
     <dimen name="seekingVideoThumbCornerRadius">3.33dp</dimen>
+
+    <dimen name="brightness_or_volume_frame_width">160dp</dimen>
+    <dimen name="brightness_or_volume_frame_height">90dp</dimen>
+    <dimen name="brightness_or_volume_frame_corner_radius">3.33dp</dimen>
+
+    <dimen name="progressbarHeight">2dp</dimen>
 </resources>

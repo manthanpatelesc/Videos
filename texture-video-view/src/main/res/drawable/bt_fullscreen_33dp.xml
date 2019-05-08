@@ -4,6 +4,6 @@
   -->
 
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:drawable="@drawable/ic_fullscreen_33dp" android:state_pressed="false" />
-    <item android:drawable="@drawable/ic_fullscreen_pressed_33dp" android:state_pressed="true" />
+    <item android:drawable="@drawable/ic_fullscreen_white_33dp" android:state_pressed="false" />
+    <item android:drawable="@drawable/ic_fullscreen_color_accent_33dp" android:state_pressed="true" />
 </selector>

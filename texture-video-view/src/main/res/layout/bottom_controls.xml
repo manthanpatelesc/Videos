@@ -7,7 +7,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:paddingTop="8dp"
+    android:paddingTop="12dp"
     android:paddingBottom="8dp"
     android:orientation="horizontal"
     android:gravity="center_vertical">
@@ -18,7 +18,7 @@
         android:layout_height="wrap_content"
         android:layout_marginLeft="10dp"
         android:layout_marginRight="10dp"
-        app:srcCompat="@drawable/bt_play_33dp"
+        app:srcCompat="@drawable/bt_play_32dp"
         android:contentDescription="@string/play" />
 
     <TextView

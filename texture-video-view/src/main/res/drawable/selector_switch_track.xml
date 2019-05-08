@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?><!--
+  ~ Created on 5/3/19 3:29 PM.
+  ~ Copyright © 2019 刘振林. All rights reserved.
+  -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_checked="false">
+        <shape android:shape="rectangle">
+            <corners android:radius="12.5dp" />
+            <solid android:color="@color/lighter_gray" />
+        </shape>
+    </item>
+
+    <item android:state_checked="true">
+        <shape android:shape="rectangle">
+            <corners android:radius="12.5dp" />
+            <solid android:color="?attr/colorAccent" />
+        </shape>
+    </item>
+</selector>

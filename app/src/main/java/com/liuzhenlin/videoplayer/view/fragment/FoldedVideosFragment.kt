@@ -60,8 +60,17 @@ class FoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, View.OnL
 
     private lateinit var mRecyclerView: SlidingItemMenuRecyclerView
     private val mAdapter = VideoListAdapter()
-    private lateinit var mDirectory: String
-    private val mVideos = ArrayList<Video>()
+    private val mVideoDir by lazy {
+        arguments?.get(KEY_VIDEODIR) as? VideoDirectory
+    }
+    private var _mVideos: MutableList<Video>? = null
+    private val mVideos: MutableList<Video>
+        inline get() {
+            if (_mVideos == null) {
+                _mVideos = mVideoDir?.videos ?: arrayListOf()
+            }
+            return _mVideos!!
+        }
     private var mLoadDirectoryVideosTask: LoadDirectoryVideosTask? = null
 
     private lateinit var mBackButton: ImageButton
@@ -122,8 +131,9 @@ class FoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, View.OnL
         mLifecycleCallback?.onFragmentDetached(this)
 
         targetFragment?.onActivityResult(targetRequestCode, RESULT_CODE_FOLDED_VIDEOS_FRAGMENT,
-                Intent().putExtra(KEY_DIRECTORY_PATH, mDirectory)
-                        .putParcelableArrayListExtra(KEY_VIDEOS, mVideos))
+                Intent().putExtra(KEY_DIRECTORY_PATH, mVideoDir?.path)
+                        .putParcelableArrayListExtra(KEY_VIDEOS,
+                                mVideos as? ArrayList<Video> ?: ArrayList(mVideos)))
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
@@ -136,12 +146,7 @@ class FoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, View.OnL
         val actionbar = mInteractionCallback.getActionBar(this)
 
         val titleText = actionbar.findViewById<TextView>(R.id.text_title)
-        (arguments?.get(KEY_VIDEODIR) as? VideoDirectory)?.apply {
-            titleText.text = name
-
-            mDirectory = path
-            mVideos.set(videos)
-        }
+        titleText.text = mVideoDir?.name
 
         mRecyclerView = contentView.findViewById(R.id.simrv_foldedVideoList)
         mRecyclerView.layoutManager = LinearLayoutManager(mActivity)
@@ -433,7 +438,7 @@ class FoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, View.OnL
                 onReloadDirectoryVideos(
                         videos.filter {
                             it.path.substring(0, it.path.lastIndexOf(File.separatorChar))
-                                    .equals(mDirectory, ignoreCase = true)
+                                    .equals(mVideoDir?.path, ignoreCase = true)
                         }.reorder())
             }
 
@@ -500,7 +505,7 @@ class FoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, View.OnL
         override fun doInBackground(vararg params: Void?): List<Video>? {
             val helper = VideoDaoHelper.getInstance(mContext)
 
-            val videoCursor = helper.queryAllVideosInDirectory(mDirectory) ?: return null
+            val videoCursor = helper.queryAllVideosInDirectory(mVideoDir?.path) ?: return null
 
             var videos: MutableList<Video>? = null
             var toppedVideos: MutableList<Video>? = null

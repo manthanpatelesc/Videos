@@ -15,7 +15,7 @@
         android:background="@drawable/bg_actionbar"
         android:visibility="gone" />
 
-    <com.liuzhenlin.texturevideoview.TextureVideoView
+    <com.liuzhenlin.texturevideoview.TextureVideoView2
         android:id="@+id/video_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"

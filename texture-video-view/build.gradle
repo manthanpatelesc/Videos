@@ -26,16 +26,24 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+    // please add below compile options to the `.gradle` file of your project module that
+    // depends on this library, too.
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
 }
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'androidx.appcompat:appcompat:1.0.2'
-    api 'androidx.constraintlayout:constraintlayout:2.0.0-alpha3'
+    api 'androidx.constraintlayout:constraintlayout:2.0.0-alpha5'
     api 'androidx.recyclerview:recyclerview:1.0.0'
     api 'androidx.media:media:1.1.0-alpha04'
 
+    api 'com.google.android.exoplayer:exoplayer-core:2.9.6'
+
     testImplementation 'junit:junit:4.12'
-    androidTestImplementation 'androidx.test:runner:1.2.0-alpha04'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0-alpha04'
+    androidTestImplementation 'androidx.test:runner:1.2.0-beta01'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0-beta01'
 }

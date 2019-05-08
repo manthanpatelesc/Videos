@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  ~ Created on 5/2/19 9:46 PM.
+  ~ Copyright © 2019 刘振林. All rights reserved.
+  -->
+
+<SeekBar xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/pb_video"
+    android:layout_width="match_parent"
+    android:layout_height="@dimen/progressbarHeight"
+    android:thumb="@null"
+    android:paddingStart="0dp"
+    android:paddingEnd="0dp" />

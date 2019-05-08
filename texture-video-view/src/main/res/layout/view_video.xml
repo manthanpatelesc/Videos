@@ -5,7 +5,6 @@
 
 <merge xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
@@ -73,7 +72,7 @@
             <ProgressBar
                 android:id="@+id/pb_seekingProgress"
                 android:layout_width="match_parent"
-                android:layout_height="2dp"
+                android:layout_height="@dimen/progressbarHeight"
                 android:minHeight="0dp"
                 android:layout_marginTop="9dp"
                 style="@style/Widget.AppCompat.ProgressBar.Horizontal" />
@@ -90,110 +89,108 @@
             android:contentDescription="@string/videoIsLoading"
             android:visibility="gone" />
 
-        <FrameLayout
+        <LinearLayout
             android:id="@+id/frame_topControls"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:paddingTop="2.5dp"
-            android:paddingBottom="5dp"
+            android:paddingBottom="10dp"
             android:background="@drawable/shadow_top"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toTopOf="@id/text_brightness">
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintVertical_bias="0"
+            android:gravity="center_vertical">
 
-            <TextView
-                android:id="@+id/text_title"
+            <FrameLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1">
+
+                <TextView
+                    android:id="@+id/text_title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingLeft="5dp"
+                    android:paddingRight="0dp"
+                    android:paddingStart="5dp"
+                    android:paddingEnd="0dp"
+                    android:drawableLeft="@drawable/bt_navigate_before_38dp"
+                    android:drawableStart="@drawable/bt_navigate_before_38dp"
+                    android:textColor="@color/color_selector_white_color_accent"
+                    android:textSize="@dimen/video_title_text_size"
+                    android:gravity="center_vertical" />
+            </FrameLayout>
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/bt_share"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:paddingLeft="5dp"
-                android:paddingRight="5dp"
-                android:drawableLeft="@drawable/bt_navigate_before_38dp"
-                android:drawableStart="@drawable/bt_navigate_before_38dp"
-                android:text="@string/goBack"
-                android:textColor="@color/color_selector_white_color_accent"
-                android:textSize="@dimen/video_title_text_size"
-                android:gravity="center_vertical" />
-        </FrameLayout>
+                android:layout_marginLeft="15dp"
+                android:layout_marginRight="15dp"
+                app:srcCompat="@drawable/bt_share_25dp"
+                android:contentDescription="@string/share" />
 
-        <TextView
-            android:id="@+id/text_brightness"
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/bt_more"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="5dp"
+                android:layout_marginRight="15dp"
+                android:layout_marginStart="5dp"
+                android:layout_marginEnd="15dp"
+                app:srcCompat="@drawable/bt_more_27dp"
+                android:contentDescription="@string/more" />
+        </LinearLayout>
+
+        <androidx.appcompat.widget.AppCompatImageView
+            android:id="@+id/bt_lockUnlock"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginLeft="15dp"
-            android:layout_marginStart="15dp"
+            android:layout_marginLeft="12dp"
+            android:layout_marginStart="12dp"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toStartOf="@id/text_volume"
-            app:layout_constraintHorizontal_chainStyle="spread_inside"
-            app:layout_constraintTop_toBottomOf="@id/frame_topControls"
-            app:layout_constraintBottom_toTopOf="@id/sb_brightness"
-            android:text="@string/brightness"
-            android:textColor="@android:color/white"
-            android:textSize="@dimen/widget_small_text_size"
-            android:visibility="invisible" />
-
-        <com.liuzhenlin.texturevideoview.VerticalSeekBar
-            android:id="@+id/sb_brightness"
-            android:layout_width="wrap_content"
-            android:layout_height="0dp"
-            app:layout_constraintStart_toStartOf="@id/text_brightness"
-            app:layout_constraintEnd_toEndOf="@id/text_brightness"
-            app:layout_constraintTop_toBottomOf="@id/text_brightness"
-            app:layout_constraintBottom_toTopOf="@id/text_brightnessValue"
-            android:visibility="invisible" />
-
-        <TextView
-            android:id="@+id/text_brightnessValue"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            app:layout_constraintStart_toStartOf="@id/text_brightness"
-            app:layout_constraintEnd_toEndOf="@id/text_brightness"
-            app:layout_constraintTop_toBottomOf="@id/sb_brightness"
-            app:layout_constraintBottom_toTopOf="@id/frame_bottomControls"
-            android:text="40%"
-            android:textColor="@android:color/white"
-            android:textSize="@dimen/widget_small_text_size"
-            android:visibility="invisible"
-            tools:ignore="HardcodedText" />
-
-        <TextView
-            android:id="@+id/text_volume"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginRight="15dp"
-            android:layout_marginEnd="15dp"
-            app:layout_constraintStart_toEndOf="@id/text_brightness"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="@id/text_brightness"
-            app:layout_constraintBottom_toBottomOf="@id/text_brightness"
-            android:text="@string/volume"
-            android:textColor="@android:color/white"
-            android:textSize="@dimen/widget_small_text_size"
-            android:visibility="invisible" />
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintHorizontal_bias="0"
+            app:srcCompat="@drawable/bt_unlock_24dp"
+            android:background="@drawable/bg_small_image_btn"
+            android:contentDescription="@string/unlock"
+            android:visibility="gone" />
 
-        <com.liuzhenlin.texturevideoview.VerticalSeekBar
-            android:id="@+id/sb_volume"
-            android:layout_width="wrap_content"
-            android:layout_height="0dp"
-            app:layout_constraintStart_toStartOf="@id/text_volume"
-            app:layout_constraintEnd_toEndOf="@id/text_volume"
-            app:layout_constraintTop_toTopOf="@id/sb_brightness"
-            app:layout_constraintBottom_toBottomOf="@id/sb_brightness"
-            android:visibility="invisible" />
+        <LinearLayout
+            android:id="@+id/frame_brightness_or_volume"
+            android:layout_width="@dimen/brightness_or_volume_frame_width"
+            android:layout_height="@dimen/brightness_or_volume_frame_height"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            android:padding="12dp"
+            android:background="@drawable/bg_brightness_or_volume_frame"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:visibility="gone">
 
-        <TextView
-            android:id="@+id/text_volumeValue"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            app:layout_constraintStart_toStartOf="@id/text_volume"
-            app:layout_constraintEnd_toEndOf="@id/text_volume"
-            app:layout_constraintTop_toTopOf="@id/text_brightnessValue"
-            app:layout_constraintBottom_toBottomOf="@id/text_brightnessValue"
-            android:text="67%"
-            android:textColor="@android:color/white"
-            android:textSize="@dimen/widget_small_text_size"
-            android:visibility="invisible"
-            tools:ignore="HardcodedText" />
+            <TextView
+                android:id="@+id/text_brightness_or_volume"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="@dimen/widget_large_text_size"
+                android:textColor="@android:color/white"
+                android:textAlignment="center"
+                android:gravity="center" />
+
+            <ProgressBar
+                android:id="@+id/pb_brightness_or_volume"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/progressbarHeight"
+                android:minHeight="0dp"
+                android:layout_marginTop="10dp"
+                style="@style/Widget.AppCompat.ProgressBar.Horizontal" />
+        </LinearLayout>
 
         <FrameLayout
             android:id="@+id/frame_bottomControls"
@@ -201,19 +198,28 @@
             android:layout_height="wrap_content"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/text_brightnessValue"
+            app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintVertical_bias="1"
             android:background="@drawable/shadow_bottom">
 
             <!--<include layout="@layout/bottom_controls_fullscreen" />-->
         </FrameLayout>
     </com.liuzhenlin.texturevideoview.ConstraintLayout>
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recycler_playlist"
+    <FrameLayout
+        android:id="@+id/drawer_videoview"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="@color/bg_popup"
-        android:scrollbars="vertical"
-        android:layout_gravity="end|center_vertical" />
+        android:layout_height="match_parent"
+        android:layout_gravity="end">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recycler_playlist"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/bg_popup"
+            android:scrollbars="vertical"
+            android:layout_gravity="center_vertical"
+            android:visibility="gone" />
+    </FrameLayout>
 </merge>

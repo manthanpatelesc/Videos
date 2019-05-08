@@ -15,6 +15,7 @@ import android.os.StatFs;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 import android.util.Log;
+import android.webkit.MimeTypeMap;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -68,6 +69,15 @@ public class FileUtils {
         }
     }
 
+    @Nullable
+    public static String getMimeType(@NonNull String path) {
+        final int index = path.lastIndexOf(".");
+        if (index != -1) {
+            return MimeTypeMap.getSingleton().getMimeTypeFromExtension(path.substring(index + 1));
+        }
+        return null;
+    }
+
     /** 判断SD卡是否已挂载 */
     public static boolean isExternalStorageMounted() {
         return Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState());
@@ -96,11 +106,8 @@ public class FileUtils {
             return false;
         }
 
-        BufferedInputStream in = null;
-        BufferedOutputStream out = null;
-        try {
-            in = new BufferedInputStream(new FileInputStream(srcFile));
-            out = new BufferedOutputStream(new FileOutputStream(desFile));
+        try (BufferedInputStream in = new BufferedInputStream(new FileInputStream(srcFile));
+             BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(desFile))) {
             final byte[] bytes = new byte[8 * 1024];
             int i;
             while ((i = in.read(bytes)) != -1) {
@@ -111,21 +118,6 @@ public class FileUtils {
         } catch (IOException e) {
             e.printStackTrace();
             return false;
-        } finally {
-            if (out != null) {
-                try {
-                    out.close();
-                } catch (IOException e) {
-                    //
-                }
-            }
-            if (in != null) {
-                try {
-                    in.close();
-                } catch (IOException e) {
-                    //
-                }
-            }
         }
     }
 

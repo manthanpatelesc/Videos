@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  ~ Created on 18-9-20 上午11:29.
+  ~ Copyright © 2018 刘振林. All rights reserved.
+  -->
+
+<!-- For compatibility of APIs before Lollipop -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@drawable/ic_navigate_before_white_38dp" />
+</layer-list>

@@ -54,7 +54,8 @@ data class VideoDirectory(override var name: String = "",
     }
 
     @Suppress("UNCHECKED_CAST")
-    override fun <T : VideoListItem> deepCopy(): T = copy().apply { videos.deepCopy(videos) } as T
+    override fun <T : VideoListItem> deepCopy(): T =
+            copy(videos = videos.toMutableList()).apply { videos.deepCopy(videos) } as T
 
     constructor(source: Parcel) : this(
             source.readString()!!,

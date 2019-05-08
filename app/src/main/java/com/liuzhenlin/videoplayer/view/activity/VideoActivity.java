@@ -48,7 +48,7 @@ import androidx.recyclerview.widget.StaggeredGridLayoutManager;
 
 import com.liuzhenlin.swipeback.SwipeBackActivity;
 import com.liuzhenlin.swipeback.SwipeBackLayout;
-import com.liuzhenlin.texturevideoview.TextureVideoView;
+import com.liuzhenlin.texturevideoview.AbsTextureVideoView;
 import com.liuzhenlin.texturevideoview.utils.SystemBarUtils;
 import com.liuzhenlin.videoplayer.App;
 import com.liuzhenlin.videoplayer.BuildConfig;
@@ -63,6 +63,7 @@ import com.liuzhenlin.videoplayer.utils.VideoUtils;
 import com.liuzhenlin.videoplayer.utils.observer.OnOrientationChangeListener;
 import com.liuzhenlin.videoplayer.utils.observer.RotationObserver;
 import com.liuzhenlin.videoplayer.utils.observer.ScreenNotchSwitchObserver;
+import com.liuzhenlin.videoplayer.view.fragment.VideoOpsKt;
 
 import java.io.File;
 import java.lang.ref.WeakReference;
@@ -82,7 +83,7 @@ public class VideoActivity extends SwipeBackActivity {
     private static WeakReference<VideoActivity> sActivityInPiP;
 
     private View mStatusBarView;
-    private TextureVideoView mVideoView;
+    private AbsTextureVideoView mVideoView;
     private ImageView mLockUnlockOrientationButton;
 
     private RecyclerView mPlayList;
@@ -186,6 +187,7 @@ public class VideoActivity extends SwipeBackActivity {
                 if (mVideoView.isPlaying()) {
                     mHandler.postDelayed(this, 1000 - progress % 1000);
                 }
+                mVideoProgressInPiP.setSecondaryProgress(mVideoView.getVideoBufferedProgress());
                 mVideoProgressInPiP.setProgress(progress);
             }
         };
@@ -207,32 +209,35 @@ public class VideoActivity extends SwipeBackActivity {
     }
 
     @Override
+    protected void attachBaseContext(Context newBase) {
+        super.attachBaseContext(newBase);
+        if (sLockOrientation == null) {
+            sLockOrientation = getString(R.string.lockScreenOrientation);
+            sUnlockOrientation = getString(R.string.unlockScreenOrientation);
+            sWatching = getString(R.string.watching);
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && sPlay == null) {
+            sPlay = getString(R.string.play);
+            sPause = getString(R.string.pause);
+            sFastForward = getString(R.string.fastForward);
+            sFastRewind = getString(R.string.fastRewind);
+        }
+    }
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        if (canInitVideos()) {
+        if (canInitVideos(savedInstanceState)) {
             setContentView(R.layout.activity_video);
-            initViews();
-            if (sLockOrientation == null) {
-                sLockOrientation = getString(R.string.lockScreenOrientation);
-                sUnlockOrientation = getString(R.string.unlockScreenOrientation);
-                sWatching = getString(R.string.watching);
-            }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                mVideoProgressInPiP = findViewById(R.id.pbInPiP_videoProgress);
-                if (sPlay == null) {
-                    sPlay = getString(R.string.play);
-                    sPause = getString(R.string.pause);
-                    sFastForward = getString(R.string.fastForward);
-                    sFastRewind = getString(R.string.fastRewind);
-                }
-            }
+            initViews(savedInstanceState);
         } else {
             Toast.makeText(this, R.string.cannotPlayThisVideo, Toast.LENGTH_LONG).show();
             finish();
         }
     }
 
-    private boolean canInitVideos() {
+    private boolean canInitVideos(Bundle savedInstanceState) {
+        final boolean stateRestore = savedInstanceState != null;
         Intent intent = getIntent();
         Parcelable[] parcelables = intent.getParcelableArrayExtra(Consts.KEY_VIDEOS);
         if (parcelables != null) {
@@ -240,11 +245,19 @@ public class VideoActivity extends SwipeBackActivity {
             if (length > 0) {
                 mVideos = new Video[length];
                 for (int i = 0; i < length; i++) {
-                    mVideos[i] = (Video) parcelables[i];
+                    Video video = (Video) parcelables[i];
+                    if (stateRestore) {
+                        video.setProgress(VideoDaoHelper.getInstance(this).getVideoProgress(video.getId()));
+                    }
+                    mVideos[i] = video;
                 }
-                mVideoIndex = intent.getIntExtra(Consts.KEY_SELECTION, 0);
-                if (mVideoIndex < 0 || mVideoIndex >= length) {
-                    mVideoIndex = 0;
+                if (stateRestore) {
+                    mVideoIndex = savedInstanceState.getInt(KEY_VIDEO_INDEX);
+                } else {
+                    mVideoIndex = intent.getIntExtra(Consts.KEY_SELECTION, 0);
+                    if (mVideoIndex < 0 || mVideoIndex >= length) {
+                        mVideoIndex = 0;
+                    }
                 }
                 return true;
             }
@@ -267,15 +280,18 @@ public class VideoActivity extends SwipeBackActivity {
                 }
             }
             if (video != null) {
+                if (stateRestore) {
+                    video.setProgress(VideoDaoHelper.getInstance(this).getVideoProgress(video.getId()));
+                }
                 mVideos = new Video[]{video};
-                mVideoIndex = 0;
+                mVideoIndex = stateRestore ? savedInstanceState.getInt(KEY_VIDEO_INDEX) : 0;
                 return true;
             }
         }
         return false;
     }
 
-    private void initViews() {
+    private void initViews(Bundle savedInstanceState) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
             mStatusBarView = findViewById(R.id.view_statusBar);
             ViewGroup.LayoutParams lp = mStatusBarView.getLayoutParams();
@@ -283,6 +299,29 @@ public class VideoActivity extends SwipeBackActivity {
                 lp.height = mStatusHeight;
                 mStatusBarView.setLayoutParams(lp);
             }
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                mVideoProgressInPiP = findViewById(R.id.pbInPiP_videoProgress);
+            }
+        }
+
+        mLockUnlockOrientationButton = findViewById(R.id.bt_lockUnlockOrientation);
+        mLockUnlockOrientationButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                setScreenOrientationLocked((mPrivateFlags & PFLAG_SCREEN_ORIENTATION_LOCKED) == 0);
+            }
+        });
+        if (savedInstanceState != null) {
+            if (savedInstanceState.getBoolean(KEY_IS_SCREEN_ORIENTATION_LOCKED, false)) {
+                setScreenOrientationLocked(true);
+            }
+            mDeviceOrientation = savedInstanceState.getInt(
+                    KEY_DEVICE_ORIENTATION, SCREEN_ORIENTATION_PORTRAIT);
+            mScreenOrientation = savedInstanceState.getInt(
+                    KEY_SCREEN_ORIENTATION, SCREEN_ORIENTATION_PORTRAIT);
+            mStatusHeightInLandscapeOfNotchSupportDevices = savedInstanceState.getInt(
+                    KEY_STATUS_HEIGHT_IN_LANDSCAPE_OF_NOTCH_SUPPORT_DEVICES, 0);
         }
 
         mVideoView = findViewById(R.id.video_view);
@@ -290,7 +329,7 @@ public class VideoActivity extends SwipeBackActivity {
             mVideoView.setPlayListAdapter(new VideoEpisodesAdapter());
         }
         setVideoToPlay(mVideos[mVideoIndex]);
-        mVideoView.setVideoListener(new TextureVideoView.VideoListener() {
+        mVideoView.setVideoListener(new AbsTextureVideoView.VideoListener() {
             @Override
             public void onVideoStarted() {
                 Video video = mVideos[mVideoIndex];
@@ -376,6 +415,11 @@ public class VideoActivity extends SwipeBackActivity {
             }
 
             @Override
+            public void onShareVideo() {
+                VideoOpsKt.shareVideo(VideoActivity.this, mVideos[mVideoIndex]);
+            }
+
+            @Override
             public void onVideoSizeChanged(int oldWidth, int oldHeight, int width, int height) {
                 mVideoWidth = width;
                 mVideoHeight = height;
@@ -400,7 +444,7 @@ public class VideoActivity extends SwipeBackActivity {
                 }
             }
         });
-        mVideoView.setOpCallback(new TextureVideoView.OpCallback() {
+        mVideoView.setOpCallback(new AbsTextureVideoView.OpCallback() {
             @Override
             public boolean isInPictureInPictureMode() {
                 return Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
@@ -423,18 +467,18 @@ public class VideoActivity extends SwipeBackActivity {
                 return mVideoIndex < mVideos.length - 1;
             }
         });
-        mVideoView.setOnReturnClickListener(new TextureVideoView.OnReturnClickListener() {
+        mVideoView.setOnReturnClickListener(new AbsTextureVideoView.OnReturnClickListener() {
             @Override
             public void onReturnClick() {
                 finish();
             }
         });
-
-        mLockUnlockOrientationButton = findViewById(R.id.bt_lockUnlockOrientation);
-        mLockUnlockOrientationButton.setOnClickListener(new View.OnClickListener() {
+        mVideoView.setOnLockedChangeListener(new AbsTextureVideoView.OnLockedChangeListener() {
             @Override
-            public void onClick(View v) {
-                setScreenOrientationLocked((mPrivateFlags & PFLAG_SCREEN_ORIENTATION_LOCKED) == 0);
+            public void onLockedChange(boolean locked) {
+                if (locked) {
+                    showLockUnlockOrientationButton(false);
+                }
             }
         });
     }
@@ -463,17 +507,22 @@ public class VideoActivity extends SwipeBackActivity {
     protected void onRestart() {
         super.onRestart();
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !isInPictureInPictureMode()) {
-            // Android 4.4及以上版本，重新显示页面时状态栏会显示出来且不会自动隐藏
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT
-                    && mVideoView.isInFullscreenMode()) {
-                showSystemBars(false);
-            }
             if (mNotchSwitchObserver != null) {
                 mNotchSwitchObserver.startObserver();
             }
             setAutoRotationEnabled(true);
         }
         mVideoView.openVideo();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Android 4.4及以上版本，重新显示页面时状态栏会显示出来且不会自动隐藏
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT
+                && mVideoView.isInFullscreenMode()) {
+            showSystemBars(false);
+        }
     }
 
     @Override
@@ -676,7 +725,8 @@ public class VideoActivity extends SwipeBackActivity {
     private void changeScreenOrientationIfNeeded(int orientation) {
         switch (mScreenOrientation) {
             case SCREEN_ORIENTATION_PORTRAIT:
-                if ((mPrivateFlags & PFLAG_DEVICE_SCREEN_ROTATION_ENABLED) != 0) {
+                if ((mPrivateFlags & PFLAG_DEVICE_SCREEN_ROTATION_ENABLED) != 0
+                        && !mVideoView.isLocked()) {
                     if ((mPrivateFlags & PFLAG_SCREEN_ORIENTATION_LOCKED) != 0) {
                         final boolean fullscreen = orientation != SCREEN_ORIENTATION_PORTRAIT;
                         if (fullscreen == mVideoView.isInFullscreenMode()) {
@@ -707,7 +757,11 @@ public class VideoActivity extends SwipeBackActivity {
                 if (mScreenOrientation == orientation) {
                     return;
                 }
-                if ((mPrivateFlags & PFLAG_DEVICE_SCREEN_ROTATION_ENABLED) != 0) {
+                if (mVideoView.isLocked()) {
+                    if (orientation == SCREEN_ORIENTATION_PORTRAIT) {
+                        return;
+                    }
+                } else if ((mPrivateFlags & PFLAG_DEVICE_SCREEN_ROTATION_ENABLED) != 0) {
                     if ((mPrivateFlags & PFLAG_SCREEN_ORIENTATION_LOCKED) != 0
                             && orientation == SCREEN_ORIENTATION_PORTRAIT) {
                         break;
@@ -726,8 +780,8 @@ public class VideoActivity extends SwipeBackActivity {
                             || (mPrivateFlags & PFLAG_SCREEN_NOTCH_SUPPORT_ON_EMUI) != 0
                                     && (mPrivateFlags & PFLAG_SCREEN_NOTCH_HIDDEN) != 0) {
                     //@formatter:on
-                        if (mVideoView.isTopAndBottomControlsShown()) {
-                            mVideoView.showTopAndBottomControls(true);
+                        if (mVideoView.isControlsShowing()) {
+                            mVideoView.showControls(true, false);
                         }
                         return;
                     }
@@ -755,8 +809,8 @@ public class VideoActivity extends SwipeBackActivity {
                                 mStatusHeight : mStatusHeightInLandscapeOfNotchSupportDevices
                             : 0);
         //@formatter:on
-        if (mVideoView.isTopAndBottomControlsShown()) {
-            mVideoView.showTopAndBottomControls(true);
+        if (mVideoView.isControlsShowing()) {
+            mVideoView.showControls(true, false);
         }
         resizeVideoView();
         mPrivateFlags = mPrivateFlags & ~PFLAG_LAST_VIDEO_LAYOUT_IS_FULLSCREEN
@@ -779,10 +833,6 @@ public class VideoActivity extends SwipeBackActivity {
 
     @SuppressWarnings("SuspiciousNameCombination")
     private void resizeVideoView() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            TransitionManager.endTransitions(mVideoView);
-        }
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && isInPictureInPictureMode()) {
             setVideoViewSize(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
             return;
@@ -796,9 +846,7 @@ public class VideoActivity extends SwipeBackActivity {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT
                         && (mPrivateFlags & PFLAG_SCREEN_ORIENTATION_PORTRAIT_IMMUTABLE) != 0
                         && layoutIsFullscreen != lastLayoutIsFullscreen) {
-                    ChangeBounds cb = new ChangeBounds();
-                    cb.excludeTarget(mPlayList, true);
-                    TransitionManager.beginDelayedTransition(mVideoView, cb);
+                    TransitionManager.beginDelayedTransition(mVideoView, new ChangeBounds());
                 }
 
                 if (layoutIsFullscreen) {
@@ -869,7 +917,7 @@ public class VideoActivity extends SwipeBackActivity {
                 // 使view显示在状态栏底层
                 visibility |= View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                         | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN;
-                // 状态栏显现
+                // 状态栏、导航栏显现
                 visibility &= ~(View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
                         | View.SYSTEM_UI_FLAG_FULLSCREEN
                         | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
@@ -894,19 +942,19 @@ public class VideoActivity extends SwipeBackActivity {
         final List<RemoteAction> actions = new LinkedList<>();
 
         if ((pipActions & PIP_ACTION_FAST_REWIND) != 0) {
-            actions.add(createPipAction(R.drawable.ic_fast_rewind_24dp, sFastRewind,
+            actions.add(createPipAction(R.drawable.ic_fast_rewind_white_24dp, sFastRewind,
                     PIP_ACTION_FAST_REWIND, REQUEST_FAST_REWIND));
         }
         if ((pipActions & PIP_ACTION_PLAY) != 0) {
-            actions.add(createPipAction(R.drawable.ic_play_24dp, sPlay,
+            actions.add(createPipAction(R.drawable.ic_play_white_24dp, sPlay,
                     PIP_ACTION_PLAY, REQUEST_PLAY));
 
         } else if ((pipActions & PIP_ACTION_PAUSE) != 0) {
-            actions.add(createPipAction(R.drawable.ic_pause_24dp, sPause,
+            actions.add(createPipAction(R.drawable.ic_pause_white_24dp, sPause,
                     PIP_ACTION_PAUSE, REQUEST_PAUSE));
         }
         if ((pipActions & PIP_ACTION_FAST_FORWARD) != 0) {
-            actions.add(createPipAction(R.drawable.ic_fast_forward_24dp, sFastForward,
+            actions.add(createPipAction(R.drawable.ic_fast_forward_white_24dp, sFastForward,
                     PIP_ACTION_FAST_FORWARD, REQUEST_FAST_FORWARD));
         }
 
@@ -992,9 +1040,7 @@ public class VideoActivity extends SwipeBackActivity {
             mRefreshVideoProgressInPiPTask = new RefreshVideoProgressInPiPTask();
             mRefreshVideoProgressInPiPTask.execute();
 
-            mVideoView.showBrightnessSeekBar(false);
-            mVideoView.showVolumeSeekBar(false);
-            mVideoView.showTopAndBottomControls(false);
+            mVideoView.showControls(false, false);
             mVideoView.setClipViewBounds(true);
             resizeVideoView();
 
@@ -1064,7 +1110,7 @@ public class VideoActivity extends SwipeBackActivity {
             mVideoView.removeOnLayoutChangeListener(mOnPipLayoutChangeListener);
             mOnPipLayoutChangeListener = null;
 
-            mVideoView.showTopAndBottomControls(true);
+            mVideoView.showControls(true);
             mVideoView.setClipViewBounds(false);
             resizeVideoView();
 
@@ -1083,9 +1129,14 @@ public class VideoActivity extends SwipeBackActivity {
      * 跳转到系统默认的播放器进行播放
      */
     private void playVideoByDefault() {
-        Uri uri = Uri.parse(mVideos[mVideoIndex].getPath());
-        Intent it = new Intent(Intent.ACTION_VIEW).setDataAndType(uri, "video/mp4");
-        startActivity(it);
+        final String path = mVideos[mVideoIndex].getPath();
+        String mimeType = FileUtils.getMimeType(path);
+        if (mimeType == null) {
+            mimeType = "video/*";
+        }
+        startActivity(new Intent(Intent.ACTION_VIEW)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                .setDataAndType(Uri.parse(path), mimeType));
     }
 
     private void notifyItemSelectionChanged(int oldPosition, int position, boolean checkNewItemVisibility) {
@@ -1117,7 +1168,7 @@ public class VideoActivity extends SwipeBackActivity {
         }
     }
 
-    private class VideoEpisodesAdapter extends TextureVideoView.PlayListAdapter<VideoEpisodesAdapter.ViewHolder> {
+    private class VideoEpisodesAdapter extends AbsTextureVideoView.PlayListAdapter<VideoEpisodesAdapter.ViewHolder> {
 
         @Override
         public void onAttachedToRecyclerView(@NonNull RecyclerView recyclerView) {
@@ -1217,28 +1268,6 @@ public class VideoActivity extends SwipeBackActivity {
     private static final String KEY_SCREEN_ORIENTATION = "kso";
     private static final String KEY_STATUS_HEIGHT_IN_LANDSCAPE_OF_NOTCH_SUPPORT_DEVICES = "kshilonsd";
     private static final String KEY_VIDEO_INDEX = "kvi";
-
-    @Override
-    protected void onRestoreInstanceState(Bundle savedInstanceState) {
-        super.onRestoreInstanceState(savedInstanceState);
-        if (savedInstanceState.getBoolean(KEY_IS_SCREEN_ORIENTATION_LOCKED, false)) {
-            setScreenOrientationLocked(true);
-        }
-        mDeviceOrientation = savedInstanceState.getInt(
-                KEY_DEVICE_ORIENTATION, SCREEN_ORIENTATION_PORTRAIT);
-        mScreenOrientation = savedInstanceState.getInt(
-                KEY_SCREEN_ORIENTATION, SCREEN_ORIENTATION_PORTRAIT);
-        mStatusHeightInLandscapeOfNotchSupportDevices = savedInstanceState.getInt(
-                KEY_STATUS_HEIGHT_IN_LANDSCAPE_OF_NOTCH_SUPPORT_DEVICES, 0);
-
-        final int videoIndex = savedInstanceState.getInt(KEY_VIDEO_INDEX);
-        if (videoIndex != mVideoIndex) {
-            final int oldIndex = mVideoIndex;
-            mVideoIndex = videoIndex;
-            setVideoToPlay(mVideos[videoIndex]);
-            notifyItemSelectionChanged(oldIndex, videoIndex, true);
-        }
-    }
 
     @Override
     protected void onSaveInstanceState(Bundle outState) {

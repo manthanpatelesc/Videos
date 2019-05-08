@@ -23,7 +23,7 @@ public class ScreenUtils {
     }
 
     /**
-     * 获得系统亮度
+     * 获取系统屏幕亮度
      */
     @IntRange(from = 0, to = 255)
     public static int getScreenBrightness(@NonNull Context context) {
@@ -38,12 +38,27 @@ public class ScreenUtils {
     }
 
     /**
+     * 设置系统屏幕亮度
+     */
+    public void setScreenBrightness(@NonNull Context context, int brightness) {
+        if (getScreenBrightness(context) != brightness) {
+            ContentResolver resolver = context.getContentResolver();
+            Uri uri = Settings.System.getUriFor(Settings.System.SCREEN_BRIGHTNESS);
+            Settings.System.putInt(resolver,
+                    Settings.System.SCREEN_BRIGHTNESS, Math.max(0, Math.min(brightness, 255)));
+            // 通知改变
+            resolver.notifyChange(uri, null);
+        }
+    }
+
+    /**
      * 获取当前Window的亮度
      */
+    @IntRange(from = -1, to = 255)
     public static int getWindowBrightness(@NonNull Window window) {
         final float brightness = window.getAttributes().screenBrightness;
         if (brightness == WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE) {
-            return getScreenBrightness(window.getContext());
+            return (int) brightness;
         }
         return (int) (brightness * 255f + 0.5f);
     }
@@ -52,18 +67,20 @@ public class ScreenUtils {
      * 改变当前Window的亮度
      */
     public static void setWindowBrightness(@NonNull Window window, int brightness) {
-        WindowManager.LayoutParams lp = window.getAttributes();
-        if (brightness == -1) {
-            // 自动亮度
-            lp.screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE;
-        } else {
-            lp.screenBrightness = (brightness <= 0 ? 1f : brightness) / 255f;
+        if (getWindowBrightness(window) != brightness) {
+            WindowManager.LayoutParams lp = window.getAttributes();
+            if (brightness == WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE) {
+                // 跟随系统屏幕亮度
+                lp.screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE;
+            } else {
+                lp.screenBrightness = (float) Math.max(0, Math.min(brightness, 255)) / 255f;
+            }
+            window.setAttributes(lp);
         }
-        window.setAttributes(lp);
     }
 
     /**
-     * 判断屏幕是否自动旋转
+     * 判断屏幕能否自动旋转
      */
     public static boolean isRotationEnabled(@NonNull Context context) {
         try {
@@ -76,13 +93,16 @@ public class ScreenUtils {
     }
 
     /**
-     * 设置屏幕是否自动旋转
+     * 设置屏幕能否自动旋转
      */
     public static void setRotationEnabled(@NonNull Context context, boolean enabled) {
-        ContentResolver resolver = context.getContentResolver();
-        Uri uri = Settings.System.getUriFor(Settings.System.ACCELEROMETER_ROTATION);
-        Settings.System.putInt(resolver, Settings.System.ACCELEROMETER_ROTATION, enabled ? 1 : 0);
-        // 通知改变
-        resolver.notifyChange(uri, null);
+        if (isRotationEnabled(context) != enabled) {
+            ContentResolver resolver = context.getContentResolver();
+            Uri uri = Settings.System.getUriFor(Settings.System.ACCELEROMETER_ROTATION);
+            Settings.System.putInt(resolver,
+                    Settings.System.ACCELEROMETER_ROTATION, enabled ? 1 : 0);
+            // 通知改变
+            resolver.notifyChange(uri, null);
+        }
     }
 }

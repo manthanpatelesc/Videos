@@ -5,6 +5,7 @@
 
 package com.liuzhenlin.videoplayer.view.fragment
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -16,6 +17,7 @@ import androidx.fragment.app.Fragment
 import com.liuzhenlin.videoplayer.*
 import com.liuzhenlin.videoplayer.dao.VideoDaoHelper
 import com.liuzhenlin.videoplayer.model.Video
+import com.liuzhenlin.videoplayer.utils.FileUtils
 import com.liuzhenlin.videoplayer.view.activity.VideoActivity
 import java.io.File
 import java.util.*
@@ -98,6 +100,14 @@ interface VideoOpCallback {
 }
 
 fun Fragment.shareVideo(video: Video) {
+    startActivity(Intent.createChooser(createShareIntent(video), getString(R.string.share)))
+}
+
+fun Context.shareVideo(video: Video) {
+    startActivity(Intent.createChooser(createShareIntent(video), getString(R.string.share)))
+}
+
+private fun createShareIntent(video: Video): Intent {
     val shareIntent = Intent().setAction(Intent.ACTION_SEND)
     shareIntent.putExtra(Intent.EXTRA_STREAM,
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
@@ -108,8 +118,8 @@ fun Fragment.shareVideo(video: Video) {
             } else {
                 Uri.fromFile(File(video.path))
             })
-    shareIntent.type = "video/*"
-    startActivity(Intent.createChooser(shareIntent, getString(R.string.share)))
+    shareIntent.type = FileUtils.getMimeType(video.path) ?: "video/*"
+    return shareIntent
 }
 
 fun Fragment.playVideo(video: Video) {
@@ -119,11 +129,27 @@ fun Fragment.playVideo(video: Video) {
             REQUEST_CODE_PLAY_VIDEO)
 }
 
+fun Activity.playVideo(video: Video) {
+    startActivityForResult(
+            Intent(this, VideoActivity::class.java)
+                    .putExtra(KEY_VIDEO, video),
+            REQUEST_CODE_PLAY_VIDEO)
+}
+
 fun Fragment.playVideos(vararg videos: Video, selection: Int) {
     if (videos.isEmpty()) return
 
     startActivityForResult(
             Intent(activity ?: context, VideoActivity::class.java)
+                    .putExtra(KEY_VIDEOS, videos).putExtra(KEY_SELECTION, selection),
+            REQUEST_CODE_PLAY_VIDEOS)
+}
+
+fun Activity.playVideos(vararg videos: Video, selection: Int) {
+    if (videos.isEmpty()) return
+
+    startActivityForResult(
+            Intent(this, VideoActivity::class.java)
                     .putExtra(KEY_VIDEOS, videos).putExtra(KEY_SELECTION, selection),
             REQUEST_CODE_PLAY_VIDEOS)
 }
