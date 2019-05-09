@@ -61,6 +61,7 @@ import android.widget.SeekBar;
 import android.widget.Spinner;
 import android.widget.Switch;
 import android.widget.TextView;
+import android.widget.Toast;
 import android.widget.VideoView;
 
 import androidx.annotation.CallSuper;
@@ -90,6 +91,8 @@ import com.liuzhenlin.texturevideoview.utils.TimeUtil;
 import com.liuzhenlin.texturevideoview.utils.Utils;
 
 import java.lang.reflect.Field;
+import java.util.LinkedList;
+import java.util.List;
 
 /**
  * Base implementation of {@link VideoPlayerControl} to provide video playback.
@@ -300,25 +303,11 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     /** If set, this view is currently in fullscreen mode. */
     private static final int PFLAG_IN_FULLSCREEN_MODE = 1 << 5;
 
-    /**
-     * Indicates that the player is currently preparing for the video playback asynchronously.
-     */
-    /* package-private */ static final int PFLAG_PLAYER_IS_PREPARING = 1 << 6;
-
     /** Indicates that the video info (width, height, duration, etc.) is now available. */
-    /* package-private */ static final int PFLAG_VIDEO_INFO_RESOLVED = 1 << 7;
-
-    /** Indicates that the video is currently playing (the player is running, too). */
-    /* package-private */ static final int PFLAG_VIDEO_IS_PLAYING = 1 << 8;
-
-    /** Indicates that an error occurs while the video is playing. */
-    /* package-private */ static final int PFLAG_ERROR_OCCURRED_WHILE_PLAYING_VIDEO = 1 << 9;
+    /* package-private */ static final int PFLAG_VIDEO_INFO_RESOLVED = 1 << 6;
 
     /** Indicates that the video is manually paused by the user. */
-    /* package-private */ static final int PFLAG_VIDEO_PAUSED_BY_USER = 1 << 10;
-
-    /** Indicates that the end of the video is reached. */
-    /* package-private */ static final int PFLAG_VIDEO_PLAYBACK_COMPLETED = 1 << 11;
+    /* package-private */ static final int PFLAG_VIDEO_PAUSED_BY_USER = 1 << 7;
 
     /**
      * Flag indicates the video is being closed, i.e., we are releasing the player object,
@@ -326,25 +315,25 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
      * (this may happen as we call the `onVideoStopped()` method of the VideoListener object in our
      * `closeVideoInternal()` method if this view is currently playing).
      */
-    /* package-private */ static final int PFLAG_VIDEO_IS_CLOSING = 1 << 12;
+    /* package-private */ static final int PFLAG_VIDEO_IS_CLOSING = 1 << 8;
 
     /**
      * Indicates that this view is currently in audio-only playback (no video displayed) and thus
      * the playback can still last in the background.
      */
-    /* package-private */ static final int PFLAG_PURE_AUDIO_PLAYBACK = 1 << 13;
+    /* package-private */ static final int PFLAG_PURE_AUDIO_PLAYBACK = 1 << 9;
 
     /**
      * Indicates if the player is looping through a single video, i.e., the video played will never
      * change unless the user switches to another.
      */
-    /* package-private */ static final int PFLAG_SINGLE_VIDEO_LOOP_PLAYBACK = 1 << 14;
+    /* package-private */ static final int PFLAG_SINGLE_VIDEO_LOOP_PLAYBACK = 1 << 10;
 
     /**
      * When set, we will turn off the video playback and release the player object and
      * some other resources associated with it when the currently playing video ends.
      */
-    /* package-private */ static final int PFLAG_TURN_OFF_WHEN_THIS_EPISODE_ENDS = 1 << 15;
+    /* package-private */ static final int PFLAG_TURN_OFF_WHEN_THIS_EPISODE_ENDS = 1 << 11;
 
     /** The amount of time till we fade out the controls. */
     private static final int TIMEOUT_SHOW_CONTROLS = 5000; // ms
@@ -628,14 +617,15 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
 
                 if (translateAnimator == null) {
                     final View target = mmr == null ? mSeekingTextProgressFrame : mSeekingVideoThumbText;
-                    translateAnimator = ValueAnimator.ofFloat(0,
+                    ValueAnimator ta;
+                    translateAnimator = ta = ValueAnimator.ofFloat(0,
                             progress > start ? mSeekingViewHorizontalOffset : -mSeekingViewHorizontalOffset);
-                    translateAnimator.addListener(animatorListener);
-                    translateAnimator.addUpdateListener(
+                    ta.addListener(animatorListener);
+                    ta.addUpdateListener(
                             animation -> target.setTranslationX((float) animation.getAnimatedValue()));
-                    translateAnimator.setDuration(DURATION);
-                    translateAnimator.setRepeatMode(ValueAnimator.RESTART);
-                    translateAnimator.start();
+                    ta.setDuration(DURATION);
+                    ta.setRepeatMode(ValueAnimator.RESTART);
+                    ta.start();
                 }
             }
         }
@@ -780,9 +770,9 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
                         }
                     };
                 }
-                fadeAnimator = ValueAnimator.ofFloat(0.0f, 1.0f);
-                fadeAnimator.addListener(animatorListener);
-                fadeAnimator.addUpdateListener(animation -> {
+                fadeAnimator = fa = ValueAnimator.ofFloat(0.0f, 1.0f);
+                fa.addListener(animatorListener);
+                fa.addUpdateListener(animation -> {
                     final float alpha = (float) animation.getAnimatedValue();
                     if (mSeekingVideoThumbText.getVisibility() == VISIBLE) {
                         mScrimView.setAlpha(alpha);
@@ -791,15 +781,13 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
                         mSeekingTextProgressFrame.setAlpha(alpha);
                     }
                 });
-                fadeAnimator.setRepeatMode(ValueAnimator.RESTART);
-                fadeAnimator.start();
             } else {
                 // If the fade in/out animator has not been released before we need one again,
                 // reuse it to avoid unnecessary memory re-allocations.
                 fadeAnimator = fa;
-                fa.setRepeatMode(ValueAnimator.RESTART);
-                fa.start();
             }
+            fa.setRepeatMode(ValueAnimator.RESTART);
+            fa.start();
         }
 
         @Override
@@ -928,6 +916,11 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     @Nullable
     private VideoListener mVideoListener;
 
+    @Nullable
+    private List<OnPlaybackStateChangeListener> mOnPlaybackStateChangeListeners;
+
+    static final OnPlaybackStateChangeListener[] sEmptyOnPlaybackStateChangeListenerArray = {};
+
     /* package-private */ Surface mSurface;
 
     /** The Uri for the video to play. */
@@ -942,6 +935,9 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     /** The string representation of the video duration. */
     /* package-private */ String mVideoDurationString = DEFAULT_STRING_VIDEO_DURATION;
     /* package-private */ static final String DEFAULT_STRING_VIDEO_DURATION = "00:00";
+
+    /** The current state of the player or the playback of the video */
+    private int mPlaybackState = PLAYBACK_STATE_IDLE;
 
     /**
      * Caches the speed at which the player works, used on saving instance state and maybe
@@ -1080,14 +1076,16 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
             sLeftDraggerField.setAccessible(true);
             sRightDraggerField = drawerLayoutClass.getDeclaredField("mRightDragger");
             sRightDraggerField.setAccessible(true);
-
+        } catch (NoSuchFieldException e) {
+            e.printStackTrace();
+            sLeftDraggerField = sRightDraggerField = null;
+        }
+        try {
             Class<LayoutParams> lpClass = LayoutParams.class;
             sOpenStateField = lpClass.getDeclaredField("openState");
             sOpenStateField.setAccessible(true);
         } catch (NoSuchFieldException e) {
             e.printStackTrace();
-            sLeftDraggerField = sRightDraggerField = null;
-            sOpenStateField = null;
         }
     }
 
@@ -1229,6 +1227,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
                 closeVideoInternal(false);
                 mSurface.release();
                 mSurface = null;
+                setPlaybackState(PLAYBACK_STATE_IDLE);
                 return true;
             }
 
@@ -1254,6 +1253,14 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
         mLoadingDrawable.setStrokeWidth(mResources.getDimension(R.dimen.circular_progress_stroke_width));
         mLoadingDrawable.setStrokeCap(Paint.Cap.ROUND);
         mLoadingImage.setImageDrawable(mLoadingDrawable);
+
+        if (BuildConfig.DEBUG) {
+            addOnPlaybackStateChangeListener((oldState, newState) ->
+                    Toast.makeText(context,
+                            Utils.playbackStateIntToString(oldState)
+                                    + "    " + Utils.playbackStateIntToString(newState),
+                            Toast.LENGTH_SHORT).show());
+        }
     }
 
     private void inflateBottomControls() {
@@ -1455,7 +1462,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
      * @see #play()
      */
     public void openVideo(boolean replayIfCompleted) {
-        if (replayIfCompleted || !isPlaybackCompleted()) {
+        if (replayIfCompleted || mPlaybackState != PLAYBACK_STATE_COMPLETED) {
             openVideoInternal();
         }
     }
@@ -1478,11 +1485,6 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     abstract void closeVideoInternal(boolean fromUser);
 
     @Override
-    public boolean isPlaying() {
-        return (mPrivateFlags & PFLAG_VIDEO_IS_PLAYING) != 0;
-    }
-
-    @Override
     public void fastForward() {
         seekTo(getVideoProgress() + FAST_FORWARD_REWIND_INTERVAL);
     }
@@ -1490,11 +1492,6 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     @Override
     public void fastRewind() {
         seekTo(getVideoProgress() - FAST_FORWARD_REWIND_INTERVAL);
-    }
-
-    @Override
-    public boolean isPlaybackCompleted() {
-        return (mPrivateFlags & PFLAG_VIDEO_PLAYBACK_COMPLETED) != 0;
     }
 
     @Override
@@ -1574,8 +1571,47 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
         }
     }
 
+    @PlaybackState
+    @Override
+    public int getPlaybackState() {
+        return mPlaybackState;
+    }
+
+    void setPlaybackState(@PlaybackState int newState) {
+        final int oldState = mPlaybackState;
+        if (newState != oldState) {
+            mPlaybackState = newState;
+            if (mOnPlaybackStateChangeListeners != null) {
+                OnPlaybackStateChangeListener[] listeners =
+                        mOnPlaybackStateChangeListeners.toArray(sEmptyOnPlaybackStateChangeListenerArray);
+                for (OnPlaybackStateChangeListener listener : listeners) {
+                    listener.onPlaybackStateChange(oldState, newState);
+                }
+            }
+        }
+    }
+
+    @Override
+    public void addOnPlaybackStateChangeListener(@Nullable OnPlaybackStateChangeListener listener) {
+        if (listener != null) {
+            if (mOnPlaybackStateChangeListeners == null) {
+                mOnPlaybackStateChangeListeners = new LinkedList<>();
+            }
+            if (!mOnPlaybackStateChangeListeners.contains(listener)) {
+                mOnPlaybackStateChangeListeners.add(listener);
+            }
+        }
+    }
+
+    @Override
+    public void removeOnPlaybackStateChangeListener(@Nullable OnPlaybackStateChangeListener listener) {
+        if (listener != null && mOnPlaybackStateChangeListeners != null) {
+            mOnPlaybackStateChangeListeners.remove(listener);
+        }
+    }
+
     void onVideoStarted() {
-        mPrivateFlags |= PFLAG_VIDEO_IS_PLAYING;
+        setPlaybackState(PLAYBACK_STATE_PLAYING);
         if (mVideoListener != null) {
             mVideoListener.onVideoStarted();
         }
@@ -1587,7 +1623,9 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     }
 
     void onVideoStopped() {
-        mPrivateFlags &= ~PFLAG_VIDEO_IS_PLAYING;
+        if (mPlaybackState != PLAYBACK_STATE_ERROR && mPlaybackState != PLAYBACK_STATE_COMPLETED) {
+            setPlaybackState(PLAYBACK_STATE_PAUSED);
+        }
         if (mVideoListener != null) {
             mVideoListener.onVideoStopped();
         }
@@ -1599,7 +1637,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     }
 
     void onPlaybackCompleted() {
-        mPrivateFlags |= PFLAG_VIDEO_PLAYBACK_COMPLETED;
+        setPlaybackState(PLAYBACK_STATE_COMPLETED);
         if ((mPrivateFlags & PFLAG_TURN_OFF_WHEN_THIS_EPISODE_ENDS) != 0) {
             mPrivateFlags &= ~PFLAG_TURN_OFF_WHEN_THIS_EPISODE_ENDS;
             if (mMoreView != null) {
@@ -1688,6 +1726,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     /**
      * @return title of the video.
      */
+    @Nullable
     public String getTitle() {
         return mTitle;
     }
@@ -1695,7 +1734,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     /**
      * Sets the title of the video to play.
      */
-    public void setTitle(String title) {
+    public void setTitle(@Nullable String title) {
         if (!ObjectsCompat.equals(title, mTitle)) {
             mTitle = title;
             if (isInFullscreenMode()) {

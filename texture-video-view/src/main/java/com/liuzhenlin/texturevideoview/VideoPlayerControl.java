@@ -8,9 +8,13 @@ package com.liuzhenlin.texturevideoview;
 import android.net.Uri;
 import android.text.TextUtils;
 
+import androidx.annotation.IntDef;
 import androidx.annotation.IntRange;
 import androidx.annotation.Nullable;
 import androidx.annotation.RawRes;
+
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 
 /**
  * An interface that can be implemented by {@linkplain android.view.View View} subclasses that wish
@@ -100,7 +104,9 @@ public interface VideoPlayerControl {
      *
      * @return `true` if currently playing, `false` otherwise
      */
-    boolean isPlaying();
+    default boolean isPlaying() {
+        return getPlaybackState() == PLAYBACK_STATE_PLAYING;
+    }
 
     /**
      * Starts or resumes playback.
@@ -119,6 +125,9 @@ public interface VideoPlayerControl {
      */
     void pause(boolean fromUser);
 
+    /**
+     * Switches the playback state between playing and non-playing
+     */
     default void toggle() {
         if (isPlaying()) {
             pause(true);
@@ -135,11 +144,6 @@ public interface VideoPlayerControl {
 
     /** Fast-rewind the video. */
     void fastRewind();
-
-    /**
-     * @return `true` if the video playback is finished
-     */
-    boolean isPlaybackCompleted();
 
     /**
      * @return the current playback position of the video, in milliseconds.
@@ -204,5 +208,86 @@ public interface VideoPlayerControl {
      * Sets the playback speed for the video player
      */
     default void setPlaybackSpeed(float speed) {
+    }
+
+    /**
+     * @return the current state of the player or the playback of the video
+     */
+    @PlaybackState
+    int getPlaybackState();
+
+    /**
+     * Adds a {@link OnPlaybackStateChangeListener} to get notified when the state of the player
+     * or the playback state of the video changes
+     */
+    void addOnPlaybackStateChangeListener(@Nullable OnPlaybackStateChangeListener listener);
+
+    /**
+     * Removes a {@link OnPlaybackStateChangeListener} from the set of listeners previously added.
+     */
+    void removeOnPlaybackStateChangeListener(@Nullable OnPlaybackStateChangeListener listener);
+
+    /**
+     * Represents an undefined playback state of the video, usually set when the video is closing
+     * but another op is requested, in which case the player cannot perform that action immediately.
+     */
+    int PLAYBACK_STATE_UNDEFINED = Integer.MIN_VALUE;
+
+    /**
+     * A fatal player error occurred that paused the playback
+     */
+    int PLAYBACK_STATE_ERROR = -1;
+
+    /**
+     * The player does not have any video to play.
+     */
+    int PLAYBACK_STATE_IDLE = 0;
+
+    /**
+     * The player is currently preparing for the video playback asynchronously.
+     */
+    int PLAYBACK_STATE_PREPARING = 1;
+
+    /**
+     * The video is prepared to be started
+     */
+    int PLAYBACK_STATE_PREPARED = 2;
+
+    /**
+     * The video is currently playing
+     */
+    int PLAYBACK_STATE_PLAYING = 3;
+
+    /**
+     * The video is temporarily paused
+     */
+    int PLAYBACK_STATE_PAUSED = 4;
+
+    /**
+     * The playback of the video is ended
+     */
+    int PLAYBACK_STATE_COMPLETED = 5;
+
+    @IntDef({PLAYBACK_STATE_UNDEFINED,
+            PLAYBACK_STATE_ERROR,
+            PLAYBACK_STATE_IDLE,
+            PLAYBACK_STATE_PREPARING, PLAYBACK_STATE_PREPARED,
+            PLAYBACK_STATE_PLAYING, PLAYBACK_STATE_PAUSED, PLAYBACK_STATE_COMPLETED})
+    @Retention(RetentionPolicy.SOURCE)
+    @interface PlaybackState {
+    }
+
+    /**
+     * A listener to monitor all state changes to the player or the playback of the video
+     */
+    interface OnPlaybackStateChangeListener {
+        /**
+         * Called when the state of the player or the playback state of the video changes
+         *
+         * @param oldState the old state of the player or the playback of the video
+         * @param newState the new state of the player or the playback of the video
+         * @see PlaybackState
+         */
+        void onPlaybackStateChange(@PlaybackState int oldState, @PlaybackState int newState);
     }
 }

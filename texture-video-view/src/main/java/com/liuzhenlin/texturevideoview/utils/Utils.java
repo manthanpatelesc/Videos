@@ -13,6 +13,8 @@ import android.view.ViewParent;
 
 import androidx.annotation.NonNull;
 
+import com.liuzhenlin.texturevideoview.VideoPlayerControl;
+
 /**
  * @author 刘振林
  */
@@ -20,6 +22,18 @@ public class Utils {
     private Utils() {
     }
 
+    /**
+     * Create a new MotionEvent with {@link MotionEvent#ACTION_CANCEL} action being performed,
+     * filling in a subset of the basic motion values. Those not specified here are:
+     * <ul>
+     * <li>down time (current milliseconds since boot)</li>
+     * <li>event time (current milliseconds since boot)</li>
+     * <li>x and y coordinates of this event (always 0)</li>
+     * <li>
+     * The state of any meta/modifier keys that were in effect when the event was generated (always 0)
+     * </li>
+     * </ul>
+     */
     @NonNull
     public static MotionEvent obtainCancelEvent() {
         final long now = SystemClock.uptimeMillis();
@@ -38,5 +52,37 @@ public class Utils {
             p = p.getParent();
         }
         return false;
+    }
+
+    /**
+     * Convert a playback state constant defined for {@link VideoPlayerControl.PlaybackState} to a
+     * specified string
+     *
+     * @param playbackState one of the constant defined for {@link VideoPlayerControl.PlaybackState}
+     * @return the string representation of the playback state
+     */
+    @NonNull
+    public static String playbackStateIntToString(@VideoPlayerControl.PlaybackState int playbackState) {
+        switch (playbackState) {
+            case VideoPlayerControl.PLAYBACK_STATE_UNDEFINED:
+                return "UNDEFINED";
+            case VideoPlayerControl.PLAYBACK_STATE_ERROR:
+                return "ERROR";
+            case VideoPlayerControl.PLAYBACK_STATE_IDLE:
+                return "IDLE";
+            case VideoPlayerControl.PLAYBACK_STATE_PREPARING:
+                return "PREPARING";
+            case VideoPlayerControl.PLAYBACK_STATE_PREPARED:
+                return "PREPARED";
+            case VideoPlayerControl.PLAYBACK_STATE_PLAYING:
+                return "PLAYING";
+            case VideoPlayerControl.PLAYBACK_STATE_PAUSED:
+                return "PAUSED";
+            case VideoPlayerControl.PLAYBACK_STATE_COMPLETED:
+                return "COMPLETED";
+            default:
+                throw new IllegalArgumentException("the `playbackState` must be one of the constant"
+                        + " defined for VideoPlayerControl.PlaybackState");
+        }
     }
 }

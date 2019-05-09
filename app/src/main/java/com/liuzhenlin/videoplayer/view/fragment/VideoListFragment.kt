@@ -861,9 +861,10 @@ class VideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefreshLayo
                     }
 
                     override fun run() {
-                        val lp = mRecyclerView.layoutParams
-                        lp.height = mRecyclerView.height - contentView.height
-                        mRecyclerView.layoutParams = lp
+                        val parent = mRecyclerView.parent as View
+                        val lp = parent.layoutParams
+                        lp.height = parent.height - contentView.height
+                        parent.layoutParams = lp
 
                         val itemBottom = (v.parent as View).bottom
                         if (itemBottom <= lp.height) {
@@ -902,9 +903,10 @@ class VideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefreshLayo
                     mShareButton_IOW = null
                     mDetailsButton_IOW = null
 
-                    val lp = mRecyclerView.layoutParams
+                    val parent = mRecyclerView.parent as View
+                    val lp = parent.layoutParams
                     lp.height = ViewGroup.LayoutParams.MATCH_PARENT
-                    mRecyclerView.layoutParams = lp
+                    parent.layoutParams = lp
 
                     for (item in mVideoListItems) {
                         item.isChecked = false

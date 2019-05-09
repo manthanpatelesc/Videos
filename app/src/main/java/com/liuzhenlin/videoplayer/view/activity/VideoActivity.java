@@ -49,6 +49,7 @@ import androidx.recyclerview.widget.StaggeredGridLayoutManager;
 import com.liuzhenlin.swipeback.SwipeBackActivity;
 import com.liuzhenlin.swipeback.SwipeBackLayout;
 import com.liuzhenlin.texturevideoview.AbsTextureVideoView;
+import com.liuzhenlin.texturevideoview.VideoPlayerControl;
 import com.liuzhenlin.texturevideoview.utils.SystemBarUtils;
 import com.liuzhenlin.videoplayer.App;
 import com.liuzhenlin.videoplayer.BuildConfig;
@@ -368,7 +369,7 @@ public class VideoActivity extends SwipeBackActivity {
 
             @Override
             public void onVideoStopped() {
-                if (mVideoView.isPlaybackCompleted()
+                if (mVideoView.getPlaybackState() == VideoPlayerControl.PLAYBACK_STATE_COMPLETED
                         && mVideoIndex < mVideos.length - 1 /* can skip to next? */) {
                     onSkipToNext();
                     return;

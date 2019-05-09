@@ -46,10 +46,20 @@ public class TextureVideoView extends AbsTextureVideoView {
             PFLAG_TURN_OFF_WHEN_THIS_EPISODE_ENDS << 1;
 
     /**
-     * Flag indicates that a position seek happens when the video is not playing.
+     * Flag indicates that a position seek request happens when the video is not playing.
      */
     private static final int PFLAG_SEEK_POSITION_WHILE_VIDEO_PAUSED =
             PFLAG_TURN_OFF_WHEN_THIS_EPISODE_ENDS << 2;
+
+    /**
+     * If true, MediaPlayer is moving the media to some specified time position
+     */
+    private static final int PFLAG_SEEKING = PFLAG_TURN_OFF_WHEN_THIS_EPISODE_ENDS << 3;
+
+    /**
+     * If true, MediaPlayer is temporarily pausing playback internally in order to buffer more data.
+     */
+    private static final int PFLAG_BUFFERING = PFLAG_TURN_OFF_WHEN_THIS_EPISODE_ENDS << 4;
 
     private MediaPlayer mMediaPlayer;
 
@@ -155,12 +165,17 @@ public class TextureVideoView extends AbsTextureVideoView {
             mVideoDurationString = DEFAULT_STRING_VIDEO_DURATION;
             mPrivateFlags &= ~PFLAG_VIDEO_INFO_RESOLVED;
             if (mMediaPlayer == null) {
-                // Removes the flags PFLAG_VIDEO_PLAYBACK_COMPLETED and PFLAG_VIDEO_PAUSED_BY_USER
-                // and resets mSeekOnPlay to 0 in case the MediaPlayer was previously released
-                // and has not been initialized yet.
-                mPrivateFlags &= ~(PFLAG_VIDEO_PLAYBACK_COMPLETED | PFLAG_VIDEO_PAUSED_BY_USER);
+                // Removes the PFLAG_VIDEO_PAUSED_BY_USER flag and resets mSeekOnPlay to 0 in case
+                // the MediaPlayer was previously released and has not been initialized yet.
+                mPrivateFlags &= ~PFLAG_VIDEO_PAUSED_BY_USER;
                 mSeekOnPlay = 0;
-                openVideoInternal();
+                if (uri == null) {
+                    // Sets the playback state to idle directly when the player is not created
+                    // and no video is set
+                    setPlaybackState(PLAYBACK_STATE_IDLE);
+                } else {
+                    openVideoInternal();
+                }
             } else {
                 restartVideo();
             }
@@ -180,15 +195,37 @@ public class TextureVideoView extends AbsTextureVideoView {
             }
             mMediaPlayer.setOnPreparedListener(mp -> {
                 showLoadingView(false);
-
-                mVideoDuration = mp.getDuration();
-                mVideoDurationString = TimeUtil.formatTimeByColon(mVideoDuration);
-                mPrivateFlags |= PFLAG_VIDEO_INFO_RESOLVED;
-
-                mPrivateFlags &= ~PFLAG_PLAYER_IS_PREPARING;
+                if ((mPrivateFlags & PFLAG_VIDEO_INFO_RESOLVED) == 0) {
+                    mVideoDuration = mp.getDuration();
+                    mVideoDurationString = TimeUtil.formatTimeByColon(mVideoDuration);
+                    mPrivateFlags |= PFLAG_VIDEO_INFO_RESOLVED;
+                }
+                setPlaybackState(PLAYBACK_STATE_PREPARED);
                 play();
             });
-            mMediaPlayer.setOnSeekCompleteListener(mp -> showLoadingView(false));
+            mMediaPlayer.setOnSeekCompleteListener(mp -> {
+                if ((mPrivateFlags & PFLAG_BUFFERING) == 0) {
+                    showLoadingView(false);
+                }
+                mPrivateFlags &= ~PFLAG_SEEKING;
+            });
+            mMediaPlayer.setOnInfoListener((mp, what, extra) -> {
+                switch (what) {
+                    case MediaPlayer.MEDIA_INFO_BUFFERING_START:
+                        mPrivateFlags |= PFLAG_BUFFERING;
+                        if ((mPrivateFlags & PFLAG_SEEKING) == 0) {
+                            showLoadingView(true);
+                        }
+                        break;
+                    case MediaPlayer.MEDIA_INFO_BUFFERING_END:
+                        mPrivateFlags &= ~PFLAG_BUFFERING;
+                        if ((mPrivateFlags & PFLAG_SEEKING) == 0) {
+                            showLoadingView(false);
+                        }
+                        break;
+                }
+                return false;
+            });
             mMediaPlayer.setOnBufferingUpdateListener((mp, percent)
                     -> mBuffering = (int) (mVideoDuration * percent / 100f + 0.5f));
             mMediaPlayer.setOnErrorListener((mp, what, extra) -> {
@@ -198,9 +235,12 @@ public class TextureVideoView extends AbsTextureVideoView {
                 }
                 showVideoErrorMsg(extra);
 
-                mPrivateFlags |= PFLAG_ERROR_OCCURRED_WHILE_PLAYING_VIDEO;
-                mPrivateFlags &= ~(PFLAG_PLAYER_IS_PREPARING | PFLAG_VIDEO_PLAYBACK_COMPLETED);
-                pause(false);
+                showLoadingView(false);
+                final boolean playing = isPlaying();
+                setPlaybackState(PLAYBACK_STATE_ERROR);
+                if (playing) {
+                    pauseInternal(false);
+                }
                 return true;
             });
             mMediaPlayer.setOnCompletionListener(mp -> onPlaybackCompleted());
@@ -246,38 +286,51 @@ public class TextureVideoView extends AbsTextureVideoView {
             try {
                 mMediaPlayer.setDataSource(mContext, mVideoUri);
                 showLoadingView(true);
-                mPrivateFlags |= PFLAG_PLAYER_IS_PREPARING;
+                setPlaybackState(PLAYBACK_STATE_PREPARING);
                 mMediaPlayer.prepareAsync();
                 mMediaPlayer.setLooping(isSingleVideoLoopPlayback());
             } catch (IOException e) {
                 e.printStackTrace();
                 showVideoErrorMsg(-1004 /* MediaPlayer.MEDIA_ERROR_IO */);
                 showLoadingView(false); // in case it is already showing
+                setPlaybackState(PLAYBACK_STATE_ERROR);
             }
         } else {
             showLoadingView(false);
+            setPlaybackState(PLAYBACK_STATE_IDLE);
         }
         cancelDraggingVideoSeekBar();
     }
 
+    /**
+     * {@inheritDoc}
+     * <p>
+     * <strong>NOTE: </strong> If this method is called during the video being closed, it does
+     * nothing other than setting the playback state to {@link #PLAYBACK_STATE_UNDEFINED}, so as
+     * not to suppress he next call to the {@link #openVideo()) method if the current playback state
+     * is {@link #PLAYBACK_STATE_COMPLETED}, and the state is usually needed to be updated in
+     * this call, too. Thus for all of the above reasons, it is the best to switch over to.
+     */
     @Override
     public void restartVideo() {
-        // Resets mSeekOnPlay to 0 and removes the PFLAG_VIDEO_PLAYBACK_COMPLETED flag in case
-        // the MediaPlayer object is (being) released. This ensures the video to be started
-        // at its beginning position when the next time it resumes.
+        // First, resets mSeekOnPlay to 0 in case the MediaPlayer object is (being) released.
+        // This ensures the video to be started at its beginning position the next time it resumes.
         mSeekOnPlay = 0;
-        mPrivateFlags &= ~PFLAG_VIDEO_PLAYBACK_COMPLETED;
-        if (mMediaPlayer != null && (mPrivateFlags & PFLAG_VIDEO_IS_CLOSING) == 0) {
-            // Not clear the PFLAG_VIDEO_INFO_RESOLVED flag
-            mPrivateFlags &= ~(PFLAG_PLAYER_IS_PREPARING
-                    | PFLAG_ERROR_OCCURRED_WHILE_PLAYING_VIDEO
-                    | PFLAG_VIDEO_PAUSED_BY_USER);
-            pause(false);
-            // Resets below to prepare for the next resume of the video player
-            mPlaybackSpeed = DEFAULT_PLAYBACK_SPEED;
-            mBuffering = 0;
-            mMediaPlayer.reset();
-            startVideo();
+        if (mMediaPlayer != null) {
+            if ((mPrivateFlags & PFLAG_VIDEO_IS_CLOSING) != 0) {
+                setPlaybackState(PLAYBACK_STATE_UNDEFINED);
+            } else {
+                // Not clear the PFLAG_VIDEO_INFO_RESOLVED flag
+                mPrivateFlags &= ~(PFLAG_VIDEO_PAUSED_BY_USER
+                        | PFLAG_SEEKING
+                        | PFLAG_BUFFERING);
+                pause(false);
+                // Resets below to prepare for the next resume of the video player
+                mPlaybackSpeed = DEFAULT_PLAYBACK_SPEED;
+                mBuffering = 0;
+                mMediaPlayer.reset();
+                startVideo();
+            }
         }
     }
 
@@ -292,79 +345,95 @@ public class TextureVideoView extends AbsTextureVideoView {
             // Maybe the MediaPlayer has not been created since this page showed again after
             // the video had been paused by the user instead of our program itself or ended
             // in the last playback. Initialize it here as the user hits play.
-            if ((mPrivateFlags & (PFLAG_VIDEO_PAUSED_BY_USER | PFLAG_VIDEO_PLAYBACK_COMPLETED)) != 0) {
+            if ((mPrivateFlags & PFLAG_VIDEO_PAUSED_BY_USER) != 0
+                    || getPlaybackState() == PLAYBACK_STATE_COMPLETED) {
                 mPrivateFlags &= ~PFLAG_VIDEO_PAUSED_BY_USER;
                 openVideoInternal();
             }
             return;
-            // Already in the preparing or playing state
-        } else if ((mPrivateFlags & (PFLAG_PLAYER_IS_PREPARING | PFLAG_VIDEO_IS_PLAYING)) != 0) {
-            return;
         }
 
-        if ((mPrivateFlags & PFLAG_ERROR_OCCURRED_WHILE_PLAYING_VIDEO) != 0) {
-            mPrivateFlags &= ~PFLAG_ERROR_OCCURRED_WHILE_PLAYING_VIDEO;
-            // Retries the failed playback after error occurred
-            mPlaybackSpeed = DEFAULT_PLAYBACK_SPEED;
-            mBuffering = 0;
-            if ((mPrivateFlags & PFLAG_SEEK_POSITION_WHILE_VIDEO_PAUSED) == 0) {
-                // Record the current playback position only if there is no external program code
-                // requesting a position seek in this case.
-                mSeekOnPlay = getVideoProgress();
-            }
-            mMediaPlayer.reset();
-            startVideo();
+        switch (getPlaybackState()) {
+            case PLAYBACK_STATE_UNDEFINED:
+            case PLAYBACK_STATE_IDLE: // no video is set
+                // Already in the preparing or playing state
+            case PLAYBACK_STATE_PREPARING:
+            case PLAYBACK_STATE_PLAYING:
+                break;
+
+            case PLAYBACK_STATE_ERROR:
+                // Retries the failed playback after error occurred
+                mPrivateFlags &= ~(PFLAG_SEEKING | PFLAG_BUFFERING);
+                mPlaybackSpeed = DEFAULT_PLAYBACK_SPEED;
+                mBuffering = 0;
+                if ((mPrivateFlags & PFLAG_SEEK_POSITION_WHILE_VIDEO_PAUSED) == 0) {
+                    // Record the current playback position only if there is no external program code
+                    // requesting a position seek in this case.
+                    mSeekOnPlay = getVideoProgress();
+                }
+                mMediaPlayer.reset();
+                startVideo();
+                break;
 
             // Starts the video only if we have prepared it for the player
-        } else if (isVideoPrepared()) {
-            //@formatter:off
-            final int result = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ?
-                    mAudioManager.requestAudioFocus(mAudioFocusRequest)
-                  : mAudioManager.requestAudioFocus(mOnAudioFocusChangeListener,
-                            AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
-            //@formatter:on
-            switch (result) {
-                case AudioManager.AUDIOFOCUS_REQUEST_FAILED:
-                    if (BuildConfig.DEBUG) {
-                        Log.e(TAG, "Failed to request audio focus");
-                    }
-                    // Starts to play video even if the audio focus is not gained, but it is best
-                    // not to happen.
-                case AudioManager.AUDIOFOCUS_REQUEST_GRANTED:
-                    mPrivateFlags &= ~(PFLAG_VIDEO_PAUSED_BY_USER | PFLAG_VIDEO_PLAYBACK_COMPLETED);
-                    // Ensure the player's volume is at its maximum
-                    if ((mPrivateFlags & PFLAG_VIDEO_VOLUME_TURNED_DOWN_AUTOMATICALLY) != 0) {
-                        mPrivateFlags &= ~PFLAG_VIDEO_VOLUME_TURNED_DOWN_AUTOMATICALLY;
-                        mMediaPlayer.setVolume(1.0f, 1.0f);
-                    }
-                    if (mUserPlaybackSpeed != mPlaybackSpeed) {
-                        setPlaybackSpeed(mUserPlaybackSpeed);
-                    }
-                    mMediaPlayer.start();
-                    // Position seek each time works correctly only if the player engine is started
-                    if (mSeekOnPlay != 0) {
-                        mPrivateFlags |= PFLAG_VIDEO_IS_PLAYING;
-                        seekTo(mSeekOnPlay);
-                        mSeekOnPlay = 0;
-                    }
-                    onVideoStarted();
-                    break;
+            case PLAYBACK_STATE_PREPARED:
+            case PLAYBACK_STATE_PAUSED:
+            case PLAYBACK_STATE_COMPLETED:
+                //@formatter:off
+                final int result = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ?
+                          mAudioManager.requestAudioFocus(mAudioFocusRequest)
+                        : mAudioManager.requestAudioFocus(mOnAudioFocusChangeListener,
+                                AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
+                //@formatter:on
+                switch (result) {
+                    case AudioManager.AUDIOFOCUS_REQUEST_FAILED:
+                        if (BuildConfig.DEBUG) {
+                            Log.w(TAG, "Failed to request audio focus");
+                        }
+                        // Starts to play video even if the audio focus is not gained, but it is best
+                        // not to happen.
+                    case AudioManager.AUDIOFOCUS_REQUEST_GRANTED:
+                        mPrivateFlags &= ~PFLAG_VIDEO_PAUSED_BY_USER;
+                        // Ensure the player's volume is at its maximum
+                        if ((mPrivateFlags & PFLAG_VIDEO_VOLUME_TURNED_DOWN_AUTOMATICALLY) != 0) {
+                            mPrivateFlags &= ~PFLAG_VIDEO_VOLUME_TURNED_DOWN_AUTOMATICALLY;
+                            mMediaPlayer.setVolume(1.0f, 1.0f);
+                        }
+                        if (mUserPlaybackSpeed != mPlaybackSpeed) {
+                            setPlaybackSpeed(mUserPlaybackSpeed);
+                        }
+                        mMediaPlayer.start();
+                        // Position seek each time works correctly only if the player engine is started
+                        if (mSeekOnPlay != 0) {
+                            seekToInternal(mSeekOnPlay);
+                            mSeekOnPlay = 0;
+                        }
+                        onVideoStarted();
+                        break;
 
-                case AudioManager.AUDIOFOCUS_REQUEST_DELAYED:
-                    // do nothing
-                    break;
-            }
+                    case AudioManager.AUDIOFOCUS_REQUEST_DELAYED:
+                        // do nothing
+                        break;
+                }
+                break;
         }
     }
 
     @Override
     public void pause(boolean fromUser) {
         if (isPlaying()) {
-            mMediaPlayer.pause();
-            mPrivateFlags = mPrivateFlags & ~PFLAG_VIDEO_PAUSED_BY_USER
-                    | (fromUser ? PFLAG_VIDEO_PAUSED_BY_USER : 0);
-            onVideoStopped();
+            pauseInternal(fromUser);
         }
+    }
+
+    /**
+     * Similar to {@link #pause(boolean)}}, but does not check the playback state.
+     */
+    private void pauseInternal(boolean fromUser) {
+        mMediaPlayer.pause();
+        mPrivateFlags = mPrivateFlags & ~PFLAG_VIDEO_PAUSED_BY_USER
+                | (fromUser ? PFLAG_VIDEO_PAUSED_BY_USER : 0);
+        onVideoStopped();
     }
 
     @Override
@@ -372,17 +441,17 @@ public class TextureVideoView extends AbsTextureVideoView {
         if (mMediaPlayer != null && (mPrivateFlags & PFLAG_VIDEO_IS_CLOSING) == 0) {
             mPrivateFlags |= PFLAG_VIDEO_IS_CLOSING;
 
-            if (!isPlaybackCompleted()) {
+            if (getPlaybackState() != PLAYBACK_STATE_COMPLETED) {
                 mSeekOnPlay = getVideoProgress();
             }
             pause(fromUser);
             abandonAudioFocus();
             mMediaPlayer.release();
             mMediaPlayer = null;
-            // Not clear the flags PFLAG_VIDEO_PLAYBACK_COMPLETED and PFLAG_VIDEO_INFO_RESOLVED
-            mPrivateFlags &= ~(PFLAG_PLAYER_IS_PREPARING
-                    | PFLAG_ERROR_OCCURRED_WHILE_PLAYING_VIDEO
-                    | PFLAG_VIDEO_VOLUME_TURNED_DOWN_AUTOMATICALLY);
+            // Not clear the PFLAG_VIDEO_INFO_RESOLVED flag
+            mPrivateFlags &= ~(PFLAG_VIDEO_VOLUME_TURNED_DOWN_AUTOMATICALLY
+                    | PFLAG_SEEKING
+                    | PFLAG_BUFFERING);
             // Resets below to prepare for the next resume of the video player
             mPlaybackSpeed = DEFAULT_PLAYBACK_SPEED;
             mBuffering = 0;
@@ -411,19 +480,29 @@ public class TextureVideoView extends AbsTextureVideoView {
     @Override
     public void seekTo(int progress) {
         if (isPlaying()) {
-            showLoadingView(true);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                // Precise seek with larger performance overhead compared to the default one.
-                // Slow! Really slow!
-                mMediaPlayer.seekTo(progress, MediaPlayer.SEEK_CLOSEST);
-            } else {
-                mMediaPlayer.seekTo(progress /*, MediaPlayer.SEEK_PREVIOUS_SYNC*/);
-            }
+            seekToInternal(progress);
         } else {
             mPrivateFlags |= PFLAG_SEEK_POSITION_WHILE_VIDEO_PAUSED;
             mSeekOnPlay = progress;
             play();
             mPrivateFlags &= ~PFLAG_SEEK_POSITION_WHILE_VIDEO_PAUSED;
+        }
+    }
+
+    /**
+     * Similar to {@link #seekTo(int)}, but without check to the playing state.
+     */
+    private void seekToInternal(int progress) {
+        if ((mPrivateFlags & PFLAG_BUFFERING) == 0) {
+            showLoadingView(true);
+        }
+        mPrivateFlags |= PFLAG_SEEKING;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            // Precise seek with larger performance overhead compared to the default one.
+            // Slow! Really slow!
+            mMediaPlayer.seekTo(progress, MediaPlayer.SEEK_CLOSEST);
+        } else {
+            mMediaPlayer.seekTo(progress /*, MediaPlayer.SEEK_PREVIOUS_SYNC*/);
         }
     }
 
@@ -436,7 +515,7 @@ public class TextureVideoView extends AbsTextureVideoView {
 
     @Override
     public int getVideoProgress() {
-        if (isPlaybackCompleted()) {
+        if (getPlaybackState() == PLAYBACK_STATE_COMPLETED) {
             // The playback position from the MediaPlayer, usually, is not the duration of the video
             // but the position at the last video key-frame when the playback is finished, in the
             // case of which instead, here is the duration returned to avoid progress inconsistencies.
@@ -479,7 +558,7 @@ public class TextureVideoView extends AbsTextureVideoView {
             mUserPlaybackSpeed = speed;
             // When video is not playing or has no tendency of to be started, we prefer recording
             // the user request to forcing the player to start at that given speed.
-            if ((mPrivateFlags & PFLAG_PLAYER_IS_PREPARING) != 0 || isPlaying()) {
+            if (getPlaybackState() == PLAYBACK_STATE_PREPARING || isPlaying()) {
                 PlaybackParams pp = mMediaPlayer.getPlaybackParams().allowDefaults();
                 pp.setSpeed(speed);
                 try {
