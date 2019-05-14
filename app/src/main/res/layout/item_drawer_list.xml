@@ -12,7 +12,7 @@
         android:textSize="@dimen/primary_text_size"
         android:textColor="@android:color/black"
         android:textAlignment="viewStart"
-        android:gravity="start" />
+        android:gravity="start|center_vertical" />
 
     <TextView
         android:id="@+id/subtext_list"
@@ -21,5 +21,5 @@
         android:layout_weight="1"
         android:textSize="@dimen/secondary_text_size"
         android:textAlignment="viewEnd"
-        android:gravity="end" />
+        android:gravity="end|center_vertical" />
 </LinearLayout>

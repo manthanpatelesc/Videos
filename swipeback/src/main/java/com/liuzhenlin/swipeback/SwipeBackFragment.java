@@ -5,17 +5,17 @@ import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 
-import java.util.List;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 
+import java.util.List;
+
 public class SwipeBackFragment extends Fragment implements ISwipeBackFragment {
 
     private SwipeBackLayout mSwipeBackLayout;
-    private static Animation sNoTransition;
+    private Animation mNoTransition;
 
     private boolean mTransitionEnabled = true;
 
@@ -25,7 +25,7 @@ public class SwipeBackFragment extends Fragment implements ISwipeBackFragment {
         mSwipeBackLayout = (SwipeBackLayout) View.inflate(getActivity(), R.layout.swipeback, null);
     }
 
-    protected SwipeBackLayout attachViewToSwipeBackLayout(@NonNull View view) {
+    protected final SwipeBackLayout attachViewToSwipeBackLayout(@NonNull View view) {
         mSwipeBackLayout.attachFragmentView(this, view);
         return mSwipeBackLayout;
     }
@@ -35,9 +35,9 @@ public class SwipeBackFragment extends Fragment implements ISwipeBackFragment {
         if (mTransitionEnabled) {
             return super.onCreateAnimation(transit, enter, nextAnim);
         } else {
-            if (sNoTransition == null)
-                sNoTransition = AnimationUtils.loadAnimation(getContext(), R.anim.no_anim);
-            return sNoTransition;
+            if (mNoTransition == null)
+                mNoTransition = AnimationUtils.loadAnimation(getContext(), R.anim.no_anim);
+            return mNoTransition;
         }
     }
 
@@ -55,27 +55,27 @@ public class SwipeBackFragment extends Fragment implements ISwipeBackFragment {
     }
 
     @Override
-    public SwipeBackLayout getSwipeBackLayout() {
+    public final SwipeBackLayout getSwipeBackLayout() {
         return mSwipeBackLayout;
     }
 
     @Override
-    public boolean isSwipeBackEnabled() {
+    public final boolean isSwipeBackEnabled() {
         return mSwipeBackLayout.isGestureEnabled();
     }
 
     @Override
-    public void setSwipeBackEnabled(boolean enabled) {
+    public final void setSwipeBackEnabled(boolean enabled) {
         mSwipeBackLayout.setGestureEnabled(enabled);
     }
 
     @Override
-    public boolean isTransitionEnabled() {
+    public final boolean isTransitionEnabled() {
         return mTransitionEnabled;
     }
 
     @Override
-    public void setTransitionEnabled(boolean enabled) {
+    public final void setTransitionEnabled(boolean enabled) {
         mTransitionEnabled = enabled;
     }
 

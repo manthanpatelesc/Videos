@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/VideoPlayer.iml" filepath="$PROJECT_DIR$/VideoPlayer.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Videos.iml" filepath="$PROJECT_DIR$/Videos.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
       <module fileurl="file://$PROJECT_DIR$/circular-checkbox/circular-checkbox.iml" filepath="$PROJECT_DIR$/circular-checkbox/circular-checkbox.iml" />
       <module fileurl="file://$PROJECT_DIR$/floating-menu/floating-menu.iml" filepath="$PROJECT_DIR$/floating-menu/floating-menu.iml" />

@@ -23,7 +23,6 @@
         android:drawablePadding="5dp"
         android:text="@string/name"
         android:textSize="@dimen/primary_text_size"
-        android:textColor="@android:color/black"
         android:textIsSelectable="true"
         android:textAlignment="viewStart"
         android:gravity="start" />
@@ -40,11 +39,11 @@
         android:gravity="start" />
 
     <TextView
-        android:id="@+id/text_videoScale"
+        android:id="@+id/text_videoResolution"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="5dp"
-        android:text="@string/scale"
+        android:text="@string/resolution"
         android:textSize="@dimen/secondary_text_size"
         android:textIsSelectable="true"
         android:textAlignment="viewStart"

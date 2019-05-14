@@ -211,7 +211,7 @@
         android:id="@+id/drawer_videoview"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_gravity="end">
+        android:layout_gravity="end|center_vertical">
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recycler_playlist"

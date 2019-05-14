@@ -18,7 +18,7 @@
         android:layout_marginTop="8dp"
         android:layout_marginRight="10dp"
         android:layout_marginBottom="8dp"
-        app:queryHint="@string/searchVideo" />
+        app:queryHint="@string/searchVideos" />
 
     <TextView
         android:id="@+id/button_cancel_search"

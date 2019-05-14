@@ -160,7 +160,7 @@ public class TextureVideoView extends AbsTextureVideoView {
     @Override
     public void setVideoUri(@Nullable Uri uri) {
         if (!ObjectsCompat.equals(uri, mVideoUri)) {
-            mVideoUri = uri;
+            super.setVideoUri(uri);
             mVideoDuration = 0;
             mVideoDurationString = DEFAULT_STRING_VIDEO_DURATION;
             mPrivateFlags &= ~PFLAG_VIDEO_INFO_RESOLVED;
@@ -272,7 +272,7 @@ public class TextureVideoView extends AbsTextureVideoView {
                 stringRes = R.string.videoInThisFormatIsNotSupported;
                 break;
             case MediaPlayer.MEDIA_ERROR_TIMED_OUT:
-                stringRes = R.string.loadTimedOut;
+                stringRes = R.string.loadTimeout;
                 break;
             default:
                 stringRes = R.string.unknownErrorOccurredWhenVideoIsPlaying;
@@ -341,19 +341,26 @@ public class TextureVideoView extends AbsTextureVideoView {
             return;
         }
 
+        final int playbackState = getPlaybackState();
+
         if (mMediaPlayer == null) {
             // Maybe the MediaPlayer has not been created since this page showed again after
             // the video had been paused by the user instead of our program itself or ended
             // in the last playback. Initialize it here as the user hits play.
-            if ((mPrivateFlags & PFLAG_VIDEO_PAUSED_BY_USER) != 0
-                    || getPlaybackState() == PLAYBACK_STATE_COMPLETED) {
+            if (playbackState == PLAYBACK_STATE_COMPLETED) {
+                // If the video playback finished, skip to the next video if possible
+                if (!(skipToNextIfPossible() && mMediaPlayer != null)) {
+                    mPrivateFlags &= ~PFLAG_VIDEO_PAUSED_BY_USER;
+                    openVideoInternal();
+                }
+            } else if ((mPrivateFlags & PFLAG_VIDEO_PAUSED_BY_USER) != 0) {
                 mPrivateFlags &= ~PFLAG_VIDEO_PAUSED_BY_USER;
                 openVideoInternal();
             }
             return;
         }
 
-        switch (getPlaybackState()) {
+        switch (playbackState) {
             case PLAYBACK_STATE_UNDEFINED:
             case PLAYBACK_STATE_IDLE: // no video is set
                 // Already in the preparing or playing state
@@ -375,10 +382,13 @@ public class TextureVideoView extends AbsTextureVideoView {
                 startVideo();
                 break;
 
-            // Starts the video only if we have prepared it for the player
+            case PLAYBACK_STATE_COMPLETED:
+                if (skipToNextIfPossible() && getPlaybackState() != PLAYBACK_STATE_COMPLETED) {
+                    break;
+                }
+                // Starts the video only if we have prepared it for the player
             case PLAYBACK_STATE_PREPARED:
             case PLAYBACK_STATE_PAUSED:
-            case PLAYBACK_STATE_COMPLETED:
                 //@formatter:off
                 final int result = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ?
                           mAudioManager.requestAudioFocus(mAudioFocusRequest)
@@ -516,9 +526,10 @@ public class TextureVideoView extends AbsTextureVideoView {
     @Override
     public int getVideoProgress() {
         if (getPlaybackState() == PLAYBACK_STATE_COMPLETED) {
-            // The playback position from the MediaPlayer, usually, is not the duration of the video
-            // but the position at the last video key-frame when the playback is finished, in the
-            // case of which instead, here is the duration returned to avoid progress inconsistencies.
+            // 1. If the video completed and the MediaPlayer object was released, we would get 0.
+            // 2. The playback position from the MediaPlayer, usually, is not the duration of the video
+            //    but the position at the last video key-frame when the playback is finished, in the
+            //    case of which instead, here is the duration returned to avoid progress inconsistencies.
             return mVideoDuration;
         }
         if (isVideoPrepared()) {
@@ -568,11 +579,30 @@ public class TextureVideoView extends AbsTextureVideoView {
                     mUserPlaybackSpeed = mPlaybackSpeed;
                     return;
                 }
-                // If the above fails due to an unsupported playback speed, then our speed would
-                // remain unchanged. This ensures the program runs stably.
+                // If the above fails due to an unsupported playback speed, then our speed will
+                // remain unchanged. This ensures the program runs steadily.
                 mPlaybackSpeed = speed;
                 super.setPlaybackSpeed(speed);
             }
         }
+    }
+
+    @Override
+    boolean isPlayerCreated() {
+        return mMediaPlayer != null;
+    }
+
+    @Override
+    boolean onPlaybackCompleted() {
+        final boolean closed = super.onPlaybackCompleted();
+        if (closed) {
+            // Since the playback completion state deters the pause(boolean) method from being called
+            // within the closeVideoInternal(boolean) method, we need this extra step to add
+            // the PFLAG_VIDEO_PAUSED_BY_USER flag into mPrivateFlags to denote that the user pauses
+            // (closes) the video.
+            mPrivateFlags |= PFLAG_VIDEO_PAUSED_BY_USER;
+            onVideoStopped();
+        }
+        return closed;
     }
 }

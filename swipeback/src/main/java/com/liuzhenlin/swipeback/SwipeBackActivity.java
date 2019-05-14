@@ -31,17 +31,17 @@ public class SwipeBackActivity extends AppCompatActivity implements ISwipeBackAc
     }
 
     @Override
-    public SwipeBackLayout getSwipeBackLayout() {
+    public final SwipeBackLayout getSwipeBackLayout() {
         return mSwipeBackLayout;
     }
 
     @Override
-    public boolean isSwipeBackEnabled() {
+    public final boolean isSwipeBackEnabled() {
         return mSwipeBackLayout.isGestureEnabled();
     }
 
     @Override
-    public void setSwipeBackEnabled(boolean enabled) {
+    public final void setSwipeBackEnabled(boolean enabled) {
         mSwipeBackLayout.setGestureEnabled(enabled);
     }
 

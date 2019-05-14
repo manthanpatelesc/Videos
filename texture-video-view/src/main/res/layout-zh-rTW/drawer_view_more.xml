@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  ~ Created on 5/3/19 9:26 PM.
+  ~ Copyright © 2019 刘振林. All rights reserved.
+  -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_gravity="center_vertical"
+    android:background="@color/bg_popup"
+    android:clickable="true"
+    tools:ignore="KeyboardInaccessibleWidget">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <Switch
+            android:id="@+id/bt_stretchVideo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingLeft="20dp"
+            android:paddingRight="20dp"
+            android:layout_marginTop="20dp"
+            android:text="@string/stretchVideoToFitFullscreen"
+            android:textColor="@android:color/white"
+            android:textSize="@dimen/widget_small_text_size"
+            android:textAlignment="viewStart"
+            android:gravity="start"
+            android:thumb="@drawable/selector_switch_thumb"
+            android:track="@drawable/selector_switch_track" />
+
+        <Switch
+            android:id="@+id/bt_loopSingleVideo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingLeft="20dp"
+            android:paddingRight="20dp"
+            android:layout_marginTop="10dp"
+            android:text="@string/singleVideoLoopPlayback"
+            android:textColor="@android:color/white"
+            android:textSize="@dimen/widget_small_text_size"
+            android:textAlignment="viewStart"
+            android:gravity="start"
+            android:thumb="@drawable/selector_switch_thumb"
+            android:track="@drawable/selector_switch_track" />
+
+        <Switch
+            android:id="@+id/bt_pureAudioPlayback"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingLeft="20dp"
+            android:paddingRight="20dp"
+            android:layout_marginTop="10dp"
+            android:text="@string/pureAudioPlayback"
+            android:textColor="@android:color/white"
+            android:textSize="@dimen/widget_small_text_size"
+            android:textAlignment="viewStart"
+            android:gravity="start"
+            android:thumb="@drawable/selector_switch_thumb"
+            android:track="@drawable/selector_switch_track" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingLeft="20dp"
+            android:paddingRight="0dp"
+            android:paddingStart="20dp"
+            android:paddingEnd="0dp"
+            android:layout_marginTop="15dp"
+            android:layout_marginBottom="20dp"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:text="@string/timedOff"
+                android:textColor="@android:color/white"
+                android:textSize="@dimen/widget_small_text_size"
+                android:textAlignment="viewStart"
+                android:gravity="start" />
+
+            <TextView
+                android:id="@+id/text_whenThisEpisodeEnds"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:text="@string/whenThisEpisodeEnds"
+                android:textColor="@color/color_selector_white_color_accent"
+                android:textSize="@dimen/widget_small_text_size"
+                android:textAlignment="center"
+                android:gravity="center" />
+
+            <TextView
+                android:id="@+id/text_30Minutes"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:text="@string/_30Minutes"
+                android:textColor="@color/color_selector_white_color_accent"
+                android:textSize="@dimen/widget_small_text_size"
+                android:textAlignment="center"
+                android:gravity="center" />
+
+            <TextView
+                android:id="@+id/text_anHour"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:text="@string/anHour"
+                android:textColor="@color/color_selector_white_color_accent"
+                android:textSize="@dimen/widget_small_text_size"
+                android:textAlignment="center"
+                android:gravity="center" />
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>

@@ -102,7 +102,7 @@ public interface VideoPlayerControl {
     /**
      * Checks whether the video is playing.
      *
-     * @return `true` if currently playing, `false` otherwise
+     * @return {@code true} if currently playing, {@code false} otherwise
      */
     default boolean isPlaying() {
         return getPlaybackState() == PLAYBACK_STATE_PLAYING;
@@ -177,7 +177,7 @@ public interface VideoPlayerControl {
     int getVideoHeight();
 
     /**
-     * @return `true` if the player is currently in audio-only playback (no video displayed)
+     * @return true if the player is currently in audio-only playback (no video displayed)
      */
     boolean isPureAudioPlayback();
 

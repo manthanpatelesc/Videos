@@ -68,6 +68,7 @@ import androidx.annotation.CallSuper;
 import androidx.annotation.ColorInt;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 import androidx.appcompat.widget.AppCompatSpinner;
 import androidx.core.os.ParcelableCompat;
 import androidx.core.os.ParcelableCompatCreatorCallbacks;
@@ -98,7 +99,7 @@ import java.util.List;
  * Base implementation of {@link VideoPlayerControl} to provide video playback.
  * <p>
  * This is similar to {@link VideoView}, but it comes with a custom control containing buttons
- * like "Play/Pause", "Skip To Next", "Minimize", "Maximize", progress sliders for adjusting
+ * like "Play/Pause", "Skip Next", "Minimize", "Maximize", progress sliders for adjusting
  * screen brightness, volume and video progress and a {@link TextureView} used to display
  * the video frames, etc.
  * <p>
@@ -122,11 +123,11 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
         default void onVideoStopped() {
         }
 
-        /** Called when a "skip to previous" action is requested by the user. */
+        /** Called when a 'skip previous' action is requested by the user. */
         default void onSkipToPrevious() {
         }
 
-        /** Called when a "skip to next" action is requested by the user. */
+        /** Called when a 'skip next' action is requested by the user. */
         default void onSkipToNext() {
         }
 
@@ -159,7 +160,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
 
     public interface OpCallback {
         /**
-         * @return `true` if the activity to which this view belongs is currently in
+         * @return true if the activity to which this view belongs is currently in
          * picture-in-picture mode.
          * @see Activity#isInPictureInPictureMode()
          */
@@ -263,7 +264,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
          *
          * @param view     The itemView that was clicked and held.
          * @param position The position of the view in the list
-         * @return `true` if the callback consumed the long click, false otherwise.
+         * @return true if the callback consumed the long click, false otherwise.
          */
         public boolean onItemLongClick(@NonNull View view, int position) {
             return false;
@@ -312,8 +313,8 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     /**
      * Flag indicates the video is being closed, i.e., we are releasing the player object,
      * during which we should not respond to the client such as restarting or resuming the video
-     * (this may happen as we call the `onVideoStopped()` method of the VideoListener object in our
-     * `closeVideoInternal()` method if this view is currently playing).
+     * (this may happen as we call the onVideoStopped() method of the VideoListener object in our
+     * closeVideoInternal() method if this view is currently playing).
      */
     /* package-private */ static final int PFLAG_VIDEO_IS_CLOSING = 1 << 8;
 
@@ -397,7 +398,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     /** Title of the video */
     private String mTitle;
 
-    /** The minimum height of the drawer views (the playlist and the `more` view) */
+    /** The minimum height of the drawer views (the playlist and the 'more' view) */
     private int mDrawerViewMinimumHeight;
 
     /** Caches the initial `paddingTop` of the top controls frame */
@@ -446,7 +447,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
 
                 Switch svb = view.findViewById(R.id.bt_stretchVideo);
                 Switch lsvb = view.findViewById(R.id.bt_loopSingleVideo);
-                Switch apb = view.findViewById(R.id.bt_audioPlayback);
+                Switch papb = view.findViewById(R.id.bt_pureAudioPlayback);
                 TextView whenThisEpisodeEndsText = view.findViewById(R.id.text_whenThisEpisodeEnds);
                 TextView _30MinutesText = view.findViewById(R.id.text_30Minutes);
                 TextView anHourText = view.findViewById(R.id.text_anHour);
@@ -454,14 +455,14 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
                 TimedOffRunnable tor = mTimedOffRunnable;
                 svb.setChecked(isVideoStretchedToFitFullscreenLayout());
                 lsvb.setChecked(isSingleVideoLoopPlayback());
-                apb.setChecked(isPureAudioPlayback());
+                papb.setChecked(isPureAudioPlayback());
                 whenThisEpisodeEndsText.setSelected((mPrivateFlags & PFLAG_TURN_OFF_WHEN_THIS_EPISODE_ENDS) != 0);
                 _30MinutesText.setSelected(tor != null && tor.offTime == TimedOffRunnable.OFF_TIME_30_MINUTES);
                 anHourText.setSelected(tor != null && tor.offTime == TimedOffRunnable.OFF_TIME_AN_HOUR);
 
                 svb.setOnClickListener(this);
                 lsvb.setOnClickListener(this);
-                apb.setOnClickListener(this);
+                papb.setOnClickListener(this);
                 whenThisEpisodeEndsText.setOnClickListener(this);
                 _30MinutesText.setOnClickListener(this);
                 anHourText.setOnClickListener(this);
@@ -477,10 +478,8 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
                 toggle();
 
             } else if (mSkipNextButton == v) {
-                if (mVideoListener != null &&
-                        mOpCallback != null && mOpCallback.canSkipToNext()) {
-                    mVideoListener.onSkipToNext();
-                }
+                skipToNextIfPossible();
+
             } else if (mFullscreenButton == v) {
                 if (mVideoListener != null) {
                     mVideoListener.onMaximizeVideo();
@@ -504,7 +503,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
             } else if (id == R.id.bt_loopSingleVideo) {
                 setSingleVideoLoopPlayback(((Switch) v).isChecked());
 
-            } else if (id == R.id.bt_audioPlayback) {
+            } else if (id == R.id.bt_pureAudioPlayback) {
                 setPureAudioPlayback(((Switch) v).isChecked());
 
             } else if (id == R.id.text_whenThisEpisodeEnds) {
@@ -617,9 +616,11 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
 
                 if (translateAnimator == null) {
                     final View target = mmr == null ? mSeekingTextProgressFrame : mSeekingVideoThumbText;
+                    final boolean rtl = Utils.isLayoutRtl(mContentView);
+                    final float end = !rtl && progress > start || rtl && progress < start ?
+                            mSeekingViewHorizontalOffset : -mSeekingViewHorizontalOffset;
                     ValueAnimator ta;
-                    translateAnimator = ta = ValueAnimator.ofFloat(0,
-                            progress > start ? mSeekingViewHorizontalOffset : -mSeekingViewHorizontalOffset);
+                    translateAnimator = ta = ValueAnimator.ofFloat(0, end);
                     ta.addListener(animatorListener);
                     ta.addUpdateListener(
                             animation -> target.setTranslationX((float) animation.getAnimatedValue()));
@@ -937,6 +938,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     /* package-private */ static final String DEFAULT_STRING_VIDEO_DURATION = "00:00";
 
     /** The current state of the player or the playback of the video */
+    @PlaybackState
     private int mPlaybackState = PLAYBACK_STATE_IDLE;
 
     /**
@@ -961,7 +963,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     /* package-private */ int mSeekOnPlay;
 
     /** The amount of time we are stepping forward or backward for fast-forward and fast-rewind. */
-    /* package-private */ static final int FAST_FORWARD_REWIND_INTERVAL = 15000; // ms
+    public static final int FAST_FORWARD_REWIND_INTERVAL = 15000; // ms
 
     private final Runnable mRefreshVideoProgressRunnable = new Runnable() {
         @Override
@@ -1039,7 +1041,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
                 // On platforms after O MR1, we can not use reflections to access the internal hidden
                 // fields and methods, so use the slower processing logic that set a touch listener
                 // for the popup's decorView and consume the `down` and `outside` events according to
-                // the same conditions to its original `onTouchEvent()` method through omitting
+                // the same conditions to its original onTouchEvent() method through omitting
                 // the invocations to the popup's dismiss() method, so that the popup remains showing
                 // within an outside touch event stream till the up event is reached, in which, instead,
                 // we will dismiss it manually.
@@ -1158,7 +1160,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
         setFullscreenMode(ta.getBoolean(R.styleable.AbsTextureVideoView_fullscreen, false), 0);
         ta.recycle();
 
-        setDrawerLockMode(LOCK_MODE_LOCKED_CLOSED, mDrawerView);
+        setDrawerLockModeInternal(LOCK_MODE_LOCKED_CLOSED, mDrawerView);
         addDrawerListener(new DrawerListener() {
             int scrollState;
             float slideOffset;
@@ -1192,7 +1194,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
 
             @Override
             public void onDrawerOpened(@NonNull View drawerView) {
-                setDrawerLockMode(LOCK_MODE_UNLOCKED, drawerView);
+                setDrawerLockModeInternal(LOCK_MODE_UNLOCKED, drawerView);
             }
 
             @Override
@@ -1202,7 +1204,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
                     mDrawerView.removeView(mMoreView);
                     mMoreView = null;
                 }
-                setDrawerLockMode(LOCK_MODE_LOCKED_CLOSED, drawerView);
+                setDrawerLockModeInternal(LOCK_MODE_LOCKED_CLOSED, drawerView);
             }
         });
 
@@ -1310,8 +1312,8 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
                     // Works on platforms prior to P
                     if (sForceIgnoreOutsideTouchField != null) {
                         // Sets the field `mForceIgnoreOutsideTouch` of the ListPopupWindow to `true`
-                        // to discourage it from setting `outsideTouchable` to `true` for the popup
-                        // in its `show()` method, so that the popup receives no outside touch event
+                        // to discourage it from setting `mOutsideTouchable` to `true` for the popup
+                        // in its show() method, so that the popup receives no outside touch event
                         // to dismiss itself.
                         sForceIgnoreOutsideTouchField.setBoolean(mSpinnerListPopup, true);
                     }
@@ -1393,7 +1395,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
      * if no {@link OpCallback} is set.
      */
     @Override
-    public int getBrightness() {
+    public final int getBrightness() {
         if (mOpCallback != null) {
             return ScreenUtils.getWindowBrightness(mOpCallback.getWindow());
         }
@@ -1407,7 +1409,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
      * this method instead of a direct call to {@link ScreenUtils#setWindowBrightness(Window, int)}
      */
     @Override
-    public void setBrightness(int brightness) {
+    public final void setBrightness(int brightness) {
         if (mOpCallback != null) {
             brightness = Util.constrainValue(brightness, BRIGHTNESS_FOLLOWS_SYSTEM, MAX_BRIGHTNESS);
             // Changes the brightness of the current Window
@@ -1426,12 +1428,12 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     }
 
     @Override
-    public int getVolume() {
+    public final int getVolume() {
         return mAudioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
     }
 
     @Override
-    public void setVolume(int volume) {
+    public final void setVolume(int volume) {
         volume = Util.constrainValue(volume, 0, mMaxVolume);
         // Changes the system's media volume
         mAudioManager.setStreamVolume(AudioManager.STREAM_MUSIC, volume, 0);
@@ -1439,9 +1441,21 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
         refreshVolumeProgress(volumeToProgress(volume));
     }
 
+    @Override
+    public void setVideoUri(@Nullable Uri uri) {
+        mVideoUri = uri;
+        // Hides the TextureView only if its SurfaceTexture was created upon its first drawing
+        // since it had been attached to this view, or no Surface would be available for rendering
+        // the video content (Further to say, according to the logic of us, there would start
+        // no video at all).
+        if (mSurface != null) {
+            showTextureView(false);
+        }
+    }
+
     /** @see #openVideo(boolean) */
     @Override
-    public void openVideo() {
+    public final void openVideo() {
         openVideo(false);
     }
 
@@ -1461,7 +1475,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
      * @see #closeVideo()
      * @see #play()
      */
-    public void openVideo(boolean replayIfCompleted) {
+    public final void openVideo(boolean replayIfCompleted) {
         if (replayIfCompleted || mPlaybackState != PLAYBACK_STATE_COMPLETED) {
             openVideoInternal();
         }
@@ -1470,7 +1484,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     abstract void openVideoInternal();
 
     @Override
-    public void closeVideo() {
+    public final void closeVideo() {
         if (!isPureAudioPlayback()) {
             closeVideoInternal(false /* ignored */);
         }
@@ -1485,6 +1499,16 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     abstract void closeVideoInternal(boolean fromUser);
 
     @Override
+    public final boolean isPlaying() {
+        return mPlaybackState == PLAYBACK_STATE_PLAYING;
+    }
+
+    @Override
+    public final void toggle() {
+        VideoPlayerControl.super.toggle();
+    }
+
+    @Override
     public void fastForward() {
         seekTo(getVideoProgress() + FAST_FORWARD_REWIND_INTERVAL);
     }
@@ -1495,7 +1519,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     }
 
     @Override
-    public int getVideoDuration() {
+    public final int getVideoDuration() {
         if ((mPrivateFlags & PFLAG_VIDEO_INFO_RESOLVED) != 0) {
             return mVideoDuration;
         }
@@ -1503,7 +1527,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     }
 
     @Override
-    public int getVideoWidth() {
+    public final int getVideoWidth() {
         if ((mPrivateFlags & PFLAG_VIDEO_INFO_RESOLVED) != 0) {
             return mVideoWidth;
         }
@@ -1511,7 +1535,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     }
 
     @Override
-    public int getVideoHeight() {
+    public final int getVideoHeight() {
         if ((mPrivateFlags & PFLAG_VIDEO_INFO_RESOLVED) != 0) {
             return mVideoHeight;
         }
@@ -1519,16 +1543,18 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     }
 
     @Override
-    public boolean isPureAudioPlayback() {
+    public final boolean isPureAudioPlayback() {
         return (mPrivateFlags & PFLAG_PURE_AUDIO_PLAYBACK) != 0;
     }
 
+    @CallSuper
     @Override
     public void setPureAudioPlayback(boolean audioOnly) {
         mPrivateFlags = mPrivateFlags & ~PFLAG_PURE_AUDIO_PLAYBACK
                 | (audioOnly ? PFLAG_PURE_AUDIO_PLAYBACK : 0);
+        showTextureView(!audioOnly);
         if (mMoreView != null) {
-            Switch toggle = mMoreView.findViewById(R.id.bt_audioPlayback);
+            Switch toggle = mMoreView.findViewById(R.id.bt_pureAudioPlayback);
             if (audioOnly != toggle.isChecked()) {
                 toggle.setChecked(audioOnly);
             }
@@ -1536,7 +1562,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     }
 
     @Override
-    public boolean isSingleVideoLoopPlayback() {
+    public final boolean isSingleVideoLoopPlayback() {
         return (mPrivateFlags & PFLAG_SINGLE_VIDEO_LOOP_PLAYBACK) != 0;
     }
 
@@ -1544,9 +1570,10 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
      * {@inheritDoc}
      * <p>
      * <strong>NOTE:</strong> This does not mean that the video played can not be changed,
-     * which can be switched by the user when he/she clicks the `skip to next` button or
+     * which can be switched by the user when he/she clicks the 'skip next' button or
      * chooses another video from the playlist.
      */
+    @CallSuper
     @Override
     public void setSingleVideoLoopPlayback(boolean looping) {
         mPrivateFlags = mPrivateFlags & ~PFLAG_SINGLE_VIDEO_LOOP_PLAYBACK
@@ -1564,6 +1591,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
         return isPlaying() ? mPlaybackSpeed : 0;
     }
 
+    @CallSuper
     @Override
     public void setPlaybackSpeed(float speed) {
         if (mSpeedSpinner != null) {
@@ -1573,11 +1601,11 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
 
     @PlaybackState
     @Override
-    public int getPlaybackState() {
+    public final int getPlaybackState() {
         return mPlaybackState;
     }
 
-    void setPlaybackState(@PlaybackState int newState) {
+    final void setPlaybackState(@PlaybackState int newState) {
         final int oldState = mPlaybackState;
         if (newState != oldState) {
             mPlaybackState = newState;
@@ -1592,7 +1620,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     }
 
     @Override
-    public void addOnPlaybackStateChangeListener(@Nullable OnPlaybackStateChangeListener listener) {
+    public final void addOnPlaybackStateChangeListener(@Nullable OnPlaybackStateChangeListener listener) {
         if (listener != null) {
             if (mOnPlaybackStateChangeListeners == null) {
                 mOnPlaybackStateChangeListeners = new LinkedList<>();
@@ -1604,7 +1632,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     }
 
     @Override
-    public void removeOnPlaybackStateChangeListener(@Nullable OnPlaybackStateChangeListener listener) {
+    public final void removeOnPlaybackStateChangeListener(@Nullable OnPlaybackStateChangeListener listener) {
         if (listener != null && mOnPlaybackStateChangeListeners != null) {
             mOnPlaybackStateChangeListeners.remove(listener);
         }
@@ -1612,40 +1640,83 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
 
     void onVideoStarted() {
         setPlaybackState(PLAYBACK_STATE_PLAYING);
-        if (mVideoListener != null) {
-            mVideoListener.onVideoStarted();
+
+        if (!isPureAudioPlayback()) {
+            showTextureView(true);
         }
         setKeepScreenOn(true);
         adjustToggleState(true);
         if (mOpCallback == null || !mOpCallback.isInPictureInPictureMode()) {
             showControls(true);
         }
+
+        if (mVideoListener != null) {
+            mVideoListener.onVideoStarted();
+        }
     }
 
     void onVideoStopped() {
-        if (mPlaybackState != PLAYBACK_STATE_ERROR && mPlaybackState != PLAYBACK_STATE_COMPLETED) {
+        onVideoStopped(false /* uncompleted */);
+    }
+
+    /**
+     * @param canSkipNextOnCompletion `true` if the we can skip the played video to the next one
+     *                                in the playlist (if any) when the current playback ends
+     */
+    private void onVideoStopped(boolean canSkipNextOnCompletion) {
+        final int oldState = mPlaybackState;
+        final int currentState;
+        if (oldState == PLAYBACK_STATE_PLAYING) {
             setPlaybackState(PLAYBACK_STATE_PAUSED);
+            currentState = PLAYBACK_STATE_PAUSED;
+        } else {
+            currentState = oldState;
         }
-        if (mVideoListener != null) {
-            mVideoListener.onVideoStopped();
-        }
+
         setKeepScreenOn(false);
         adjustToggleState(false);
         if (mOpCallback == null || !mOpCallback.isInPictureInPictureMode()) {
             showControls(true);
         }
+
+        if (mVideoListener != null) {
+            mVideoListener.onVideoStopped();
+            // First, checks the current playback state here to see if it was changed in
+            // the above call to the onVideoStopped() method of the VideoListener.
+            if (currentState == mPlaybackState)
+                // Then, checks whether or not the player object is released (whether the closeVideo()
+                // method was called unexpectedly by the client within the same call as above).
+                if (isPlayerCreated())
+                    // If all of the conditions above hold, skips to the next if possible.
+                    if (currentState == PLAYBACK_STATE_COMPLETED && canSkipNextOnCompletion) {
+                        skipToNextIfPossible();
+                    }
+        }
     }
 
-    void onPlaybackCompleted() {
+    /**
+     * @return whether or not the player object is created for playing the video(s)
+     */
+    abstract boolean isPlayerCreated();
+
+    /**
+     * @return true if the video is closed, as scheduled by the user, when playback completes
+     */
+    boolean onPlaybackCompleted() {
         setPlaybackState(PLAYBACK_STATE_COMPLETED);
+
         if ((mPrivateFlags & PFLAG_TURN_OFF_WHEN_THIS_EPISODE_ENDS) != 0) {
             mPrivateFlags &= ~PFLAG_TURN_OFF_WHEN_THIS_EPISODE_ENDS;
             if (mMoreView != null) {
                 mMoreView.findViewById(R.id.text_whenThisEpisodeEnds).setSelected(false);
             }
+
             closeVideoInternal(true);
+            return true;
         } else {
-            onVideoStopped();
+
+            onVideoStopped(true);
+            return false;
         }
     }
 
@@ -1660,12 +1731,28 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
         if (width != 0 && height != 0) requestLayout();
     }
 
+    final boolean skipToNextIfPossible() {
+        if (mVideoListener != null && mOpCallback != null && mOpCallback.canSkipToNext()) {
+            mVideoListener.onSkipToNext();
+            return true;
+        }
+        return false;
+    }
+
+    final boolean skipToPreviousIfPossible() {
+        if (mVideoListener != null && mOpCallback != null && mOpCallback.canSkipToPrevious()) {
+            mVideoListener.onSkipToPrevious();
+            return true;
+        }
+        return false;
+    }
+
     /**
      * Sets the listener to monitor video events.
      *
      * @see VideoListener
      */
-    public void setVideoListener(@Nullable VideoListener listener) {
+    public final void setVideoListener(@Nullable VideoListener listener) {
         mVideoListener = listener;
     }
 
@@ -1674,7 +1761,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
      *
      * @see OpCallback
      */
-    public void setOpCallback(@Nullable OpCallback opCallback) {
+    public final void setOpCallback(@Nullable OpCallback opCallback) {
         mOpCallback = opCallback;
     }
 
@@ -1684,7 +1771,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
      *
      * @see OnReturnClickListener
      */
-    public void setOnReturnClickListener(@Nullable OnReturnClickListener listener) {
+    public final void setOnReturnClickListener(@Nullable OnReturnClickListener listener) {
         mOnReturnClickListener = listener;
     }
 
@@ -1693,7 +1780,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
      *
      * @see OnLockedChangeListener
      */
-    public void setOnLockedChangeListener(@Nullable OnLockedChangeListener listener) {
+    public final void setOnLockedChangeListener(@Nullable OnLockedChangeListener listener) {
         mOnLockedChangeListener = listener;
     }
 
@@ -1702,7 +1789,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
      * @return the RecyclerView adapter for the video playlist or `null` if not set
      */
     @Nullable
-    public <VH extends RecyclerView.ViewHolder> PlayListAdapter<VH> getPlayListAdapter() {
+    public final <VH extends RecyclerView.ViewHolder> PlayListAdapter<VH> getPlayListAdapter() {
         //noinspection unchecked
         return (PlayListAdapter<VH>) mPlayList.getAdapter();
     }
@@ -1713,7 +1800,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
      * @param adapter see {@link PlayListAdapter}
      * @param <VH>    A class that extends {@link RecyclerView.ViewHolder} that will be used by the adapter.
      */
-    public <VH extends RecyclerView.ViewHolder> void setPlayListAdapter(@Nullable PlayListAdapter<VH> adapter) {
+    public final <VH extends RecyclerView.ViewHolder> void setPlayListAdapter(@Nullable PlayListAdapter<VH> adapter) {
         if (adapter != null && mPlayList.getLayoutManager() == null) {
             mPlayList.setLayoutManager(new LinearLayoutManager(mContext));
             mPlayList.addItemDecoration(
@@ -1727,14 +1814,14 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
      * @return title of the video.
      */
     @Nullable
-    public String getTitle() {
+    public final String getTitle() {
         return mTitle;
     }
 
     /**
      * Sets the title of the video to play.
      */
-    public void setTitle(@Nullable String title) {
+    public final void setTitle(@Nullable String title) {
         if (!ObjectsCompat.equals(title, mTitle)) {
             mTitle = title;
             if (isInFullscreenMode()) {
@@ -1746,7 +1833,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     /**
      * @return <code>true</code> if the bounds of this view is clipped to adapt for the video
      */
-    public boolean isClipViewBounds() {
+    public final boolean isClipViewBounds() {
         return (mPrivateFlags & PFLAG_CLIP_VIEW_BOUNDS) != 0;
     }
 
@@ -1760,7 +1847,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
      * @param clip If true, the bounds of this view will be clipped;
      *             otherwise, black bars will be filled to the view's remaining area.
      */
-    public void setClipViewBounds(boolean clip) {
+    public final void setClipViewBounds(boolean clip) {
         if (clip != isClipViewBounds()) {
             mPrivateFlags = mPrivateFlags & ~PFLAG_CLIP_VIEW_BOUNDS
                     | (clip ? PFLAG_CLIP_VIEW_BOUNDS : 0);
@@ -1775,7 +1862,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     /**
      * @return whether the video is forced to be stretched to fit the layout size in fullscreen.
      */
-    public boolean isVideoStretchedToFitFullscreenLayout() {
+    public final boolean isVideoStretchedToFitFullscreenLayout() {
         return (mPrivateFlags & PFLAG_VIDEO_STRETCHED_TO_FIT_FULLSCREEN_LAYOUT) != 0;
     }
 
@@ -1785,7 +1872,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
      * <p>
      * <strong>NOTE:</strong> If the clip view bounds flag is also set, then it always wins.
      */
-    public void setVideoStretchedToFitFullscreenLayout(boolean stretched) {
+    public final void setVideoStretchedToFitFullscreenLayout(boolean stretched) {
         setVideoStretchedToFitFullscreenLayoutInternal(stretched, true);
     }
 
@@ -1820,7 +1907,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     /**
      * @return whether this view is in fullscreen mode or not
      */
-    public boolean isInFullscreenMode() {
+    public final boolean isInFullscreenMode() {
         return (mPrivateFlags & PFLAG_IN_FULLSCREEN_MODE) != 0;
     }
 
@@ -1838,7 +1925,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
      *                    position. Normally, when setting fullscreen mode, you need to move it
      *                    down a proper distance, so that it appears below the status bar.
      */
-    public void setFullscreenMode(boolean fullscreen, int navTopInset) {
+    public final void setFullscreenMode(boolean fullscreen, int navTopInset) {
         try {
             if (fullscreen == isInFullscreenMode()) {
                 return;
@@ -1924,15 +2011,22 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
         }
 
         ViewGroup.LayoutParams lp = mDrawerView.getLayoutParams();
-        // When in landscape mode, we need to make the drawer view appear to the user appropriately.
-        // Its width should not occupy too much display space，so as not to affect the user
-        // to preview the video content.
-        if (fullscreen && aspectRatio > 1.0f) {
-            lp.width = (int) (width / 2f + 0.5f); //XXX: To make this more adaptable
-            mDrawerViewMinimumHeight = height;
+        if (fullscreen) {
+            // When in landscape mode, we need to make the drawer view appear to the user appropriately.
+            // Its width should not occupy too much display space，so as not to affect the user
+            // to preview the video content.
+            if (aspectRatio > 1.0f) {
+                mDrawerViewMinimumHeight = height;
+                lp.width = (int) (width / 2f + 0.5f); //XXX: To make this more adaptable
+            } else {
+                mDrawerViewMinimumHeight = 0;
+                lp.width = ViewGroup.LayoutParams.MATCH_PARENT;
+            }
+            lp.height = ViewGroup.LayoutParams.MATCH_PARENT;
         } else {
-            lp.width = ViewGroup.LayoutParams.MATCH_PARENT;
             mDrawerViewMinimumHeight = 0;
+            lp.width = ViewGroup.LayoutParams.MATCH_PARENT;
+            lp.height = (int) (height * 0.88f + 0.5f);
         }
 
         super.onMeasure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY),
@@ -1950,9 +2044,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
                 state = sOpenStateField.getInt(lp);
                 if ((state & (FLAG_IS_OPENING | FLAG_IS_CLOSING)) != 0) {
                     if (mDragHelper == null) {
-                        final int hg = lp.gravity & GravityCompat.RELATIVE_HORIZONTAL_GRAVITY_MASK;
-                        final int ld = ViewCompat.getLayoutDirection(this);
-                        final int absHG = GravityCompat.getAbsoluteGravity(hg, ld);
+                        final int absHG = Utils.getAbsoluteHorizontalGravity(this, lp.gravity);
                         mDragHelper = (ViewDragHelper) (absHG == Gravity.LEFT ?
                                 sLeftDraggerField.get(this) : sRightDraggerField.get(this));
                     }
@@ -1986,15 +2078,49 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
         }
     }
 
+    @Override
+    public int getDrawerLockMode(@NonNull View drawerView) {
+        LayoutParams lp = (LayoutParams) drawerView.getLayoutParams();
+        checkDrawerView(drawerView, Utils.getAbsoluteHorizontalGravity(this, lp.gravity));
+        return getDrawerLockModeInternal(drawerView);
+    }
+
+    private int getDrawerLockModeInternal(@NonNull View drawerView) {
+        return getDrawerLockMode(
+                ((LayoutParams) drawerView.getLayoutParams()).gravity
+                        & GravityCompat.RELATIVE_HORIZONTAL_GRAVITY_MASK);
+    }
+
+    @Override
+    public void setDrawerLockMode(int lockMode, @NonNull View drawerView) {
+        LayoutParams lp = (LayoutParams) drawerView.getLayoutParams();
+        checkDrawerView(drawerView, Utils.getAbsoluteHorizontalGravity(this, lp.gravity));
+        setDrawerLockModeInternal(lockMode, drawerView);
+    }
+
+    private void setDrawerLockModeInternal(int lockMode, @NonNull View drawerView) {
+        setDrawerLockMode(lockMode,
+                ((LayoutParams) drawerView.getLayoutParams()).gravity
+                        & GravityCompat.RELATIVE_HORIZONTAL_GRAVITY_MASK);
+    }
+
+    @SuppressLint("RtlHardcoded")
+    private void checkDrawerView(View drawerView, int absHG) {
+        if ((absHG & Gravity.LEFT) != Gravity.LEFT && (absHG & Gravity.RIGHT) != Gravity.RIGHT) {
+            throw new IllegalArgumentException(
+                    "View " + drawerView + " is not a drawer with appropriate layout_gravity");
+        }
+    }
+
     /**
      * Returns whether or not the current view is locked.
      */
-    public boolean isLocked() {
+    public final boolean isLocked() {
         return (mPrivateFlags & PFLAG_LOCKED) != 0;
     }
 
     /** @see #setLocked(boolean, boolean) */
-    public void setLocked(boolean locked) {
+    public final void setLocked(boolean locked) {
         setLocked(locked, true);
     }
 
@@ -2007,7 +2133,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
      * @param animate Whether the locking or unlocking of this view should be animated.
      *                This only makes sense when this view is currently in fullscreen mode.
      */
-    public void setLocked(boolean locked, boolean animate) {
+    public final void setLocked(boolean locked, boolean animate) {
         if (locked != isLocked()) {
             final boolean fullscreen = isInFullscreenMode();
             final boolean showing = isControlsShowing();
@@ -2046,12 +2172,12 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     /**
      * @return whether the controls are currently showing or not
      */
-    public boolean isControlsShowing() {
+    public final boolean isControlsShowing() {
         return (mPrivateFlags & PFLAG_CONTROLS_SHOWING) != 0;
     }
 
     /** @see #showControls(boolean, boolean) */
-    public void showControls(boolean show) {
+    public final void showControls(boolean show) {
         showControls(show, true);
     }
 
@@ -2063,7 +2189,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
      *
      * @param animate whether to fade in/out the controls smoothly or not
      */
-    public void showControls(boolean show, boolean animate) {
+    public final void showControls(boolean show, boolean animate) {
         if ((mPrivateFlags & PFLAG_CONTROLS_SHOW_STICKILY) != 0) {
             return;
         }
@@ -2113,7 +2239,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
         if (fullscreen && unlocked) {
             // Perform this check even if the controls are already showing to decide whether or not
             // to display the button(s).
-            // If the controls are already showing, this will ensure the `skip next` to be hided
+            // If the controls are already showing, this will ensure the 'skip next' to be hided
             // immediately after the user skips to the last video in the playlist.
             checkSkipNextAndChooseEpisodeWidgetsVisibilities();
         }
@@ -2154,7 +2280,18 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
         }
     }
 
-    void showLoadingView(boolean show) {
+    final void showTextureView(boolean show) {
+        if (show) {
+            mTextureView.setVisibility(VISIBLE);
+        } else {
+            // Temporarily make the TextureView invisible. Do NOT use GONE as the Surface used to
+            // render the video content will also be released when it is detached from this view
+            // (the onSurfaceTextureDestroyed() method of its SurfaceTextureListener is called).
+            mTextureView.setVisibility(INVISIBLE);
+        }
+    }
+
+    final void showLoadingView(boolean show) {
         if (show) {
             if (mLoadingImage.getVisibility() != VISIBLE) {
                 mLoadingImage.setVisibility(VISIBLE);
@@ -2214,11 +2351,11 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     }
 
     /**
-     * Calling this method will cause an invocation to the video seek bar's `onStopTrackingTouch`
+     * Calling this method will cause an invocation to the video seek bar's onStopTrackingTouch()
      * if the seek bar is being dragged, so as to hide the widgets showing in that case.
      */
     @SuppressLint("ClickableViewAccessibility")
-    void cancelDraggingVideoSeekBar() {
+    final void cancelDraggingVideoSeekBar() {
         MotionEvent ev = null;
         if ((mOnChildTouchListener.touchFlags & OnChildTouchListener.TFLAG_ADJUSTING_VIDEO_PROGRESS) != 0) {
             ev = Utils.obtainCancelEvent();
@@ -2226,7 +2363,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
         } else if (mVideoSeekBar.isPressed()) {
             ev = Utils.obtainCancelEvent();
             mVideoSeekBar.onTouchEvent(ev);
-            // Sets an `onTouchListener` for it to intercept the subsequent touch events within
+            // Sets an OnTouchListener for it to intercept the subsequent touch events within
             // this event stream, so that the seek bar stays not dragged.
             mVideoSeekBar.setOnTouchListener((v, event) -> {
                 final int action = event.getAction();
@@ -2349,7 +2486,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
             return false;
         }
 
-        // Offer the speed spinner an `onClickListener` as needed
+        // Offer the speed spinner an OnClickListener as needed
         boolean onTouchSpinner(MotionEvent event) {
             switch (event.getAction() & MotionEvent.ACTION_MASK) {
                 case MotionEvent.ACTION_DOWN:
@@ -2375,10 +2512,10 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
                 case MotionEvent.ACTION_UP:
                     if ((touchFlags & TFLAG_STILL_DOWN_ON_POPUP) != 0) {
                         touchFlags &= ~TFLAG_STILL_DOWN_ON_POPUP;
-                        // Delay 100 milliseconds to let the spinner's `onClick` be called before
-                        // our one is called so that we can access the variables created in its `show()`
+                        // Delay 100 milliseconds to let the spinner's onClick() be called before
+                        // our one is called so that we can access the variables created in its show()
                         // method via reflections without any NullPointerException.
-                        // This is a bit similar to the GestureDetector's onSingleTapConfirmed method,
+                        // This is a bit similar to the GestureDetector's onSingleTapConfirmed() method,
                         // but not so rigorous as our logic processing is lightweight and effective
                         // enough in this use case.
                         postDelayed(postPopupOnClickedRunnable, 100);
@@ -2389,7 +2526,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
                     removeCallbacks(postPopupOnClickedRunnable);
                     break;
             }
-            return false; // we just need an `onClickListener`, so not consume events
+            return false; // we just need an OnClickListener, so not consume events
         }
 
         @SuppressLint("ClickableViewAccessibility")
@@ -2402,10 +2539,10 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
                 // Needed on platform versions >= P only
                 if (sPopupDecorViewField != null) {
                     // Although this is a member field in the PopupWindow class, it is created in the
-                    // popup's `show()` method and reset to `null` each time the popup dismisses. Thus,
+                    // popup's show() method and reset to `null` each time the popup dismisses. Thus,
                     // always retrieving it via reflection after the spinner clicked is really needed.
                     ((View) sPopupDecorViewField.get(mSpinnerPopup)).setOnTouchListener((v, event) ->
-                            // This is roughly the same as the `onTouchEvent` of the popup's decorView,
+                            // This is roughly the same as the onTouchEvent() of the popup's decorView,
                             // but just returns `true` according to the same conditions on actions `down`
                             // and `outside` instead of additionally dismissing the popup as we need it
                             // to remain showing within this event stream till the up event is arrived.
@@ -2437,8 +2574,8 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
                         (PopupWindow.OnDismissListener) sPopupOnDismissListenerField.get(mSpinnerPopup);
                 // This is a little bit of a hack, but... we need to get notified when the spinner's
                 // popup window dismisses, so as not to cause the controls unhiddable (even if
-                // the client calls `showControls(false)`, it does nothing for the
-                // `PFLAG_CONTROLS_SHOW_STICKILY` flag keeps it from doing what the client wants).
+                // the client calls showControls(false), it does nothing for the
+                // PFLAG_CONTROLS_SHOW_STICKILY flag keeps it from doing what the client wants).
                 mSpinnerPopup.setOnDismissListener(() -> {
                     // First, lets the internal one get notified to release some related resources
                     listener.onDismiss();
@@ -2500,7 +2637,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
                         return false;
                     }
 
-                    final boolean rtl = ViewCompat.getLayoutDirection(mContentView) == ViewCompat.LAYOUT_DIRECTION_RTL;
+                    final boolean rtl = Utils.isLayoutRtl(mContentView);
 
                     final float x = event.getX(pointerIndex);
                     final float y = event.getY(pointerIndex);
@@ -2679,10 +2816,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
                             removeCallbacks(playPauseKeyTimeoutRunnable);
 
                             // Consider triple tap as the previous.
-                            if (mVideoListener != null &&
-                                    mOpCallback != null && mOpCallback.canSkipToPrevious()) {
-                                mVideoListener.onSkipToPrevious();
-                            }
+                            skipToPreviousIfPossible();
                             break;
                     }
                     return true;
@@ -2694,19 +2828,9 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
             }
             switch (keyCode) {
                 case KeyEvent.KEYCODE_MEDIA_PREVIOUS:
-                    if (mVideoListener != null &&
-                            mOpCallback != null && mOpCallback.canSkipToPrevious()) {
-                        mVideoListener.onSkipToPrevious();
-                        return true;
-                    }
-                    break;
+                    return skipToPreviousIfPossible();
                 case KeyEvent.KEYCODE_MEDIA_NEXT:
-                    if (mVideoListener != null &&
-                            mOpCallback != null && mOpCallback.canSkipToNext()) {
-                        mVideoListener.onSkipToNext();
-                        return true;
-                    }
-                    break;
+                    return skipToNextIfPossible();
             }
             return false;
         }
@@ -2724,10 +2848,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
                     break;
                 // Consider double tap as the next.
                 case 2:
-                    if (mVideoListener != null &&
-                            mOpCallback != null && mOpCallback.canSkipToNext()) {
-                        mVideoListener.onSkipToNext();
-                    }
+                    skipToNextIfPossible();
                     break;
             }
         }
@@ -2803,23 +2924,23 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     /**
      * State persisted across instances
      */
-    @SuppressWarnings({"WeakerAccess", "deprecation"})
-    protected static class SavedState extends AbsSavedState {
-        float playbackSpeed;
-        int seekOnPlay;
-        boolean pureAudioPlayback;
-        boolean looping;
-        boolean locked;
-        boolean clipViewBounds;
-        boolean videoStretchedToFitFullscreenLayout;
-        boolean fullscreen;
-        int navTopInset;
+    @VisibleForTesting
+    public static class SavedState extends AbsSavedState {
+        private float playbackSpeed;
+        private int seekOnPlay;
+        private boolean pureAudioPlayback;
+        private boolean looping;
+        private boolean locked;
+        private boolean clipViewBounds;
+        private boolean videoStretchedToFitFullscreenLayout;
+        private boolean fullscreen;
+        private int navTopInset;
 
-        public SavedState(Parcelable superState) {
+        private SavedState(Parcelable superState) {
             super(superState);
         }
 
-        public SavedState(Parcel in, ClassLoader loader) {
+        private SavedState(Parcel in, ClassLoader loader) {
             super(in, loader);
             playbackSpeed = in.readFloat();
             seekOnPlay = in.readInt();
@@ -2846,6 +2967,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
             dest.writeInt(navTopInset);
         }
 
+        @SuppressWarnings("deprecation")
         public static final Creator<SavedState> CREATOR = ParcelableCompat.newCreator(
                 new ParcelableCompatCreatorCallbacks<SavedState>() {
                     @Override

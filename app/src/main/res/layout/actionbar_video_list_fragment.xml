@@ -15,8 +15,6 @@
         android:id="@+id/bt_homeAsUpIndicator"
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
-        android:layout_marginLeft="10dp"
-        android:layout_marginRight="10dp"
         style="@style/Widget.AppCompat.Toolbar.Button.Navigation"
         android:contentDescription="@string/openOrCloseSideDrawer" />
 
@@ -24,7 +22,7 @@
         android:id="@+id/text_title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/app_name"
+        android:text="@string/appName"
         android:textSize="@dimen/action_bar_title_text_size"
         android:textColor="@android:color/white"
         tools:ignore="SpUsage" />
@@ -42,6 +40,6 @@
             android:layout_gravity="end"
             android:src="@drawable/ic_search"
             style="@style/Widget.AppCompat.Toolbar.Button.Navigation"
-            android:contentDescription="@string/searchVideo" />
+            android:contentDescription="@string/searchVideos" />
     </FrameLayout>
 </LinearLayout>

@@ -6,12 +6,15 @@
 package com.liuzhenlin.texturevideoview.utils;
 
 import android.os.SystemClock;
+import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
 
 import androidx.annotation.NonNull;
+import androidx.core.view.GravityCompat;
+import androidx.core.view.ViewCompat;
 
 import com.liuzhenlin.texturevideoview.VideoPlayerControl;
 
@@ -23,7 +26,7 @@ public class Utils {
     }
 
     /**
-     * Create a new MotionEvent with {@link MotionEvent#ACTION_CANCEL} action being performed,
+     * Creates a new MotionEvent with {@link MotionEvent#ACTION_CANCEL} action being performed,
      * filling in a subset of the basic motion values. Those not specified here are:
      * <ul>
      * <li>down time (current milliseconds since boot)</li>
@@ -41,7 +44,7 @@ public class Utils {
     }
 
     /**
-     * Walk up the hierarchy for the given `view` to determine if it is inside a scrolling container.
+     * Walks up the hierarchy for the given `view` to determine if it is inside a scrolling container.
      */
     public static boolean isInScrollingContainer(@NonNull View view) {
         ViewParent p = view.getParent();
@@ -55,7 +58,26 @@ public class Utils {
     }
 
     /**
-     * Convert a playback state constant defined for {@link VideoPlayerControl.PlaybackState} to a
+     * Indicates whether or not the view's layout direction is right-to-left.
+     * This is resolved from layout attribute and/or the inherited value from its parent
+     *
+     * @return true if the layout direction is right-to-left
+     */
+    public static boolean isLayoutRtl(@NonNull View view) {
+        return ViewCompat.getLayoutDirection(view) == ViewCompat.LAYOUT_DIRECTION_RTL;
+    }
+
+    public static int getAbsoluteGravity(@NonNull View parent, int gravity) {
+        final int layoutDirection = ViewCompat.getLayoutDirection(parent);
+        return GravityCompat.getAbsoluteGravity(gravity, layoutDirection);
+    }
+
+    public static int getAbsoluteHorizontalGravity(@NonNull View parent, int gravity) {
+        return getAbsoluteGravity(parent, gravity) & Gravity.HORIZONTAL_GRAVITY_MASK;
+    }
+
+    /**
+     * Converts a playback state constant defined for {@link VideoPlayerControl.PlaybackState} to a
      * specified string
      *
      * @param playbackState one of the constant defined for {@link VideoPlayerControl.PlaybackState}

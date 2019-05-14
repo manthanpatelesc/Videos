@@ -1,118 +1,127 @@
+<!--
+  ~ Created on 5/9/19 7:36 PM.
+  ~ Copyright © 2019 刘振林. All rights reserved.
+  -->
+
 <resources>
-    <string name="app_name">视频</string>
+    <string name="appName">Videos</string>
+    <string name="appName_chinese" translatable="false">视频</string>
 
-    <string name="rationale_askExternalStorage">此应用需要访问您的存储卡，以便扫描并加载视频。</string>
+    <string name="rationale_askExternalStorage">
+        This app needs access to your memory card to scan and load videos.</string>
     <string name="rationale_askExternalStorageAgain">
-        没有读写存储卡的权限，此应用将无法正常工作。
-        请先前往应用程序设置界面以允许该权限。
+        This app will not work without permissions to read from and write to the memory card.
+        Please go to the application settings screen to allow those permissions.
     </string>
-    <string name="permissionRequired">需要权限</string>
-    <string name="cancel">取消</string>
-    <string name="confirm">确定</string>
-    <string name="complete">完成</string>
+    <string name="permissionsRequired">Permissions Required</string>
+    <string name="cancel">Cancel</string>
+    <string name="confirm">OK</string>
+    <string name="complete">OK</string>
 
-    <string name="loadingVideos">正在载入数据,请稍候…</string>
-    <string name="refreshingVideos">正在刷新数据,请稍候…</string>
-    <string name="top">置顶</string>
-    <string name="cancelTop">取消置顶</string>
-    <string name="delete">删除</string>
-    <string name="rename">重命名</string>
-    <string name="renameVideo">重命名视频</string>
-    <string name="renameDirectory">重命名目录</string>
-    <string name="share">分享</string>
-    <string name="details">详细信息</string>
-    <string name="selectAll">全选</string>
-    <string name="selectNone">全不选</string>
-    <string name="severalItemsHaveBeenSelected">已选择%d项</string>
-    <string name="videoNotExists">该视频不存在</string>
-    <string name="areYouSureToDeleteSth">确定删除“%s”？</string>
-    <string name="areYouSureToDeleteSomeVideoDir">确定删除“%s”目录下的所有视频吗？</string>
-    <string name="areYouSureToDelete">确认删除？</string>
-    <string name="deleteFailed">删除 %s 失败</string>
-    <string name="renameSuccessful">重命名成功</string>
-    <string name="renameFailed">重命名失败</string>
-    <string name="renameFailedForThisVideoDoesNotExist">重命名失败，该视频不存在</string>
-    <string name="renameFailedForThatDirectoryExistsSomeFileWithTheSameName">
-        重命名失败，该路径下存在同名文件</string>
-    <string name="videoDetails">视频详情</string>
-    <string name="directoryDetails">目录详情</string>
-    <string name="videoThumbnail">视频缩略图</string>
-    <string name="videodirThumbnail">视频目录缩略图</string>
-    <string name="name">名称：%s</string>
-    <string name="alias">别名：%s</string>
-    <string name="size">大小：%s</string>
-    <string name="scale">尺寸：%s</string>
-    <string name="path">路径：%s</string>
-    <string name="colon">：</string>
-    <string name="aTotalOfSeveralVideos">共%d个视频</string>
-    <string name="videoCount">视频数：%d</string>
-    <string name="unroll">展开</string>
-    <string name="someDirectory">“%s”目录</string>
-    <string name="secondPressToExitApp">再按一次退出视频</string>
+    <string name="loadingVideos">Loading videos, please wait…</string>
+    <string name="refreshingVideos">Refreshing videos, please wait…</string>
+    <string name="top">Top</string>
+    <string name="cancelTop">Cancel top</string>
+    <string name="delete">Delete</string>
+    <string name="rename">Rename</string>
+    <string name="renameVideo">Rename Video</string>
+    <string name="renameDirectory">Rename Directory</string>
+    <string name="share">Share</string>
+    <string name="details">Details</string>
+    <string name="selectAll">Select all</string>
+    <string name="selectNone">Select none</string>
+    <string name="severalItemsHaveBeenSelected">%d items selected</string>
+    <string name="videoNotExists">That video does not exist</string>
+    <string name="areYouSureToDeleteSth">Are you sure to delete \"%s\"?</string>
+    <string name="areYouSureToDeleteSomeVideoDir">
+        Are you sure to delete all the videos under \"%s\" directory?</string>
+    <string name="areYouSureToDelete">Are you sure to delete?</string>
+    <string name="deleteFailed">Failed to delete %s</string>
+    <string name="renameSuccessful">Rename successful</string>
+    <string name="renameFailed">Rename failed</string>
+    <string name="renameFailedForThisVideoDoesNotExist">
+        Rename failed for this video does not exist.</string>
+    <string name="renameFailedForThatDirectoryHasSomeFileWithTheSameName">
+        Rename failed for that directory has some file with the same name.</string>
+    <string name="videoDetails">Video Details</string>
+    <string name="directoryDetails">Directory Details</string>
+    <string name="videoThumbnail">Video thumbnail</string>
+    <string name="videodirThumbnail">Video directory thumbnail</string>
+    <string name="name">Name: %s</string>
+    <string name="alias">Alias: %s</string>
+    <string name="size">Size: %s</string>
+    <string name="resolution">Resolution: %s</string>
+    <string name="path">Path: %s</string>
+    <string name="colon">:</string>
+    <string name="aTotalOfSeveralVideos">%d videos in all</string>
+    <string name="videoCount">Video count: %d</string>
+    <string name="unroll">Unroll</string>
+    <string name="someDirectory">\"%s\" directory</string>
+    <string name="pressAgainToExitApp">Press again to exit app</string>
 
-    <string name="cannotPlayThisVideo">无法播放此视频</string>
-    <string name="theVideoIsPlaying">正在播放该视频</string>
-    <string name="lockScreenOrientation">锁定屏幕</string>
-    <string name="unlockScreenOrientation">解锁屏幕</string>
-    <string name="watching">正在观看…</string>
+    <string name="cannotPlayThisVideo">Cannot play this video</string>
+    <string name="theVideoIsPlaying">The video is playing</string>
+    <string name="watching">Watching…</string>
+    <string name="lockScreenOrientation">Lock screen orientation</string>
+    <string name="unlockScreenOrientation">Unlock screen orientation</string>
 
-    <string name="searchVideo">搜索视频</string>
-    <string name="findSomeVideos">找到%d个视频</string>
+    <string name="searchVideos">Search videos</string>
+    <string name="findSomeVideos">Find %d videos</string>
 
-    <string name="openOrCloseSideDrawer">打开或关闭侧边抽屉</string>
-    <string name="drawerBackground">抽屉背景</string>
-    <string name="checkUpdate">检查更新</string>
-    <string name="aboutApp">关于视频</string>
-    <string name="updateLogs">更新日志</string>
-    <string name="feedback">用户反馈</string>
-    <string name="noNetworkConnection">无网络连接！</string>
-    <string name="connectionTimeout">连接超时</string>
-    <string name="readTimeout">读取超时</string>
-    <string name="downloadError">下载异常</string>
-    <string name="itIsTheLatestVersion">已是最新版本</string>
-    <string name="findNewVersion">发现新版本</string>
-    <string name="updateLog">%1$sv%2$s 更新日志：</string>
-    <string name="mayYouNeedToUpdateItSoon">请问您需要立即更新吗？</string>
-    <string name="downloading">正在下载…</string>
-    <string name="downloadingUpdate">正在下载更新…</string>
+    <string name="openOrCloseSideDrawer">Open or close the side drawer</string>
+    <string name="drawerBackground">Drawer background</string>
+    <string name="checkUpdate">Check update</string>
+    <string name="aboutApp">About app</string>
+    <string name="updateLogs">Update logs</string>
+    <string name="userFeedback">User feedback</string>
+    <string name="noNetworkConnection">No network is connected!</string>
+    <string name="connectionTimeout">Connection timeout</string>
+    <string name="readTimeout">Read timeout</string>
+    <string name="downloadError">Download error</string>
+    <string name="isTheLatestVersion">Is the latest version</string>
+    <string name="findNewVersion">Find new version</string>
+    <string name="findNewVersion_title">Find New Version</string>
+    <string name="updateLog">%1$sv%2$s update log: </string>
+    <string name="doYouNeedToUpdateItSoon">Do you need to update it soon?</string>
+    <string name="downloading">Downloading…</string>
+    <string name="downloadingUpdates">Downloading Updates…</string>
     <string name="progress">%.2f%%</string>
     <string name="progressNumberOfUpdatingApp">%1$s/%2$s</string>
-    <string name="pleaseInsertSdCardOnYourDeviceFirst">请先插入SD卡</string>
-    <string name="notHaveEnoughStorage">存储卡空间不足</string>
-    <string name="theInstallationPackageHasBeenDestroyed">安装包已损坏</string>
+    <string name="pleaseInsertSdCardOnYourDeviceFirst">Please insert SD card on your device first.</string>
+    <string name="notHaveEnoughStorage">Device does not have enough storage.</string>
+    <string name="theInstallationPackageHasBeenDestroyed">The installation package has been destroyed.</string>
     <string name="pleaseGoToAppSettingsScreenFirstToAllowAppsFromThisSourceToBeInstalled">
-        请前往应用程序设置界面以允许安装此来源的应用</string>
-    <string name="version">v1.7.1-beta02</string>
-    <string name="copyright">
-        Copyright © 2017–present 刘振林.\nAll rights reserved.</string>
-    <string name="updateAppendedColon">更新：</string>
+        Please go to application settings screen first to allow apps from this source to be installed.</string>
+    <string name="version">v1.7.1-beta03</string>
+    <string name="copyright">Copyright © 2017–present 刘振林.\nAll rights reserved.</string>
+    <string name="updateAppendedColon" translatable="false">更新：</string>
+    <string name="setBackground">Set background</string>
+    <string name="setLightStatus">Set light status</string>
+    <string name="setDarkStatus">Set dark status</string>
+    <string name="setLightTexts">Set light texts</string>
+    <string name="setDarkTexts">Set dark texts</string>
 
-    <string name="setBackground">设置背景</string>
-    <string name="setLightStatusText">设置亮色状态栏字体</string>
-    <string name="setDarkStatusText">设置暗色状态栏字体</string>
-    <string name="setLightText">设置亮色字体</string>
-    <string name="setDarkText">设置暗色字体</string>
-
-    <string name="goBack">返回</string>
-    <string name="adviceAndFeedback">意见反馈</string>
-    <string name="pleaseEnterTheProblemsYouMeetOrYourAdvice">请输入遇到的问题或建议…</string>
+    <string name="back">Back</string>
+    <string name="adviceAndFeedback">Advice &amp; Feedback</string>
+    <string name="pleaseEnterTheIssuesYouEncounteredOrYourAdvice">
+        Please enter the issues you encountered or your advice…</string>
     <string name="wordCount">%d/500</string>
-    <string name="picture">图片（选填，提供问题截图）</string>
+    <string name="pictures">Pictures (Optional, provide screenshots of the issue(s))</string>
     <string name="pictureCount">%d/3</string>
-    <string name="screenshot">截屏</string>
-    <string name="deletePicture">删除图片</string>
-    <string name="areYouSureToDeleteThisPicture">确定要删除这张图片吗？</string>
-    <string name="contactWay">联系方式</string>
-    <string name="itIsOptionalForMeToContactWithYou">选填，便于我与你联系</string>
-    <string name="commit">提交</string>
-    <string name="sending">正在发送…</string>
-    <string name="sendSuccessful">发送成功</string>
-    <string name="sendFailed">发送失败</string>
-    <string name="sendCanceled">发送取消</string>
-    <string name="hasBeenPlacedInTheBackground">已放入后台</string>
-    <string name="youHaveNotCommitted">您尚未提交</string>
-    <string name="doYouNeedToSaveTheEditedContents">是否对已编辑的内容进行保存？</string>
-    <string name="save">保存</string>
-    <string name="notSave">不保存</string>
-    <string name="saveSuccessful">保存成功</string>
+    <string name="screenshot">screenshot</string>
+    <string name="deletePicture">Delete picture</string>
+    <string name="areYouSureToDeleteThisPicture">Are you sure to delete this picture?</string>
+    <string name="contactWay">Contact way</string>
+    <string name="optionalForMeToContactWithYou">Optional, for me to contact with you</string>
+    <string name="commit">Commit</string>
+    <string name="sending">Sending…</string>
+    <string name="sendSuccessful">Send successful</string>
+    <string name="sendFailed">Send failed</string>
+    <string name="sendCanceled">Send canceled</string>
+    <string name="hasBeenPlacedInTheBackground">Has been placed in the background</string>
+    <string name="youHaveNotCommitted">You Have Not Committed</string>
+    <string name="doYouNeedToSaveTheEditedContents">Do you need to save the edited contents?</string>
+    <string name="save">Save</string>
+    <string name="notSave">Not save</string>
+    <string name="saveSuccessful">Save successful</string>
 </resources>

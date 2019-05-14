@@ -125,7 +125,7 @@ public class TextureVideoView2 extends AbsTextureVideoView {
     }
 
     /**
-     * @return the {@link ExtractorMediaSource.Factory} used for read the media content
+     * @return the {@link ExtractorMediaSource.Factory} used for reading the media content
      */
     @Nullable
     public AdsMediaSource.MediaSourceFactory getMediaSourceFactory() {
@@ -161,7 +161,7 @@ public class TextureVideoView2 extends AbsTextureVideoView {
     @Override
     public void setVideoUri(@Nullable Uri uri) {
         if (!ObjectsCompat.equals(uri, mVideoUri)) {
-            mVideoUri = uri;
+            super.setVideoUri(uri);
             mVideoDuration = 0;
             mVideoDurationString = DEFAULT_STRING_VIDEO_DURATION;
             mPrivateFlags &= ~PFLAG_VIDEO_INFO_RESOLVED;
@@ -305,19 +305,25 @@ public class TextureVideoView2 extends AbsTextureVideoView {
             return;
         }
 
+        final int playbackState = getPlaybackState();
+
         if (mExoPlayer == null) {
             // Maybe the ExoPlayer has not been created since this page showed again after
             // the video had been paused by the user instead of our program itself or ended
             // in the last playback. Initialize it here as the user hits play.
-            if ((mPrivateFlags & PFLAG_VIDEO_PAUSED_BY_USER) != 0
-                    || getPlaybackState() == PLAYBACK_STATE_COMPLETED) {
+            if (playbackState == PLAYBACK_STATE_COMPLETED) {
+                // If the video playback finished, skip to the next video if possible
+                if (!(skipToNextIfPossible() && mExoPlayer != null)) {
+                    mPrivateFlags &= ~PFLAG_VIDEO_PAUSED_BY_USER;
+                    openVideoInternal();
+                }
+            } else if ((mPrivateFlags & PFLAG_VIDEO_PAUSED_BY_USER) != 0) {
                 mPrivateFlags &= ~PFLAG_VIDEO_PAUSED_BY_USER;
                 openVideoInternal();
             }
             return;
         }
 
-        final int playbackState = getPlaybackState();
         switch (playbackState) {
             case PLAYBACK_STATE_UNDEFINED:
             case PLAYBACK_STATE_IDLE: // no video is set
@@ -332,10 +338,13 @@ public class TextureVideoView2 extends AbsTextureVideoView {
                 mExoPlayer.retry();
                 break;
 
-            // Starts the video only if we have prepared it for the player
+            case PLAYBACK_STATE_COMPLETED:
+                if (skipToNextIfPossible() && getPlaybackState() != PLAYBACK_STATE_COMPLETED) {
+                    break;
+                }
+                // Starts the video only if we have prepared it for the player
             case PLAYBACK_STATE_PREPARED:
             case PLAYBACK_STATE_PAUSED:
-            case PLAYBACK_STATE_COMPLETED:
                 //@formatter:off
                 final int result = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ?
                           mAudioManager.requestAudioFocus(mAudioFocusRequest)
@@ -439,6 +448,10 @@ public class TextureVideoView2 extends AbsTextureVideoView {
 
     @Override
     public int getVideoProgress() {
+        if (getPlaybackState() == PLAYBACK_STATE_COMPLETED) {
+            // If the video completed and the ExoPlayer object was released, we would get 0.
+            return mVideoDuration;
+        }
         if (mExoPlayer != null) {
             return (int) mExoPlayer.getCurrentPosition();
         }
@@ -483,5 +496,24 @@ public class TextureVideoView2 extends AbsTextureVideoView {
                 super.setPlaybackSpeed(speed);
             }
         }
+    }
+
+    @Override
+    boolean isPlayerCreated() {
+        return mExoPlayer != null;
+    }
+
+    @Override
+    boolean onPlaybackCompleted() {
+        final boolean closed = super.onPlaybackCompleted();
+        if (closed) {
+            // Since the playback completion state deters the pause(boolean) method from being called
+            // within the closeVideoInternal(boolean) method, we need this extra step to add
+            // the PFLAG_VIDEO_PAUSED_BY_USER flag into mPrivateFlags to denote that the user pauses
+            // (closes) the video.
+            mPrivateFlags |= PFLAG_VIDEO_PAUSED_BY_USER;
+            onVideoStopped();
+        }
+        return closed;
     }
 }

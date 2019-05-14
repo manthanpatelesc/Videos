@@ -17,7 +17,6 @@ import android.view.ViewParent;
 
 import androidx.appcompat.widget.AppCompatSeekBar;
 import androidx.core.graphics.drawable.DrawableCompat;
-import androidx.core.view.ViewCompat;
 
 import com.liuzhenlin.texturevideoview.utils.Utils;
 
@@ -79,7 +78,7 @@ public class VerticalSeekBar extends AppCompatSeekBar {
 
     @Override
     protected synchronized void onDraw(Canvas c) {
-        if (isLayoutRtl()) {
+        if (Utils.isLayoutRtl(this)) {
             c.rotate(90);
             c.translate(0, -getWidth());
         } else {
@@ -87,10 +86,6 @@ public class VerticalSeekBar extends AppCompatSeekBar {
             c.translate(-getHeight(), 0);
         }
         super.onDraw(c);
-    }
-
-    protected boolean isLayoutRtl() {
-        return ViewCompat.getLayoutDirection(this) == ViewCompat.LAYOUT_DIRECTION_RTL;
     }
 
     @SuppressLint("ClickableViewAccessibility")

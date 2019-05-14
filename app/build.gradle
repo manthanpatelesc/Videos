@@ -7,11 +7,11 @@ android {
     buildToolsVersion '28.0.3'
 
     defaultConfig {
-        applicationId "com.liuzhenlin.videoplayer"
+        applicationId "com.liuzhenlin.videos"
         minSdkVersion 14
         targetSdkVersion 28
         versionCode 28 // 28 -> 29
-        versionName "1.7.1-beta02"
+        versionName "1.7.1-beta03"
 
         vectorDrawables.useSupportLibrary = true
 

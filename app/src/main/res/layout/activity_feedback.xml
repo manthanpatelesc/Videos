@@ -8,43 +8,43 @@
     android:orientation="vertical"
     tools:context=".view.activity.FeedbackActivity">
 
-    <RelativeLayout
+    <LinearLayout
         android:id="@+id/title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="10dp">
+        android:padding="10dp"
+        android:orientation="horizontal">
 
         <TextView
             android:id="@+id/bt_back"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignParentLeft="true"
-            android:layout_alignParentStart="true"
+            android:layout_height="match_parent"
             android:drawablePadding="5dp"
-            android:text="@string/goBack"
+            android:text="@string/back"
             android:textSize="@dimen/title_text_size"
-            android:textColor="@color/color_selector_color_accent" />
+            android:textColor="@color/color_selector_color_accent"
+            android:gravity="center_vertical" />
 
         <TextView
             android:id="@+id/text_adviceAndFeedback"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_centerHorizontal="true"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
             android:text="@string/adviceAndFeedback"
             android:textSize="@dimen/title_text_size"
-            android:textColor="@android:color/black" />
+            android:textColor="@android:color/black"
+            android:textAlignment="center"
+            android:gravity="center" />
 
         <TextView
             android:id="@+id/bt_saveFeedback"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignParentRight="true"
-            android:layout_alignParentEnd="true"
+            android:layout_height="match_parent"
             android:text="@string/save"
             android:textSize="@dimen/title_text_size"
             android:textColor="@color/color_selector_color_accent"
-            tools:ignore="RelativeOverlap" />
-    </RelativeLayout>
+            android:gravity="center_vertical" />
+    </LinearLayout>
 
     <ScrollView
         android:layout_width="match_parent"
@@ -69,14 +69,14 @@
                     android:layout_width="match_parent"
                     android:layout_height="90dp"
                     android:background="@null"
-                    android:hint="@string/pleaseEnterTheProblemsYouMeetOrYourAdvice"
+                    android:hint="@string/pleaseEnterTheIssuesYouEncounteredOrYourAdvice"
                     android:textSize="@dimen/primary_text_size"
                     android:textColor="@android:color/black"
                     android:maxLength="500"
                     android:maxLines="3"
                     android:inputType="textMultiLine"
                     android:textAlignment="viewStart"
-                    android:gravity="top|start" />
+                    android:gravity="start|top" />
 
                 <TextView
                     android:id="@+id/text_wordCountIndicator"
@@ -98,15 +98,21 @@
                 android:background="@android:color/white">
 
                 <TextView
-                    android:layout_width="wrap_content"
+                    android:id="@+id/text_pictures"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/picture"
+                    android:layout_toLeftOf="@+id/text_pictureCountIndicator"
+                    android:layout_toStartOf="@+id/text_pictureCountIndicator"
+                    android:layout_marginRight="10dp"
+                    android:layout_marginEnd="10dp"
+                    android:text="@string/pictures"
                     android:textSize="@dimen/primary_text_size"
                     android:textColor="@android:color/black"
-                    tools:ignore="RelativeOverlap" />
+                    android:textAlignment="viewStart"
+                    android:gravity="start" />
 
                 <TextView
-                    android:id="@+id/text_pictureCountIndicator"
+                    android:id="@id/text_pictureCountIndicator"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_alignParentRight="true"
@@ -121,7 +127,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12.5dp"
                     android:layout_marginBottom="2.5dp"
-                    android:layout_below="@id/text_pictureCountIndicator"
+                    android:layout_below="@id/text_pictures"
                     android:scrollbars="none"
                     android:overScrollMode="never"
                     android:numColumns="3"
@@ -158,13 +164,13 @@
                     android:layout_weight="1"
                     android:layout_gravity="center_vertical"
                     android:background="@null"
-                    android:hint="@string/itIsOptionalForMeToContactWithYou"
+                    android:hint="@string/optionalForMeToContactWithYou"
                     android:textSize="@dimen/primary_text_size"
                     android:textColor="@android:color/black"
                     android:inputType="text"
                     android:singleLine="true"
                     android:textAlignment="viewStart"
-                    android:gravity="center_vertical|start" />
+                    android:gravity="start|center_vertical" />
             </LinearLayout>
 
             <Button
