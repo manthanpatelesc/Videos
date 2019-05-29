@@ -20,6 +20,7 @@ import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.annotation.RawRes;
+import androidx.annotation.RestrictTo;
 import androidx.core.util.ObjectsCompat;
 
 import com.liuzhenlin.texturevideoview.receiver.HeadsetEventsReceiver;
@@ -42,24 +43,22 @@ public class TextureVideoView extends AbsTextureVideoView {
      * Flag used to indicate that the volume of the video is auto-turned down by the system
      * when the player temporarily loses the audio focus.
      */
-    private static final int PFLAG_VIDEO_VOLUME_TURNED_DOWN_AUTOMATICALLY =
-            PFLAG_TURN_OFF_WHEN_THIS_EPISODE_ENDS << 1;
+    private static final int PFLAG_VIDEO_VOLUME_TURNED_DOWN_AUTOMATICALLY = PFLAG_VIDEO_IS_CLOSING << 1;
 
     /**
      * Flag indicates that a position seek request happens when the video is not playing.
      */
-    private static final int PFLAG_SEEK_POSITION_WHILE_VIDEO_PAUSED =
-            PFLAG_TURN_OFF_WHEN_THIS_EPISODE_ENDS << 2;
+    private static final int PFLAG_SEEK_POSITION_WHILE_VIDEO_PAUSED = PFLAG_VIDEO_IS_CLOSING << 2;
 
     /**
      * If true, MediaPlayer is moving the media to some specified time position
      */
-    private static final int PFLAG_SEEKING = PFLAG_TURN_OFF_WHEN_THIS_EPISODE_ENDS << 3;
+    private static final int PFLAG_SEEKING = PFLAG_VIDEO_IS_CLOSING << 3;
 
     /**
      * If true, MediaPlayer is temporarily pausing playback internally in order to buffer more data.
      */
-    private static final int PFLAG_BUFFERING = PFLAG_TURN_OFF_WHEN_THIS_EPISODE_ENDS << 4;
+    private static final int PFLAG_BUFFERING = PFLAG_VIDEO_IS_CLOSING << 4;
 
     private MediaPlayer mMediaPlayer;
 
@@ -119,9 +118,9 @@ public class TextureVideoView extends AbsTextureVideoView {
 
     /* class initializer */ {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            mAudioAttrs = new android.media.AudioAttributes.Builder()
-                    .setUsage(android.media.AudioAttributes.USAGE_MEDIA)
-                    .setContentType(android.media.AudioAttributes.CONTENT_TYPE_MOVIE)
+            mAudioAttrs = new AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_MOVIE)
                     .setLegacyStreamType(AudioManager.STREAM_MUSIC)
                     .build();
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -248,9 +247,11 @@ public class TextureVideoView extends AbsTextureVideoView {
                     -> onVideoSizeChanged(width, height));
             startVideo();
 
-            mSession = new MediaSessionCompat(mContext, TAG);
-            mSession.setCallback(new SessionCallback());
-            mSession.setActive(true);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                mSession = new MediaSessionCompat(mContext, TAG);
+                mSession.setCallback(new SessionCallback());
+                mSession.setActive(true);
+            }
             mHeadsetEventsReceiver = new HeadsetEventsReceiver(mContext) {
                 @Override
                 public void onHeadsetPluggedOutOrBluetoothDisconnected() {
@@ -466,9 +467,11 @@ public class TextureVideoView extends AbsTextureVideoView {
             mPlaybackSpeed = DEFAULT_PLAYBACK_SPEED;
             mBuffering = 0;
 
-            mSession.setActive(false);
-            mSession.release();
-            mSession = null;
+            if (mSession != null) {
+                mSession.setActive(false);
+                mSession.release();
+                mSession = null;
+            }
             mHeadsetEventsReceiver.unregister();
             mHeadsetEventsReceiver = null;
 
@@ -563,6 +566,7 @@ public class TextureVideoView extends AbsTextureVideoView {
         }
     }
 
+    @RestrictTo(RestrictTo.Scope.LIBRARY)
     @Override
     public void setPlaybackSpeed(float speed) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && speed != mPlaybackSpeed) {

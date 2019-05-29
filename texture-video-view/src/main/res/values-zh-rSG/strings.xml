@@ -5,6 +5,7 @@
 <resources>
     <string name="back">返回</string>
     <string name="share">分享</string>
+    <string name="clickToShare">点击分享</string>
     <string name="more">更多</string>
     <string name="brightness_progress">亮度：%.0f%%</string>
     <string name="brightness_followsSystem">亮度：跟随系统</string>
@@ -12,6 +13,16 @@
     <string name="progress_duration">%s/%s</string>
     <string name="lock">锁定</string>
     <string name="unlock">不锁定</string>
+    <string name="captureVideoPhoto">截取视频图片</string>
+    <string name="capturedVideoPhoto">截取的视频图片</string>
+    <string name="saveScreenshotFailed">保存截图失败</string>
+    <string name="cutoutVideoClip">截取视频片段</string>
+    <string name="cutoutClip">截片段</string>
+    <string name="cutoutGif">截GIF</string>
+    <string name="clipForward">向前裁剪</string>
+    <string name="clipBackwards">向后裁剪</string>
+    <string name="videoclipPlaybackProgress">视频片段播放进度</string>
+    <string name="canTakeUpToXSecondsXSecondsSelected">最多可截取%d秒，已选择%d秒</string>
     <string name="play">播放</string>
     <string name="pause">暂停</string>
     <string name="fastForward">快进</string>

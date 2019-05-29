@@ -27,13 +27,13 @@ public abstract class OnOrientationChangeListener {
     private int mOrientation;
     private final OrientationEventListener mListener;
 
-    @Retention(RetentionPolicy.SOURCE)
-    @IntDef(value = {
+    @IntDef({
             SCREEN_ORIENTATION_PORTRAIT,
             SCREEN_ORIENTATION_LANDSCAPE,
             SCREEN_ORIENTATION_REVERSE_PORTRAIT,
             SCREEN_ORIENTATION_REVERSE_LANDSCAPE
     })
+    @Retention(RetentionPolicy.SOURCE)
     public @interface ScreenOrientation {
     }
 

@@ -268,11 +268,13 @@ public interface VideoPlayerControl {
      */
     int PLAYBACK_STATE_COMPLETED = 5;
 
-    @IntDef({PLAYBACK_STATE_UNDEFINED,
+    @IntDef({
+            PLAYBACK_STATE_UNDEFINED,
             PLAYBACK_STATE_ERROR,
             PLAYBACK_STATE_IDLE,
             PLAYBACK_STATE_PREPARING, PLAYBACK_STATE_PREPARED,
-            PLAYBACK_STATE_PLAYING, PLAYBACK_STATE_PAUSED, PLAYBACK_STATE_COMPLETED})
+            PLAYBACK_STATE_PLAYING, PLAYBACK_STATE_PAUSED, PLAYBACK_STATE_COMPLETED
+    })
     @Retention(RetentionPolicy.SOURCE)
     @interface PlaybackState {
     }

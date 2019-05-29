@@ -1,0 +1,19 @@
+<!--
+  ~ Created on 5/15/19 7:35 PM.
+  ~ Copyright © 2019 刘振林. All rights reserved.
+  -->
+
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="20dp"
+    android:height="20dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <path
+        android:strokeWidth="2"
+        android:strokeColor="?attr/colorAccent"
+        android:strokeLineJoin="round"
+        android:pathData="
+                          M8,3 l-2,3 h-5 v15 h21 v-15 h-5 l-2,-3 z
+                          M12,12 m-4,1 a4,4 0,1 1,8 0 a4,4 0,1 1,-8 0" />
+</vector>

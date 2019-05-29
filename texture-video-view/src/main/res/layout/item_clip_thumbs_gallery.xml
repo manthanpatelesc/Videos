@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  ~ Created on 5/26/19 9:30 AM.
+  ~ Copyright © 2019 刘振林. All rights reserved.
+  -->
+
+<ImageView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/image_thumb"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:scaleType="fitXY" />

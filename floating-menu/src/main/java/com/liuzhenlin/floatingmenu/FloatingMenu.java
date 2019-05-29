@@ -18,16 +18,19 @@ import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 import android.widget.TextView;
 
+import androidx.annotation.MenuRes;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
+import androidx.core.view.ViewCompat;
+
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 
 import java.io.IOException;
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
-
-import androidx.annotation.NonNull;
-import androidx.core.content.ContextCompat;
-import androidx.core.view.ViewCompat;
 
 public class FloatingMenu extends PopupWindow {
 
@@ -49,20 +52,21 @@ public class FloatingMenu extends PopupWindow {
     private final int mScreenWidth;
     private final int mScreenHeight;
 
-    // Match the width of the contentView of this menu
-    private static final int DEFAULT_ITEM_WIDTH = ViewGroup.LayoutParams.MATCH_PARENT;
-
     private final List<MenuItem> mMenuItems = new ArrayList<>();
 
     private LinearLayout mMenuLayout;
 
+    // Match the width of the contentView of this menu
+    private static final int DEFAULT_ITEM_WIDTH = ViewGroup.LayoutParams.MATCH_PARENT;
+
     private OnItemClickListener mOnItemClickListener;
+    private OnItemLongClickListener mOnItemLongClickListener;
+
+    private View.OnClickListener mOnClickListener;
+    private View.OnLongClickListener mOnLongClickListener;
+
     private int mDownX;
     private int mDownY;
-
-    public interface OnItemClickListener {
-        void onClick(MenuItem menuItem, int position);
-    }
 
     public FloatingMenu(@NonNull View anchor) {
         super(anchor.getContext());
@@ -71,16 +75,17 @@ public class FloatingMenu extends PopupWindow {
 
         mContext = anchor.getContext();
         mAnchorView = anchor;
-        mAnchorView.setOnTouchListener(new MenuOnTouchListener());
+        mAnchorView.setOnTouchListener(new OnMenuTouchListener(this));
         mScreenWidth = DensityUtils.getScreenWidth(mContext);
         mScreenHeight = DensityUtils.getScreenHeight(mContext);
     }
 
-    public void inflate(int menuRes) {
+    public void inflate(@MenuRes int menuRes) {
         inflate(menuRes, DEFAULT_ITEM_WIDTH);
     }
 
-    public void inflate(int menuRes, int itemWidth) {
+    public void inflate(@MenuRes int menuRes, int itemWidth) {
+        @SuppressLint("ResourceType")
         XmlResourceParser parser = mContext.getResources().getLayout(menuRes);
         AttributeSet attrs = Xml.asAttributeSet(parser);
         try {
@@ -152,38 +157,42 @@ public class FloatingMenu extends PopupWindow {
 
     private void readItem(AttributeSet attrs) {
         TypedArray ta = mContext.obtainStyledAttributes(attrs, R.styleable.MenuItem);
-        MenuItem item = new MenuItem();
         final int iconResId = ta.getResourceId(R.styleable.MenuItem_icon, View.NO_ID);
+        final String text = ta.getText(R.styleable.MenuItem_text).toString();
+        ta.recycle();
+
+        MenuItem item = new MenuItem();
         if (iconResId != View.NO_ID) {
             item.setIconResId(iconResId);
         }
-        final String text = ta.getText(R.styleable.MenuItem_text).toString();
         item.setText(text);
+
         mMenuItems.add(item);
-        ta.recycle();
     }
 
-    public void items(String... items) {
+    public void items(@Nullable String... items) {
         items(DEFAULT_ITEM_WIDTH, items);
     }
 
-    public void items(int itemWidth, String... items) {
+    public void items(int itemWidth, @Nullable String... items) {
         mMenuItems.clear();
-        for (String item : items) {
-            mMenuItems.add(new MenuItem(item));
+        if (items != null) {
+            for (String item : items) {
+                mMenuItems.add(new MenuItem(item));
+            }
         }
         generateLayout(itemWidth);
     }
 
-    public <T extends MenuItem> void items(List<T> items) {
-        mMenuItems.clear();
-        mMenuItems.addAll(items);
-        generateLayout(DEFAULT_ITEM_WIDTH);
+    public <T extends MenuItem> void items(@Nullable List<T> items) {
+        items(items, DEFAULT_ITEM_WIDTH);
     }
 
-    public <T extends MenuItem> void items(List<T> items, int itemWidth) {
+    public <T extends MenuItem> void items(@Nullable List<T> items, int itemWidth) {
         mMenuItems.clear();
-        mMenuItems.addAll(items);
+        if (items != null) {
+            mMenuItems.addAll(items);
+        }
         generateLayout(itemWidth);
     }
 
@@ -203,8 +212,8 @@ public class FloatingMenu extends PopupWindow {
             textView.setLayoutParams(new LinearLayout.LayoutParams(
                     itemWidth, ViewGroup.LayoutParams.WRAP_CONTENT));
             ViewCompat.setPaddingRelative(textView, padding, padding, padding * 2, padding);
-            textView.setClickable(true);
             textView.setBackgroundDrawable(ContextCompat.getDrawable(mContext, R.drawable.selector_item));
+            textView.setClickable(true);
             textView.setText(menuItem.getText());
             textView.setTextSize(15);
             textView.setTextColor(Color.BLACK);
@@ -225,12 +234,12 @@ public class FloatingMenu extends PopupWindow {
                     }
                 }
             }
-            if (mOnItemClickListener != null) {
-                textView.setOnClickListener(new ItemOnClickListener(i));
-            }
 
             mMenuLayout.addView(textView);
         }
+
+        setOnItemClickListener(mOnItemClickListener);
+        setOnItemLongClickListener(mOnItemLongClickListener);
 
         mMenuLayout.measure(
                 View.MeasureSpec.makeMeasureSpec(mScreenWidth, View.MeasureSpec.AT_MOST),
@@ -275,40 +284,80 @@ public class FloatingMenu extends PopupWindow {
         }
     }
 
-    public void setOnItemClickListener(OnItemClickListener listener) {
+    public void setOnItemClickListener(@Nullable OnItemClickListener listener) {
         mOnItemClickListener = listener;
-        if (listener != null) {
+        if (listener == null) {
+            mOnClickListener = null;
+        } else
             for (int i = mMenuLayout.getChildCount() - 1; i >= 0; i--) {
-                View view = mMenuLayout.getChildAt(i);
-                view.setOnClickListener(new ItemOnClickListener(i));
+                if (mOnClickListener == null) {
+                    mOnClickListener = new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            final int position = mMenuLayout.indexOfChild(v);
+                            if (position != -1) {
+                                dismiss();
+                                if (mOnItemClickListener != null) {
+                                    mOnItemClickListener.onClick(mMenuItems.get(position), position);
+                                }
+                            }
+                        }
+                    };
+                }
+                mMenuLayout.getChildAt(i).setOnClickListener(mOnClickListener);
             }
-        }
     }
 
-    private class ItemOnClickListener implements View.OnClickListener {
-        int position;
-
-        ItemOnClickListener(int position) {
-            this.position = position;
-        }
-
-        @Override
-        public void onClick(View v) {
-            dismiss();
-            if (mOnItemClickListener != null) {
-                mOnItemClickListener.onClick(mMenuItems.get(position), position);
+    public void setOnItemLongClickListener(@Nullable OnItemLongClickListener listener) {
+        mOnItemLongClickListener = listener;
+        if (listener == null) {
+            mOnLongClickListener = null;
+        } else
+            for (int i = mMenuLayout.getChildCount() - 1; i >= 0; i--) {
+                if (mOnLongClickListener == null) {
+                    mOnLongClickListener = new View.OnLongClickListener() {
+                        @Override
+                        public boolean onLongClick(View v) {
+                            final int position = mMenuLayout.indexOfChild(v);
+                            if (position != -1) {
+//                                dismiss();
+                                if (mOnItemLongClickListener != null) {
+                                    return mOnItemLongClickListener.onLongClick(
+                                            mMenuItems.get(position), position);
+                                }
+                            }
+                            return false;
+                        }
+                    };
+                }
+                mMenuLayout.getChildAt(i).setOnLongClickListener(mOnLongClickListener);
             }
-        }
     }
 
-    private class MenuOnTouchListener implements View.OnTouchListener {
+    public interface OnItemClickListener {
+        void onClick(@NonNull MenuItem menuItem, int position);
+    }
+
+    public interface OnItemLongClickListener {
+        boolean onLongClick(@NonNull MenuItem menuItem, int position);
+    }
+
+    private static class OnMenuTouchListener implements View.OnTouchListener {
+        final WeakReference<FloatingMenu> menuRef;
+
+        OnMenuTouchListener(FloatingMenu menu) {
+            menuRef = new WeakReference<>(menu);
+        }
 
         @SuppressLint("ClickableViewAccessibility")
         @Override
         public boolean onTouch(View v, MotionEvent event) {
-            if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                mDownX = (int) event.getRawX();
-                mDownY = (int) event.getRawY();
+            FloatingMenu menu = menuRef.get();
+            if (menu != null) {
+                if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                    menu.mDownX = (int) event.getRawX();
+                    menu.mDownY = (int) event.getRawY();
+                }
             }
             return false;
         }

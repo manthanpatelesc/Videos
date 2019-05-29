@@ -4,6 +4,6 @@
   -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android">
     <corners android:radius="2.5dp" />
-    <solid android:color="@color/bg_popup" />
+    <solid android:color="@color/bg_popup_dark" />
     <corners android:radius="@dimen/brightness_or_volume_frame_corner_radius" />
 </shape>

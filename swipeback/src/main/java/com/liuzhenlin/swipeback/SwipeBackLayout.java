@@ -12,6 +12,7 @@ import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.view.ViewParent;
 import android.widget.FrameLayout;
@@ -29,7 +30,8 @@ import androidx.fragment.app.Fragment;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
-import java.util.LinkedList;
+import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.List;
 
 public class SwipeBackLayout extends FrameLayout {
@@ -60,9 +62,7 @@ public class SwipeBackLayout extends FrameLayout {
     public static final int STATE_DRAGGING = ViewDragHelper.STATE_DRAGGING;
     public static final int STATE_SETTLING = ViewDragHelper.STATE_SETTLING;
 
-    @IntDef(value = {
-            STATE_IDLE, STATE_DRAGGING, STATE_SETTLING
-    })
+    @IntDef({STATE_IDLE, STATE_DRAGGING, STATE_SETTLING})
     @Retention(RetentionPolicy.SOURCE)
     public @interface ScrollState {
     }
@@ -100,8 +100,6 @@ public class SwipeBackLayout extends FrameLayout {
      * @see #setPreviousContentScrollable(boolean)
      */
     private static final int FLAG_PREVIOUS_CONTENT_SCROLLABLE = 1 << 3;
-
-    static final SwipeListener[] sEmptySwipeListenerArray = {};
 
     /**
      * The set of listeners to be sent events through
@@ -143,6 +141,18 @@ public class SwipeBackLayout extends FrameLayout {
 
     private static final int FULL_ALPHA = 255;
 
+    protected final float mTouchSlop;
+    private static Field sDraggerTouchSlopField;
+
+    static {
+        try {
+            sDraggerTouchSlopField = ViewDragHelper.class.getDeclaredField("mTouchSlop");
+            sDraggerTouchSlopField.setAccessible(true);
+        } catch (NoSuchFieldException e) {
+            e.printStackTrace();
+        }
+    }
+
     public SwipeBackLayout(Context context) {
         this(context, null);
     }
@@ -153,9 +163,10 @@ public class SwipeBackLayout extends FrameLayout {
 
     public SwipeBackLayout(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
+        final float dp = context.getResources().getDisplayMetrics().density;
+        mTouchSlop = ViewConfiguration.getTouchSlop() * dp;
         mDragHelper = ViewDragHelper.create(this, new ViewDragCallback());
-        mDragHelper.setMinVelocity(MIN_FLING_VELOCITY *
-                context.getResources().getDisplayMetrics().density);
+        mDragHelper.setMinVelocity(MIN_FLING_VELOCITY * dp);
         setEdgeShadow(R.drawable.shadow_left, EDGE_LEFT);
         setEdgeShadow(R.drawable.shadow_right, EDGE_RIGHT);
     }
@@ -241,6 +252,39 @@ public class SwipeBackLayout extends FrameLayout {
      */
     public int getEdgeSize() {
         return mDragHelper.getEdgeSize();
+    }
+
+    /**
+     * @return the sensitivity of the dragger between 0 and 1.
+     * Smaller values are less sensitive. 1.0f is normal.
+     */
+    public float getSensitivity() {
+        if (sDraggerTouchSlopField != null) {
+            try {
+                return mTouchSlop / sDraggerTouchSlopField.getInt(mDragHelper);
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            }
+        }
+        return 1.0f;
+    }
+
+    /**
+     * Sets the sensitivity for the dragger.
+     *
+     * @param sensitivity value between 0 and 1, the final value for touchSlop is
+     *                    {@code ViewConfiguration.get(context).getScaledTouchSlop * (1 / sensitivity)}
+     */
+    public void setSensitivity(float sensitivity) {
+        if (sDraggerTouchSlopField != null) {
+            sensitivity = Math.max(0f, Math.min(1.0f, sensitivity));
+            try {
+                sDraggerTouchSlopField.setInt(mDragHelper,
+                        (int) (mTouchSlop * (1.0f / sensitivity) + 0.5f));
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     /**
@@ -486,9 +530,8 @@ public class SwipeBackLayout extends FrameLayout {
             mScrollPercent = Math.min(Math.abs((float) left / (float) mContentView.getWidth()), 1);
             if (mScrollPercent != oldScrollPercent) {
                 if (mSwipeListeners != null) {
-                    SwipeListener[] listeners = mSwipeListeners.toArray(sEmptySwipeListenerArray);
-                    for (SwipeListener listener : listeners) {
-                        listener.onScrollPercentChange(mTrackingEdge, mScrollPercent);
+                    for (int i = mSwipeListeners.size() - 1; i >= 0; i--) {
+                        mSwipeListeners.get(i).onScrollPercentChange(mTrackingEdge, mScrollPercent);
                     }
                 }
 
@@ -547,9 +590,8 @@ public class SwipeBackLayout extends FrameLayout {
         @Override
         public void onViewDragStateChanged(int state) {
             if (mSwipeListeners != null) {
-                SwipeListener[] listeners = mSwipeListeners.toArray(sEmptySwipeListenerArray);
-                for (SwipeListener listener : listeners) {
-                    listener.onScrollStateChange(mTrackingEdge, state);
+                for (int i = mSwipeListeners.size() - 1; i >= 0; i--) {
+                    mSwipeListeners.get(i).onScrollStateChange(mTrackingEdge, state);
                 }
             }
 
@@ -680,7 +722,7 @@ public class SwipeBackLayout extends FrameLayout {
      */
     public void addSwipeListener(SwipeListener listener) {
         if (mSwipeListeners == null) {
-            mSwipeListeners = new LinkedList<>();
+            mSwipeListeners = new ArrayList<>(1);
 
         } else if (mSwipeListeners.contains(listener)) {
             return;
@@ -725,7 +767,7 @@ public class SwipeBackLayout extends FrameLayout {
         /**
          * Invoked as the scroll percentage changes
          *
-         * @param edge  edge flag describing the edge being dragged
+         * @param edge    edge flag describing the edge being dragged
          * @param percent scroll percentage of the content view
          */
         void onScrollPercentChange(@Edge int edge, @FloatRange(from = 0.0, to = 1.0) float percent);

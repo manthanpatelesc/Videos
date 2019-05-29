@@ -36,10 +36,10 @@ public interface IVideoDao {
     Video queryVideoById(long id);
     Cursor queryAllVideos();
     @Nullable
-    Cursor queryAllVideosInDirectory(@Nullable String directory);
+    Cursor queryAllVideosInDirectory(@Nullable String directory /* directory path */);
 
     boolean insertVideoDir(@NonNull VideoDirectory videodir);
-    boolean deleteVideoDir(@Nullable String path);
+    boolean deleteVideoDir(@Nullable String directory /* directory path */);
     boolean updateVideoDir(@NonNull VideoDirectory videodir);
     @Nullable
     VideoDirectory queryVideoDirByPath(@Nullable String path);

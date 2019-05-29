@@ -15,7 +15,6 @@ import android.os.StatFs;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 import android.util.Log;
-import android.webkit.MimeTypeMap;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -32,10 +31,10 @@ import java.io.IOException;
 /**
  * @author 刘振林
  */
-public class FileUtils {
-    private static final String TAG = "FileUtils";
+public class FileUtils2 {
+    private static final String TAG = "FileUtils2";
 
-    private FileUtils() {
+    private FileUtils2() {
     }
 
     @NonNull
@@ -67,15 +66,6 @@ public class FileUtils {
             size = size / 1024d;
             return (double) Math.round(size * 100d) / 100d + "GB";
         }
-    }
-
-    @Nullable
-    public static String getMimeType(@NonNull String path) {
-        final int index = path.lastIndexOf(".");
-        if (index != -1) {
-            return MimeTypeMap.getSingleton().getMimeTypeFromExtension(path.substring(index + 1));
-        }
-        return null;
     }
 
     /** 判断SD卡是否已挂载 */
@@ -122,13 +112,13 @@ public class FileUtils {
     }
 
     public static class UriResolver {
-        private static final String TAG = "FileUtils.UriResolver";
+        private static final String TAG = "FileUtils2.UriResolver";
 
         private UriResolver() {
         }
 
         /**
-         * Android4.4+从Uri获取文件绝对路径
+         * Android4.4+从Uri获取文件路径
          */
         @Nullable
         public static String getPath(@NonNull Context context, @NonNull Uri uri) {
@@ -169,8 +159,7 @@ public class FileUtils {
                         if (BuildConfig.DEBUG) {
                             Log.d(TAG, "NumberFormatException ——> id= " + id);
                         }
-                        if (id.startsWith("raw:" +
-                                Environment.getExternalStorageDirectory().getPath())) {
+                        if (id.startsWith("raw:" + Environment.getExternalStorageDirectory())) {
                             try {
                                 return id.substring(id.indexOf(":") + 1);
                             } catch (IndexOutOfBoundsException e2) {

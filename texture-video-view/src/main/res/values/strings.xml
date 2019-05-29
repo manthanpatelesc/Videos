@@ -5,6 +5,7 @@
 <resources>
     <string name="back">Back</string>
     <string name="share">Share</string>
+    <string name="clickToShare">Click to Share</string>
     <string name="more">More</string>
     <string name="brightness_progress">Brightness：%.0f%%</string>
     <string name="brightness_followsSystem">Brightness：follows the system</string>
@@ -12,6 +13,16 @@
     <string name="progress_duration">%s/%s</string>
     <string name="lock">Lock</string>
     <string name="unlock">Unlock</string>
+    <string name="captureVideoPhoto">Capture a Video Photo</string>
+    <string name="capturedVideoPhoto">Captured Video Photo</string>
+    <string name="saveScreenshotFailed">Save screenshot failed</string>
+    <string name="cutoutVideoClip">Cut out a Video Clip</string>
+    <string name="cutoutClip">Cut out a Clip</string>
+    <string name="cutoutGif">Cut out a GIF</string>
+    <string name="clipForward">Clip Forward</string>
+    <string name="clipBackwards">Clip Backwards</string>
+    <string name="videoclipPlaybackProgress">Playback Progress of the Video Clip</string>
+    <string name="canTakeUpToXSecondsXSecondsSelected">You can take up to %d seconds. %d seconds is selected</string>
     <string name="play">Play</string>
     <string name="pause">Pause</string>
     <string name="fastForward">Fast Forward</string>

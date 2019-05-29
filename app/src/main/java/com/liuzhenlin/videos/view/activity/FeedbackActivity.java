@@ -44,14 +44,14 @@ import com.liuzhenlin.galleryviewer.GalleryViewPager;
 import com.liuzhenlin.slidingdrawerlayout.Utils;
 import com.liuzhenlin.swipeback.SwipeBackActivity;
 import com.liuzhenlin.swipeback.SwipeBackLayout;
+import com.liuzhenlin.texturevideoview.utils.BitmapUtils;
 import com.liuzhenlin.texturevideoview.utils.SystemBarUtils;
 import com.liuzhenlin.videos.App;
 import com.liuzhenlin.videos.Consts;
 import com.liuzhenlin.videos.R;
 import com.liuzhenlin.videos.dao.FeedbackSharedPreferences;
-import com.liuzhenlin.videos.utils.BitmapUtils2;
 import com.liuzhenlin.videos.utils.DisplayCutoutUtils;
-import com.liuzhenlin.videos.utils.FileUtils;
+import com.liuzhenlin.videos.utils.FileUtils2;
 import com.liuzhenlin.videos.utils.MailUtil;
 import com.liuzhenlin.videos.utils.NetworkUtil;
 import com.liuzhenlin.videos.utils.OSHelper;
@@ -344,7 +344,7 @@ public class FeedbackActivity extends SwipeBackActivity implements View.OnClickL
         if (data != null && requestCode == Consts.REQUEST_CODE_ADD_PICTURE) {
             final Uri uri = data.getData();
             if (uri != null)
-                addPicture(FileUtils.UriResolver.getPath(this, uri));
+                addPicture(FileUtils2.UriResolver.getPath(this, uri));
         }
     }
 
@@ -492,7 +492,7 @@ public class FeedbackActivity extends SwipeBackActivity implements View.OnClickL
         PictureGridAdapter(@NonNull Context context) {
             mContext = context;
             //noinspection all
-            mPictures.add(BitmapUtils2.drawableToBitmap(ContextCompat.getDrawable(
+            mPictures.add(BitmapUtils.drawableToBitmap(ContextCompat.getDrawable(
                     mContext, R.drawable.ic_add_photo_gray_36dp)));
         }
 

@@ -6,12 +6,12 @@
 apply plugin: 'com.android.library'
 
 android {
-    compileSdkVersion 28
-    buildToolsVersion '28.0.3'
+    compileSdkVersion rootProject.ext.compileSdkVersion
+    buildToolsVersion rootProject.ext.buildToolsVersion
 
     defaultConfig {
         minSdkVersion 14
-        targetSdkVersion 28
+        targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
 
@@ -26,7 +26,7 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
-    // please add below compile options to the build.gradle file of your project module that
+    // Please add below compile options to the build.gradle file of your project module that
     // depends on this library, too.
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
@@ -39,9 +39,10 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.0.2'
     api 'androidx.constraintlayout:constraintlayout:2.0.0-beta1'
     api 'androidx.recyclerview:recyclerview:1.0.0'
+    api 'androidx.palette:palette:1.0.0'
     api 'androidx.media:media:1.1.0-beta01'
 
-    api 'com.google.android.exoplayer:exoplayer-core:2.9.6'
+    api 'com.google.android.exoplayer:exoplayer-core:2.10.0'
 
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'androidx.test:runner:1.2.0-beta01'

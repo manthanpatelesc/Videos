@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?><!--
+  ~ Created on 5/19/19 11:40 PM.
+  ~ Copyright © 2019 刘振林. All rights reserved.
+  -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <solid android:color="@color/colorAccent" />
+    <corners
+        android:topLeftRadius="@dimen/cutout_buttons_corner_radius"
+        android:bottomLeftRadius="@dimen/cutout_buttons_corner_radius" />
+</shape>

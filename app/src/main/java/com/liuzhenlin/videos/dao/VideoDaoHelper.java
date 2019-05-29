@@ -220,10 +220,10 @@ public class VideoDaoHelper extends SQLiteOpenHelper implements IVideoDao {
     }
 
     @Override
-    public boolean deleteVideoDir(@Nullable String path) {
-        if (path == null) return false;
+    public boolean deleteVideoDir(@Nullable String directory) {
+        if (directory == null) return false;
         return mDataBase.delete(TABLE_VIDEODIRS,
-                VIDEODIRS_COL_PATH + "='" + path + "'", null) == 1;
+                VIDEODIRS_COL_PATH + "='" + directory + "'", null) == 1;
     }
 
     @Override

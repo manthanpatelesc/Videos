@@ -19,7 +19,7 @@
         android:layout_height="wrap_content"
         android:layout_below="@id/text_title"
         android:layout_marginBottom="1dp"
-        style="?android:attr/progressBarStyleHorizontal" />
+        style="@style/Widget.AppCompat.ProgressBar.Horizontal" />
 
     <TextView
         android:id="@+id/text_progressPercent"

@@ -17,6 +17,8 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
+import androidx.annotation.RestrictTo;
 import androidx.core.util.ObjectsCompat;
 
 import com.google.android.exoplayer2.C;
@@ -26,14 +28,12 @@ import com.google.android.exoplayer2.ExoPlayerFactory;
 import com.google.android.exoplayer2.PlaybackParameters;
 import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.SimpleExoPlayer;
-import com.google.android.exoplayer2.analytics.AnalyticsListener;
 import com.google.android.exoplayer2.audio.AudioAttributes;
-import com.google.android.exoplayer2.source.ExtractorMediaSource;
 import com.google.android.exoplayer2.source.MediaSource;
+import com.google.android.exoplayer2.source.ProgressiveMediaSource;
 import com.google.android.exoplayer2.source.ads.AdsMediaSource;
 import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
-import com.google.android.exoplayer2.util.Util;
 import com.liuzhenlin.texturevideoview.receiver.HeadsetEventsReceiver;
 import com.liuzhenlin.texturevideoview.utils.TimeUtil;
 
@@ -43,13 +43,13 @@ import com.liuzhenlin.texturevideoview.utils.TimeUtil;
  *
  * @author 刘振林
  */
+@RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN)
 public class TextureVideoView2 extends AbsTextureVideoView {
 
     private static final String TAG = "TextureVideoView2";
 
     private SimpleExoPlayer mExoPlayer;
     private AdsMediaSource.MediaSourceFactory mMediaSourceFactory;
-    private final String mUserAgent;
 
     private final AudioAttributes mAudioAttrs;
     private final AudioFocusRequest mAudioFocusRequest;
@@ -121,11 +121,10 @@ public class TextureVideoView2 extends AbsTextureVideoView {
 
     public TextureVideoView2(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
-        mUserAgent = Util.getUserAgent(context, mResources.getString(context.getApplicationInfo().labelRes));
     }
 
     /**
-     * @return the {@link ExtractorMediaSource.Factory} used for reading the media content
+     * @return the {@link AdsMediaSource.MediaSourceFactory} used for reading the media content
      */
     @Nullable
     public AdsMediaSource.MediaSourceFactory getMediaSourceFactory() {
@@ -134,7 +133,7 @@ public class TextureVideoView2 extends AbsTextureVideoView {
 
     /**
      * Sets a MediaSourceFactory for creating {@link MediaSource}s to play the provided
-     * media stream content (if any) or `null` a {@link ExtractorMediaSource.Factory} with
+     * media stream content (if any) or `null` a {@link ProgressiveMediaSource.Factory} with
      * {@link DefaultDataSourceFactory} will be created to read the media(s).
      *
      * @param factory a subclass instance of {@link AdsMediaSource.MediaSourceFactory}
@@ -193,9 +192,9 @@ public class TextureVideoView2 extends AbsTextureVideoView {
             setPlaybackSpeed(mUserPlaybackSpeed);
             mExoPlayer.setRepeatMode(
                     isSingleVideoLoopPlayback() ? Player.REPEAT_MODE_ONE : Player.REPEAT_MODE_OFF);
-            mExoPlayer.addAnalyticsListener(new AnalyticsListener() {
+            mExoPlayer.addListener(new Player.EventListener() {
                 @Override
-                public void onPlayerStateChanged(EventTime eventTime, boolean playWhenReady, int playbackState) {
+                public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
                     showLoadingView(playbackState == Player.STATE_BUFFERING);
 
                     switch (playbackState) {
@@ -218,7 +217,7 @@ public class TextureVideoView2 extends AbsTextureVideoView {
                 }
 
                 @Override
-                public void onPlayerError(EventTime eventTime, ExoPlaybackException error) {
+                public void onPlayerError(ExoPlaybackException error) {
                     if (BuildConfig.DEBUG) {
                         error.printStackTrace();
                     }
@@ -236,17 +235,20 @@ public class TextureVideoView2 extends AbsTextureVideoView {
                         pauseInternal(false);
                     }
                 }
-
+            });
+            mExoPlayer.addVideoListener(new com.google.android.exoplayer2.video.VideoListener() {
                 @Override
-                public void onVideoSizeChanged(EventTime eventTime, int width, int height, int unappliedRotationDegrees, float pixelWidthHeightRatio) {
+                public void onVideoSizeChanged(int width, int height, int unappliedRotationDegrees, float pixelWidthHeightRatio) {
                     TextureVideoView2.this.onVideoSizeChanged(width, height);
                 }
             });
             startVideo();
 
-            mSession = new MediaSessionCompat(mContext, TAG);
-            mSession.setCallback(new SessionCallback());
-            mSession.setActive(true);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                mSession = new MediaSessionCompat(mContext, TAG);
+                mSession.setCallback(new SessionCallback());
+                mSession.setActive(true);
+            }
             mHeadsetEventsReceiver = new HeadsetEventsReceiver(mContext) {
                 @Override
                 public void onHeadsetPluggedOutOrBluetoothDisconnected() {
@@ -260,7 +262,7 @@ public class TextureVideoView2 extends AbsTextureVideoView {
     private void startVideo() {
         if (mVideoUri != null) {
             if (mMediaSourceFactory == null) {
-                mMediaSourceFactory = new ExtractorMediaSource.Factory(
+                mMediaSourceFactory = new ProgressiveMediaSource.Factory(
                         new DefaultDataSourceFactory(mContext, mUserAgent));
             }
             setPlaybackState(PLAYBACK_STATE_PREPARING);
@@ -415,9 +417,11 @@ public class TextureVideoView2 extends AbsTextureVideoView {
             // Resets the cached playback speed to prepare for the next resume of the video player
             mPlaybackSpeed = DEFAULT_PLAYBACK_SPEED;
 
-            mSession.setActive(false);
-            mSession.release();
-            mSession = null;
+            if (mSession != null) {
+                mSession.setActive(false);
+                mSession.release();
+                mSession = null;
+            }
             mHeadsetEventsReceiver.unregister();
             mHeadsetEventsReceiver = null;
 
@@ -486,6 +490,7 @@ public class TextureVideoView2 extends AbsTextureVideoView {
         }
     }
 
+    @RestrictTo(RestrictTo.Scope.LIBRARY)
     @Override
     public void setPlaybackSpeed(float speed) {
         if (speed != mPlaybackSpeed) {

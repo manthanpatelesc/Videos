@@ -206,7 +206,7 @@ public class DisplayCutoutUtils {
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.P)
+    @RequiresApi(api = Build.VERSION_CODES.P)
     public static void setLayoutInDisplayCutoutSinceP(@NonNull Window window, boolean in) {
         WindowManager.LayoutParams lp = window.getAttributes();
         //@formatter:off

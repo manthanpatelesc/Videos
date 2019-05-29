@@ -5,56 +5,22 @@
 
 package com.liuzhenlin.videos.utils;
 
-import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
-import android.graphics.PixelFormat;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
-import android.graphics.drawable.BitmapDrawable;
-import android.graphics.drawable.Drawable;
 
 import androidx.annotation.ColorInt;
 import androidx.annotation.NonNull;
-import androidx.palette.graphics.Palette;
 
 /**
  * @author 刘振林
  */
 public class BitmapUtils2 {
     private BitmapUtils2() {
-    }
-
-    @NonNull
-    public static Drawable bitmapToDrawable(@NonNull Context context, @NonNull Bitmap bitmap) {
-        return new BitmapDrawable(context.getResources(), bitmap);
-    }
-
-    @NonNull
-    public static Bitmap drawableToBitmap(@NonNull Drawable drawable) {
-        if (drawable instanceof BitmapDrawable) {
-            return ((BitmapDrawable) drawable).getBitmap();
-        }
-
-        // 取 drawable 的长宽
-        final int w = drawable.getIntrinsicWidth();
-        final int h = drawable.getIntrinsicHeight();
-
-        // 取 drawable 的颜色格式
-        Bitmap.Config config = drawable.getOpacity() == PixelFormat.OPAQUE ?
-                Bitmap.Config.RGB_565 : Bitmap.Config.ARGB_8888;
-        // 建立对应 bitmap
-        Bitmap bitmap = Bitmap.createBitmap(w, h, config);
-        // 建立对应 bitmap 的画布
-        Canvas canvas = new Canvas(bitmap);
-        // 把 drawable 内容画到画布中
-        drawable.setBounds(0, 0, w, h);
-        drawable.draw(canvas);
-        return bitmap;
     }
 
     @NonNull
@@ -118,12 +84,5 @@ public class BitmapUtils2 {
             inSampleSize = Math.min(widthRatio, heightRatio);
         }
         return inSampleSize;
-    }
-
-    public static int getDominantColor(@NonNull Bitmap bitmap) {
-        return new Palette.Builder(bitmap)
-                .maximumColorCount(24)
-                .generate()
-                .getDominantColor(Color.WHITE);
     }
 }

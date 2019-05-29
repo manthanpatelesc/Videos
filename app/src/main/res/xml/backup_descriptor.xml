@@ -1,15 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<full-backup-content xmlns:tools="http://schemas.android.com/tools">
+<full-backup-content>
     <include
         domain="database"
-        path="videos.db" />
+        path="Videos.db" />
+    <include
+        domain="sharedpref"
+        path="Videos.sp.xml" />
     <include
         domain="sharedpref"
         path="savedFeedback.sp.xml" />
-    <!-- Exclude the shared preferences file that may cause unexpected result
-         when user asks sd card permissions -->
-    <exclude
-        domain="sharedpref"
-        path="permissions.sp.xml"
-        tools:ignore="FullBackupContent" />
 </full-backup-content>

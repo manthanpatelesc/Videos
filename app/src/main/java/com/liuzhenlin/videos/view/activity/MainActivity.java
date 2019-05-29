@@ -56,15 +56,15 @@ import com.google.gson.reflect.TypeToken;
 import com.liuzhenlin.floatingmenu.DensityUtils;
 import com.liuzhenlin.slidingdrawerlayout.SlidingDrawerLayout;
 import com.liuzhenlin.swipeback.SwipeBackLayout;
+import com.liuzhenlin.texturevideoview.utils.BitmapUtils;
 import com.liuzhenlin.texturevideoview.utils.SystemBarUtils;
 import com.liuzhenlin.videos.App;
 import com.liuzhenlin.videos.BuildConfig;
 import com.liuzhenlin.videos.Consts;
 import com.liuzhenlin.videos.R;
 import com.liuzhenlin.videos.dao.AppSharedPreferences;
-import com.liuzhenlin.videos.utils.BitmapUtils2;
 import com.liuzhenlin.videos.utils.ColorUtils;
-import com.liuzhenlin.videos.utils.FileUtils;
+import com.liuzhenlin.videos.utils.FileUtils2;
 import com.liuzhenlin.videos.utils.NetworkUtil;
 import com.liuzhenlin.videos.utils.OSHelper;
 import com.liuzhenlin.videos.utils.TextViewUtils;
@@ -318,7 +318,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 asp.setDrawerBackgroundPath(path);
 
                 final boolean lightBackground = ColorUtils.isLightColor(
-                        BitmapUtils2.getDominantColor(bitmap));
+                        BitmapUtils.getDominantColor(bitmap, Color.WHITE));
                 setLightDrawerStatus(lightBackground);
                 mDrawerListAdapter.setLightDrawerListForeground(!lightBackground);
             }
@@ -426,7 +426,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         switch (requestCode) {
             case REQUEST_CODE_CHOSE_DRAWER_BACKGROUND_PICTURE:
                 if (data != null && data.getData() != null) {
-                    setDrawerBackground(FileUtils.UriResolver.getPath(this, data.getData()));
+                    setDrawerBackground(FileUtils2.UriResolver.getPath(this, data.getData()));
                 }
                 break;
         }
@@ -901,7 +901,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 case R.id.bt_confirm:
                     mUpdateDialog.cancel();
                     mUpdateDialog = null;
-                    if (FileUtils.isExternalStorageMounted()) {
+                    if (FileUtils2.isExternalStorageMounted()) {
                         mUpdateAppTask = new UpdateAppTask();
                         mUpdateAppTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
                     } else {
@@ -972,7 +972,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     conn.setReadTimeout(DURATION_TIME_OUT);
 
                     final int length = conn.getContentLength();
-                    if (FileUtils.hasEnoughStorageOnDisk(length)) {
+                    if (FileUtils2.hasEnoughStorageOnDisk(length)) {
                         mApkLength = length;
                         // 设置最大进度
                         mProgressBar.setMax(mApkLength);
@@ -1152,8 +1152,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             (float) progress / (float) mApkLength * 100f));
                     mProgressNumberText.setText(
                             getString(R.string.progressNumberOfUpdatingApp,
-                                    FileUtils.formatFileSize(progress),
-                                    FileUtils.formatFileSize(mApkLength)));
+                                    FileUtils2.formatFileSize(progress),
+                                    FileUtils2.formatFileSize(mApkLength)));
                 }
 
                 @Override

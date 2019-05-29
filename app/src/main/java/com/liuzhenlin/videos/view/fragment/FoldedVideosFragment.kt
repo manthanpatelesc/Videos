@@ -33,7 +33,7 @@ import com.liuzhenlin.videos.*
 import com.liuzhenlin.videos.dao.VideoDaoHelper
 import com.liuzhenlin.videos.model.Video
 import com.liuzhenlin.videos.model.VideoDirectory
-import com.liuzhenlin.videos.utils.FileUtils
+import com.liuzhenlin.videos.utils.FileUtils2
 import com.liuzhenlin.videos.utils.VideoUtils
 import com.liuzhenlin.videos.view.fragment.PackageConsts.*
 import com.liuzhenlin.videos.view.swiperefresh.SwipeRefreshLayout
@@ -625,7 +625,7 @@ class FoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, View.OnL
             }
             VideoUtils.loadVideoThumbnail(holder.videoImage, video)
             holder.videoNameText.text = video.name
-            holder.videoSizeText.text = FileUtils.formatFileSize(video.size.toDouble())
+            holder.videoSizeText.text = FileUtils2.formatFileSize(video.size.toDouble())
             holder.videoProgressAndDurationText.text =
                     VideoUtils.concatVideoProgressAndDuration(video.progress, video.duration)
         }

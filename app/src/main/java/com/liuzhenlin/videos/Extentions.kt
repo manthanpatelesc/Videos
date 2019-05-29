@@ -113,6 +113,7 @@ fun List<Video>?.classifyByDirectories(): MutableList<VideoListItem>? {
     val videosMap = ArrayMap<String, Any>()
     for (video in this) {
         val path = video.path
+        // Directory of the video file
         val videodir = path.substring(0, path.lastIndexOf(File.separatorChar))
 
         var videos: MutableList<Video>? = null
@@ -136,12 +137,12 @@ fun List<Video>?.classifyByDirectories(): MutableList<VideoListItem>? {
         if (videos.size == 1) {
             videosMap.setValueAt(index, videos[0])
         } else {
-            val vd = VideoDaoHelper.getInstance(App.getInstance())
+            val videodir = VideoDaoHelper.getInstance(App.getInstance())
                     .queryVideoDirByPathOrInsert(videosMap.keyAt(index))
-            vd.size = videos.countAllVideoSize()
-            vd.videos = if (videos.any { it.isTopped }) videos.reorder() else videos
+            videodir.size = videos.countAllVideoSize()
+            videodir.videos = if (videos.any { it.isTopped }) videos.reorder() else videos
 
-            videosMap.setValueAt(index, vd)
+            videosMap.setValueAt(index, videodir)
         }
         index++
     }

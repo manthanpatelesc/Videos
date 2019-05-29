@@ -203,7 +203,7 @@ class SearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLongClic
 
                     mSearchedVideos.removeAt(index)
                     mAdapterWrapper.notifyItemRemoved(position)
-                    mAdapterWrapper.notifyItemRangeChanged(position, itemCount)
+                    mAdapterWrapper.notifyItemRangeChanged(position, itemCount - 1)
                     updateSearchResult()
                 }
                 R.drawable.ic_edit_24dp_menu -> mVideoOpCallback?.showRenameVideoDialog(video) {
@@ -225,7 +225,7 @@ class SearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLongClic
                     } else {
                         mSearchedVideos.removeAt(index)
                         mAdapterWrapper.notifyItemRemoved(position)
-                        mAdapterWrapper.notifyItemRangeChanged(position, itemCount)
+                        mAdapterWrapper.notifyItemRangeChanged(position, itemCount - 1)
                         updateSearchResult()
                     }
                 }

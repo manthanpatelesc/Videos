@@ -3,11 +3,12 @@
   ~ Copyright © 2019 刘振林. All rights reserved.
   -->
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_gravity="center_vertical"
-    android:background="@color/bg_popup"
+    android:background="@color/bg_popup_dark"
     android:clickable="true"
     tools:ignore="KeyboardInaccessibleWidget">
 
@@ -16,7 +17,7 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <Switch
+        <androidx.appcompat.widget.SwitchCompat
             android:id="@+id/bt_stretchVideo"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -29,9 +30,9 @@
             android:textAlignment="viewStart"
             android:gravity="start"
             android:thumb="@drawable/selector_switch_thumb"
-            android:track="@drawable/selector_switch_track" />
+            app:track="@drawable/selector_switch_track" />
 
-        <Switch
+        <androidx.appcompat.widget.SwitchCompat
             android:id="@+id/bt_loopSingleVideo"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -44,9 +45,9 @@
             android:textAlignment="viewStart"
             android:gravity="start"
             android:thumb="@drawable/selector_switch_thumb"
-            android:track="@drawable/selector_switch_track" />
+            app:track="@drawable/selector_switch_track" />
 
-        <Switch
+        <androidx.appcompat.widget.SwitchCompat
             android:id="@+id/bt_pureAudioPlayback"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -59,7 +60,7 @@
             android:textAlignment="viewStart"
             android:gravity="start"
             android:thumb="@drawable/selector_switch_thumb"
-            android:track="@drawable/selector_switch_track" />
+            app:track="@drawable/selector_switch_track" />
 
         <RelativeLayout
             android:layout_width="match_parent"

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?><!--
+  ~ Created on 5/3/19 7:52 PM.
+  ~ Copyright © 2019 刘振林. All rights reserved.
+  -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <solid android:color="@color/bg_popup_light" />
+</shape>

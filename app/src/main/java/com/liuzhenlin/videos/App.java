@@ -38,6 +38,10 @@ public class App extends Application implements Application.ActivityLifecycleCal
 
     private int mVideoThumbWidth = -1;
 
+    private static String sAppDirectory;
+
+    private String mAuthority;
+
     static {
         AppCompatDelegate.setCompatVectorFromResourcesEnabled(true);
     }
@@ -54,11 +58,17 @@ public class App extends Application implements Application.ActivityLifecycleCal
     }
 
     public static String getAppDirectory() {
-        return Environment.getExternalStorageDirectory() + "/Videos_lzl/";
+        if (sAppDirectory == null) {
+            sAppDirectory = Environment.getExternalStorageDirectory() + "/videos_lzl";
+        }
+        return sAppDirectory;
     }
 
     public String getAuthority() {
-        return getPackageName() + ".provider";
+        if (mAuthority == null) {
+            mAuthority = getPackageName() + ".provider";
+        }
+        return mAuthority;
     }
 
     public int getStatusHeight() {
@@ -148,7 +158,7 @@ public class App extends Application implements Application.ActivityLifecycleCal
 
     public int getVideoThumbWidth() {
         if (mVideoThumbWidth == -1) {
-            mVideoThumbWidth = (int) (getScreenWidthIgnoreOrientation() / 3.5f + 0.5f);
+            mVideoThumbWidth = (int) (getScreenWidthIgnoreOrientation() * 0.2778f + 0.5f);
         }
         return mVideoThumbWidth;
     }

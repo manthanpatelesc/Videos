@@ -144,7 +144,7 @@ public class SystemBarUtils {
     /**
      * 设置 半透明状态栏
      */
-    @RequiresApi(Build.VERSION_CODES.KITKAT)
+    @RequiresApi(api = Build.VERSION_CODES.KITKAT)
     public static void setTranslucentStatus(@NonNull Window window, boolean translucent) {
         final int flags = window.getAttributes().flags;
         final int statusFlag = WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS;
@@ -162,7 +162,7 @@ public class SystemBarUtils {
     /**
      * 设置 半透明虚拟按键
      */
-    @RequiresApi(Build.VERSION_CODES.KITKAT)
+    @RequiresApi(api = Build.VERSION_CODES.KITKAT)
     public static void setTranslucentNavigation(@NonNull Window window, boolean translucent) {
         final int flags = window.getAttributes().flags;
         final int navFlag = WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION;
@@ -252,7 +252,7 @@ public class SystemBarUtils {
     }
 
     /**
-     * 改变小米手机的状态栏字体颜色, 要求MIUI 6 – MIUI 8
+     * 改变小米手机的状态栏字体颜色, 要求MIUI6 ~ MIUI8
      */
     public static void setLightStatusForMIUI(@NonNull Window window, boolean light) {
         try {

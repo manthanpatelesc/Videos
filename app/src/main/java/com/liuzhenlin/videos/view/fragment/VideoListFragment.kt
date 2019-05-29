@@ -45,7 +45,7 @@ import com.liuzhenlin.videos.dao.VideoDaoHelper
 import com.liuzhenlin.videos.model.Video
 import com.liuzhenlin.videos.model.VideoDirectory
 import com.liuzhenlin.videos.model.VideoListItem
-import com.liuzhenlin.videos.utils.FileUtils
+import com.liuzhenlin.videos.utils.FileUtils2
 import com.liuzhenlin.videos.utils.UiUtils
 import com.liuzhenlin.videos.utils.VideoUtils
 import com.liuzhenlin.videos.view.fragment.PackageConsts.*
@@ -281,10 +281,10 @@ class VideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefreshLayo
                 }
             REQUEST_CODE_FOLDED_VIDEOS_FRAGMENT ->
                 if (resultCode == RESULT_CODE_FOLDED_VIDEOS_FRAGMENT) {
-                    val directory = data?.getStringExtra(KEY_DIRECTORY_PATH) ?: return
+                    val dirPath = data?.getStringExtra(KEY_DIRECTORY_PATH) ?: return
                     val videos = data.getParcelableArrayListExtra<Video>(KEY_VIDEOS)
                     loop@ for ((i, item) in mVideoListItems.withIndex()) {
-                        if (item.path != directory) continue@loop
+                        if (item.path != dirPath) continue@loop
 
                         when (videos.size) {
                             0 -> {
@@ -321,7 +321,7 @@ class VideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefreshLayo
                             }
                             else -> {
                                 if (item is Video) {
-                                    val vd = VideoDaoHelper.getInstance(mContext).queryVideoDirByPathOrInsert(directory)
+                                    val vd = VideoDaoHelper.getInstance(mContext).queryVideoDirByPathOrInsert(dirPath)
                                     vd.videos = videos
                                     vd.size = videos.countAllVideoSize()
 
@@ -542,7 +542,7 @@ class VideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefreshLayo
                 if (payload and PAYLOAD_REFRESH_VIDEODIR_SIZE_AND_VIDEO_COUNT != 0) {
                     val vh = holder as VideoDirViewHolder
                     val videos = (item as VideoDirectory).videos
-                    vh.videodirSizeText.text = FileUtils.formatFileSize(item.size.toDouble())
+                    vh.videodirSizeText.text = FileUtils2.formatFileSize(item.size.toDouble())
                     vh.videoCountText.text = getString(R.string.aTotalOfSeveralVideos, videos.size)
                 }
             }
@@ -570,7 +570,7 @@ class VideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefreshLayo
 
                     VideoUtils.loadVideoThumbnail(vh.videoImage, video)
                     vh.videoNameText.text = item.name
-                    vh.videoSizeText.text = FileUtils.formatFileSize(item.size.toDouble())
+                    vh.videoSizeText.text = FileUtils2.formatFileSize(item.size.toDouble())
                     vh.videoProgressAndDurationText.text =
                             VideoUtils.concatVideoProgressAndDuration(video.progress, video.duration)
                 }
@@ -580,7 +580,7 @@ class VideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefreshLayo
 
                     VideoUtils.loadVideoThumbnail(vh.videodirImage, videos[0])
                     vh.videodirNameText.text = item.name
-                    vh.videodirSizeText.text = FileUtils.formatFileSize(item.size.toDouble())
+                    vh.videodirSizeText.text = FileUtils2.formatFileSize(item.size.toDouble())
                     vh.videoCountText.text = getString(R.string.aTotalOfSeveralVideos, videos.size)
                 }
             }
@@ -1183,7 +1183,7 @@ class VideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefreshLayo
 
             val videoSizeText = view.findViewById<TextView>(R.id.text_videoSize)
             ss = SpannableString(getString(
-                    R.string.size, FileUtils.formatFileSize(item.size.toDouble())))
+                    R.string.size, FileUtils2.formatFileSize(item.size.toDouble())))
             ss.setSpan(ForegroundColorSpan(Color.BLACK),
                     0, ss.indexOf(colon) + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
             videoSizeText.text = ss
@@ -1223,7 +1223,7 @@ class VideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefreshLayo
 
             val videodirSizeText = view.findViewById<TextView>(R.id.text_videodirSize)
             ss = SpannableString(getString(
-                    R.string.size, FileUtils.formatFileSize(item.size.toDouble())))
+                    R.string.size, FileUtils2.formatFileSize(item.size.toDouble())))
             ss.setSpan(ForegroundColorSpan(Color.BLACK),
                     0, ss.indexOf(colon) + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
             videodirSizeText.text = ss

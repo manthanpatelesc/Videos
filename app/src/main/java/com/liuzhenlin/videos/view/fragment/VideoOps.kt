@@ -8,16 +8,13 @@ package com.liuzhenlin.videos.view.fragment
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.os.AsyncTask
-import android.os.Build
 import android.widget.Toast
-import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
+import com.liuzhenlin.texturevideoview.utils.FileUtils
 import com.liuzhenlin.videos.*
 import com.liuzhenlin.videos.dao.VideoDaoHelper
 import com.liuzhenlin.videos.model.Video
-import com.liuzhenlin.videos.utils.FileUtils
 import com.liuzhenlin.videos.view.activity.VideoActivity
 import java.io.File
 import java.util.*
@@ -88,7 +85,7 @@ interface VideoOpCallback {
         }
 
         video.name = newName
-        video.path = newFile.path
+        video.path = newFile.absolutePath
         return if (VideoDaoHelper.getInstance(context).updateVideo(video)) {
             Toast.makeText(context, R.string.renameSuccessful, Toast.LENGTH_SHORT).show()
             true
@@ -100,26 +97,12 @@ interface VideoOpCallback {
 }
 
 fun Fragment.shareVideo(video: Video) {
-    startActivity(Intent.createChooser(createShareIntent(video), getString(R.string.share)))
+    (activity ?: context).shareVideo(video)
 }
 
-fun Context.shareVideo(video: Video) {
-    startActivity(Intent.createChooser(createShareIntent(video), getString(R.string.share)))
-}
-
-private fun createShareIntent(video: Video): Intent {
-    val shareIntent = Intent().setAction(Intent.ACTION_SEND)
-    shareIntent.putExtra(Intent.EXTRA_STREAM,
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-
-                val app = App.getInstance()
-                FileProvider.getUriForFile(app, app.authority, File(video.path))
-            } else {
-                Uri.fromFile(File(video.path))
-            })
-    shareIntent.type = FileUtils.getMimeType(video.path) ?: "video/*"
-    return shareIntent
+fun Context?.shareVideo(video: Video) {
+    val app = App.getInstance()
+    FileUtils.shareFile(this ?: app, app.authority, File(video.path), "video/*")
 }
 
 fun Fragment.playVideo(video: Video) {

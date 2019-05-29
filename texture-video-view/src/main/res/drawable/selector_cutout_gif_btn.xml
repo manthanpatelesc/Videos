@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?><!--
+  ~ Created on 5/19/19 11:57 PM.
+  ~ Copyright © 2019 刘振林. All rights reserved.
+  -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_selected="false" android:drawable="@drawable/bg_cutout_gif_btn" />
+    <item android:state_selected="true" android:drawable="@drawable/bg_cutout_gif_btn_selected" />
+</selector>

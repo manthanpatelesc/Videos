@@ -42,12 +42,12 @@ public abstract class VolumeReceiver extends BroadcastReceiver {
     /** The volume associated with the stream for the volume changed intent. */
     private static final String EXTRA_VOLUME_STREAM_VALUE = "android.media.EXTRA_VOLUME_STREAM_VALUE";
 
-    @Retention(RetentionPolicy.SOURCE)
     @IntDef({
             AudioManager.RINGER_MODE_NORMAL,
             AudioManager.RINGER_MODE_SILENT,
             AudioManager.RINGER_MODE_VIBRATE
     })
+    @Retention(RetentionPolicy.SOURCE)
     public @interface RingerMode {
     }
 
