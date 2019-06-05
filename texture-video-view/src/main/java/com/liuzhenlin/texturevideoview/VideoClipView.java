@@ -11,6 +11,8 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.drawable.Drawable;
+import android.os.Parcel;
+import android.os.Parcelable;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -24,8 +26,12 @@ import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 import androidx.core.content.ContextCompat;
+import androidx.core.os.ParcelableCompat;
+import androidx.core.os.ParcelableCompatCreatorCallbacks;
 import androidx.core.view.ViewCompat;
+import androidx.customview.view.AbsSavedState;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.exoplayer2.util.Util;
@@ -42,8 +48,13 @@ import java.util.List;
 public class VideoClipView extends FrameLayout {
     private static final String TAG = "VideoClipView";
 
-    private final RecyclerView mThumbsGallery;
+    private final RecyclerView mThumbGallery;
     private final ThumbsAdapter mThumbsAdapter = new ThumbsAdapter();
+
+    /** @see #getThumbGalleryWidth() */
+    private int mThumbGalleryWidth = -1;
+    /** @see #getThumbDisplayHeight() */
+    private final int mThumbDisplayHeight;
 
     private final Drawable mClipBackwards;
     private final Drawable mClipBackwardsDark;
@@ -51,15 +62,17 @@ public class VideoClipView extends FrameLayout {
     private final Drawable mClipForwardDark;
 
     private final int mDrawableWidth;
-    private final int mDrawableHeight;
 
-    private Drawable mLeftDrawable;
-    private Drawable mRightDrawable;
-
-    /***/
-    private float mLeftDrawableOffset; // [0, 1)
-    /***/
-    private float mRightDrawableOffset; // [0, 1)
+    /**
+     * The offset to the left of the selection frame relative to the left of the horizontal gallery
+     * as a percentage of the gallery width.
+     */
+    private float mFrameLeftOffset = Float.NaN; // [0, 1)
+    /**
+     * The offset (always positive) to the right of the selection frame relative to the right of
+     * the horizontal gallery as a percentage of the gallery width.
+     */
+    private float mFrameRightOffset = Float.NaN; // [0, 1)
 
     /** Minimum spacing between 'Clip Backwards' and 'Clip Forward' buttons. */
     private float mMinimumClipBackwardsForwardGap;
@@ -89,8 +102,10 @@ public class VideoClipView extends FrameLayout {
     private final int[] mSelectionInterval = sNoSelectionInterval.clone();
     private static final int[] sNoSelectionInterval = {0, 0};
 
-    protected final float mDip;
-    protected final float mTouchSlop;
+    private boolean mFirstLayout = true;
+    private boolean mInLayout;
+
+    private int mLayoutDirection = ViewCompat.LAYOUT_DIRECTION_LTR;
 
     private final Paint mFrameBarPaint;
     private final int mFrameBarHeight;
@@ -103,7 +118,7 @@ public class VideoClipView extends FrameLayout {
     private final float mProgressHeaderFooterLength;
 
     /** The selected millisecond position as a percentage of the selectable time interval. */
-    private float mProgressPercent; // [0, 1]
+    private float mProgressPercent = Float.NaN; // [0, 1]
 
     /**
      * Offset between the touch point x coordinate and the horizontal center position of the
@@ -111,13 +126,8 @@ public class VideoClipView extends FrameLayout {
      */
     private float mProgressMoveOffset = Float.NaN;
 
-    /**
-     * True if the drawable offsets have been determined at least once from the layout direction.
-     */
-    private boolean mDrawableOffsetsResolved;
-
-    private boolean mFirstLayout = true;
-    private boolean mInLayout;
+    protected final float mDip;
+    protected final float mTouchSlop;
 
     private int mActivePointerId;
     private float mDownX;
@@ -126,9 +136,9 @@ public class VideoClipView extends FrameLayout {
     private final float[] mTouchY = new float[2];
 
     private int mTouchFlags;
-    private static final int TFLAG_LEFT_DRAWABLE_BEING_DRAGGED = 1;
-    private static final int TFLAG_RIGHT_DRAWABLE_BEING_DRAGGED = 1 << 1;
-    private static final int TFLAG_DRAWABLE_BEING_DRAGGED = 0b0011;
+    private static final int TFLAG_FRAME_LEFT_BEING_DRAGGED = 1;
+    private static final int TFLAG_FRAME_RIGHT_BEING_DRAGGED = 1 << 1;
+    private static final int TFLAG_FRAME_BEING_DRAGGED = 0b0011;
     private static final int TFLAG_PROGRESS_BEING_DRAGGED = 1 << 2;
     private static final int TOUCH_MASK = 0b0111;
 
@@ -148,10 +158,11 @@ public class VideoClipView extends FrameLayout {
         /**
          * Gets notified when the selection interval of the video clip changes.
          *
-         * @param start start position in millisecond of the selected time interval
-         * @param end   end position in millisecond of the selected time interval
+         * @param start    start position in millisecond of the selected time interval
+         * @param end      end position in millisecond of the selected time interval
+         * @param fromUser true if the selection interval change was initiated by the user
          */
-        default void onSelectionIntervalChange(int start, int end) {
+        default void onSelectionIntervalChange(int start, int end, boolean fromUser) {
         }
 
         /**
@@ -201,7 +212,7 @@ public class VideoClipView extends FrameLayout {
     private void notifyListenersWhenSelectionDragStarts() {
         if (hasOnSelectionChangeListener()) {
             // Since onStartTrackingTouch() is implemented by the app, it could do anything,
-            // including removing itself from {@link mOnSelectionChangeListeners} – and that could
+            // including removing itself from {@link mOnSelectionChangeListeners} — and that could
             // cause problems if an iterator is used on the ArrayList {@link mOnSelectionChangeListeners}.
             // To avoid such problems, just march thru the list in the reverse order.
             for (int i = mOnSelectionChangeListeners.size() - 1; i >= 0; i--) {
@@ -213,7 +224,7 @@ public class VideoClipView extends FrameLayout {
     private void notifyListenersWhenSelectionDragStops() {
         if (hasOnSelectionChangeListener()) {
             // Since onStopTrackingTouch() is implemented by the app, it could do anything,
-            // including removing itself from {@link mOnSelectionChangeListeners} – and that could
+            // including removing itself from {@link mOnSelectionChangeListeners} — and that could
             // cause problems if an iterator is used on the ArrayList {@link mOnSelectionChangeListeners}.
             // To avoid such problems, just march thru the list in the reverse order.
             for (int i = mOnSelectionChangeListeners.size() - 1; i >= 0; i--) {
@@ -222,16 +233,17 @@ public class VideoClipView extends FrameLayout {
         }
     }
 
-    private void notifyListenersOfSelectionIntervalChange() {
+    private void notifyListenersOfSelectionIntervalChange(boolean fromUser) {
         if (hasOnSelectionChangeListener()) {
             final int[] interval = mSelectionInterval;
             getSelectionInterval(interval);
             // Since onSelectionIntervalChange() is implemented by the app, it could do anything,
-            // including removing itself from {@link mOnSelectionChangeListeners} – and that could
+            // including removing itself from {@link mOnSelectionChangeListeners} — and that could
             // cause problems if an iterator is used on the ArrayList {@link mOnSelectionChangeListeners}.
             // To avoid such problems, just march thru the list in the reverse order.
             for (int i = mOnSelectionChangeListeners.size() - 1; i >= 0; i--) {
-                mOnSelectionChangeListeners.get(i).onSelectionIntervalChange(interval[0], interval[1]);
+                mOnSelectionChangeListeners.get(i)
+                        .onSelectionIntervalChange(interval[0], interval[1], fromUser);
             }
         }
     }
@@ -242,12 +254,12 @@ public class VideoClipView extends FrameLayout {
             getSelectionInterval(interval);
             final int selection = getSelection();
             // Since onSelectionChange() is implemented by the app, it could do anything,
-            // including removing itself from {@link mOnSelectionChangeListeners} – and that could
+            // including removing itself from {@link mOnSelectionChangeListeners} — and that could
             // cause problems if an iterator is used on the ArrayList {@link mOnSelectionChangeListeners}.
             // To avoid such problems, just march thru the list in the reverse order.
             for (int i = mOnSelectionChangeListeners.size() - 1; i >= 0; i--) {
-                mOnSelectionChangeListeners.get(i).onSelectionChange(
-                        interval[0], interval[1], selection, fromUser);
+                mOnSelectionChangeListeners.get(i)
+                        .onSelectionChange(interval[0], interval[1], selection, fromUser);
             }
         }
     }
@@ -275,7 +287,7 @@ public class VideoClipView extends FrameLayout {
         mClipForwardDark = ContextCompat.getDrawable(context, R.drawable.ic_clip_forward_dark);
 
         mDrawableWidth = mClipBackwards.getIntrinsicWidth();
-        mDrawableHeight = mClipBackwards.getIntrinsicHeight();
+        mThumbDisplayHeight = mClipBackwards.getIntrinsicHeight();
 
         mFrameBarColor = BitmapUtils.getDominantColorOrThrow(BitmapUtils.drawableToBitmap(mClipBackwards));
         mFrameBarDarkColor = BitmapUtils.getDominantColorOrThrow(BitmapUtils.drawableToBitmap(mClipBackwardsDark));
@@ -291,10 +303,10 @@ public class VideoClipView extends FrameLayout {
         super.setPadding(mDrawableWidth, verticalEndPadding, mDrawableWidth, verticalEndPadding);
 
         View.inflate(context, R.layout.view_videoclip, this);
-        mThumbsGallery = findViewById(R.id.rv_videoclip_thumbs);
-        mThumbsGallery.setMinimumHeight(mDrawableHeight);
-        mThumbsGallery.setHasFixedSize(true);
-        mThumbsGallery.setAdapter(mThumbsAdapter);
+        mThumbGallery = findViewById(R.id.rv_videoclip_thumbs);
+        mThumbGallery.setMinimumHeight(mThumbDisplayHeight);
+        mThumbGallery.setHasFixedSize(true);
+        mThumbGallery.setAdapter(mThumbsAdapter);
 
         if (BuildConfig.DEBUG) {
             addOnSelectionChangeListener(new OnSelectionChangeListener() {
@@ -304,8 +316,8 @@ public class VideoClipView extends FrameLayout {
                 }
 
                 @Override
-                public void onSelectionIntervalChange(int start, int end) {
-                    Log.d(TAG, "onSelectionIntervalChange: " + start + "    " + end);
+                public void onSelectionIntervalChange(int start, int end, boolean fromUser) {
+                    Log.d(TAG, "onSelectionIntervalChange: " + start + "    " + end + "    " + fromUser);
                 }
 
                 @Override
@@ -322,6 +334,22 @@ public class VideoClipView extends FrameLayout {
         }
     }
 
+    /**
+     * @return the unified display height for the thumbnails inside the horizontal gallery
+     */
+    public int getThumbDisplayHeight() {
+        return mThumbDisplayHeight;
+    }
+
+    /**
+     * Gets the width of the horizontal gallery used for displaying the thumbnails retrieved from
+     * the video being clipped or -1 if this view is not laid-out, through which you can decide
+     * the minimum count of thumbnails that can full fill the gallery.
+     */
+    public int getThumbGalleryWidth() {
+        return mThumbGalleryWidth;
+    }
+
     /** @return minimum lasting time for a selected clip */
     public int getMinimumClipDuration() {
         return mMinimumClipDuration;
@@ -329,6 +357,7 @@ public class VideoClipView extends FrameLayout {
 
     /** Sets the minimum lasting time for a selected clip. */
     public void setMinimumClipDuration(int duration) {
+        duration = Util.constrainValue(duration, 0, mMaximumClipDuration);
         if (mMinimumClipDuration != duration) {
             mMinimumClipDuration = duration;
             onSetClipDuration();
@@ -342,6 +371,7 @@ public class VideoClipView extends FrameLayout {
 
     /** Sets the maximum lasting time for a selected clip. */
     public void setMaximumClipDuration(int duration) {
+        duration = Math.max(duration, mMinimumClipDuration);
         if (mMaximumClipDuration != duration) {
             mMaximumClipDuration = duration;
             onSetClipDuration();
@@ -355,6 +385,7 @@ public class VideoClipView extends FrameLayout {
 
     /** Sets the minimum duration of the clip(s) outside the selected time interval. */
     public void setMinimumUnselectedClipDuration(int duration) {
+        duration = Math.max(duration, 0);
         if (mMinimumUnselectedClipDuration != duration) {
             mMinimumUnselectedClipDuration = duration;
             onSetClipDuration();
@@ -362,7 +393,7 @@ public class VideoClipView extends FrameLayout {
     }
 
     private void onSetClipDuration() {
-        resolveDrawableOffsets();
+        resolveFrameOffsets();
         resetProgressPercent(false);
 
         final boolean laidout = ViewCompat.isLaidOut(this);
@@ -372,7 +403,7 @@ public class VideoClipView extends FrameLayout {
         }
     }
 
-    private void resolveDrawableOffsets() {
+    private void resolveFrameOffsets() {
         final int[] oldInterval = mSelectionInterval.clone();
         // Not to take the selection interval upon the first resolution of the offsets to ensure
         // the OnSelectionChangeListeners to get notified for the interval change.
@@ -386,32 +417,33 @@ public class VideoClipView extends FrameLayout {
                 Math.max(mMinimumClipDuration, mMaximumClipDuration / 2f)
                         / (mMaximumClipDuration + mMinimumUnselectedClipDuration);
         if (Utils.isLayoutRtl(this)) {
-            mLeftDrawableOffset = percent;
-            mRightDrawableOffset = 0;
+            mFrameLeftOffset = percent;
+            mFrameRightOffset = 0;
         } else {
-            mLeftDrawableOffset = 0;
-            mRightDrawableOffset = percent;
+            mFrameLeftOffset = 0;
+            mFrameRightOffset = percent;
         }
-        mDrawableOffsetsResolved = true;
 
         getSelectionInterval(mSelectionInterval);
+        // Note that exact floating point equality may not be guaranteed for a theoretically
+        // idempotent operation; for example, there are many cases where a + b - b != a.
         if (!Arrays.equals(mSelectionInterval, oldInterval)) {
-            notifyListenersOfSelectionIntervalChange();
+            notifyListenersOfSelectionIntervalChange(false);
         }
     }
 
     @Override
-    public void setPadding(int left, int top, int right, int bottom) {
+    public final void setPadding(int left, int top, int right, int bottom) {
         // no-op
     }
 
     @Override
-    public void setPaddingRelative(int start, int top, int end, int bottom) {
+    public final void setPaddingRelative(int start, int top, int end, int bottom) {
         // no-op
     }
 
     @Override
-    public void setClipToPadding(boolean clipToPadding) {
+    public final void setClipToPadding(boolean clipToPadding) {
         // no-op
     }
 
@@ -423,8 +455,17 @@ public class VideoClipView extends FrameLayout {
 
     @Override
     public void onRtlPropertiesChanged(int layoutDirection) {
-        resolveDrawableOffsets();
-        resetProgressPercent(false);
+        if (Float.isNaN(mFrameLeftOffset)) {
+            resolveFrameOffsets();
+            resetProgressPercent(false);
+        } else // Layout direction changes between left-to-right and right-to-left
+            if (mLayoutDirection != layoutDirection) {
+                mLayoutDirection = layoutDirection;
+                // Swap the frame left offset with the right one
+                final float tmp = mFrameRightOffset;
+                mFrameRightOffset = mFrameLeftOffset;
+                mFrameLeftOffset = tmp;
+            }
     }
 
     @Override
@@ -434,7 +475,8 @@ public class VideoClipView extends FrameLayout {
         mInLayout = false;
         mFirstLayout = false;
 
-        mMaximumClipBackwardsForwardGap = mThumbsGallery.getWidth() *
+        mThumbGalleryWidth = mThumbGallery.getWidth();
+        mMaximumClipBackwardsForwardGap = mThumbGalleryWidth *
                 (float) mMaximumClipDuration / (mMaximumClipDuration + mMinimumUnselectedClipDuration);
         mMinimumClipBackwardsForwardGap = mMaximumClipBackwardsForwardGap *
                 (float) mMinimumClipDuration / mMaximumClipDuration;
@@ -445,7 +487,7 @@ public class VideoClipView extends FrameLayout {
         super.dispatchDraw(canvas);
         drawFrame(canvas);
         // Skip drawing the progress cursor if some drawable is being dragged
-        if ((mTouchFlags & TFLAG_DRAWABLE_BEING_DRAGGED) == 0) {
+        if ((mTouchFlags & TFLAG_FRAME_BEING_DRAGGED) == 0) {
             drawProgressCursor(canvas);
         }
     }
@@ -456,30 +498,27 @@ public class VideoClipView extends FrameLayout {
         final int childBottom = getHeight() - getPaddingBottom();
 
         final boolean dark;
-        final float range = width - mDrawableWidth * 2;
-        final float leftDrawableOffset = range * mLeftDrawableOffset;
-        final float rightDrawableOffset = range * mRightDrawableOffset;
-        final float framebarLeft = mDrawableWidth + leftDrawableOffset;
-        final float framebarRight = width - mDrawableWidth - rightDrawableOffset;
+        final float frameLeftOffset = mThumbGalleryWidth * mFrameLeftOffset;
+        final float frameRightOffset = mThumbGalleryWidth * mFrameRightOffset;
+        final float framebarLeft = mDrawableWidth + frameLeftOffset;
+        final float framebarRight = width - mDrawableWidth - frameRightOffset;
         final float framebarWidth = framebarRight - framebarLeft;
-        final int leftDrawableLeft = (int) (leftDrawableOffset + 0.5f);
+        final int leftDrawableLeft = (int) (frameLeftOffset + 0.5f);
         final int leftDrawableRight = (int) (framebarLeft + 0.5f);
         final int rightDrawableLeft = (int) (framebarRight + 0.5f);
-        final int rightDrawableRight = (int) (width - rightDrawableOffset + 0.5f);
+        final int rightDrawableRight = (int) (width - frameRightOffset + 0.5f);
 
         final boolean rtl = Utils.isLayoutRtl(this);
         Drawable leftDrawable = rtl ? mClipForward : mClipBackwards;
         Drawable rightDrawable = rtl ? mClipBackwards : mClipForward;
-        if (framebarWidth == mMinimumClipBackwardsForwardGap
-                || framebarWidth == mMaximumClipBackwardsForwardGap) {
+        if (Utils.areEqualIgnorePrecisionError(framebarWidth, mMinimumClipBackwardsForwardGap)
+                || Utils.areEqualIgnorePrecisionError(framebarWidth, mMaximumClipBackwardsForwardGap)) {
             dark = true;
             leftDrawable = rtl ? mClipForwardDark : mClipBackwardsDark;
             rightDrawable = rtl ? mClipBackwardsDark : mClipForwardDark;
         } else {
             dark = false;
         }
-        mLeftDrawable = leftDrawable;
-        mRightDrawable = rightDrawable;
 
         leftDrawable.setBounds(leftDrawableLeft, childTop, leftDrawableRight, childBottom);
         rightDrawable.setBounds(rightDrawableLeft, childTop, rightDrawableRight, childBottom);
@@ -519,10 +558,10 @@ public class VideoClipView extends FrameLayout {
     }
 
     private float progressCenterXToProgressPercent(float progressCenterX) {
-        final float range = mThumbsGallery.getWidth();
+        final float range = mThumbGalleryWidth;
         final float hopsw = mProgressStrokeWidth / 2f;
-        final float min = mDrawableWidth + mLeftDrawableOffset * range + hopsw;
-        final float max = mDrawableWidth + (1.0f - mRightDrawableOffset) * range - hopsw;
+        final float min = mDrawableWidth + mFrameLeftOffset * range + hopsw;
+        final float max = mDrawableWidth + (1.0f - mFrameRightOffset) * range - hopsw;
         if (Utils.isLayoutRtl(this)) {
             if (progressCenterX < min) {
                 // Calculates the percentage to the left side of the progress cursor located
@@ -545,55 +584,37 @@ public class VideoClipView extends FrameLayout {
     }
 
     private float progressPercentToProgressCenterX(float progressPercent) {
-        final float range = mThumbsGallery.getWidth();
+        final float range = mThumbGalleryWidth;
         final float hopsw = mProgressStrokeWidth / 2f;
         if (Utils.isLayoutRtl(this)) {
             return Math.max(mDrawableWidth + (1.0f - progressPercent) * range - hopsw,
-                    mDrawableWidth + mLeftDrawableOffset * range + hopsw);
+                    mDrawableWidth + mFrameLeftOffset * range + hopsw);
         } else {
             return Math.min(mDrawableWidth + progressPercent * range + hopsw,
-                    mDrawableWidth + (1.0f - mRightDrawableOffset) * range - hopsw);
+                    mDrawableWidth + (1.0f - mFrameRightOffset) * range - hopsw);
         }
     }
 
     private void resetProgressPercent(boolean fromUser) {
         if (Utils.isLayoutRtl(this)) {
-            setProgressPercent(1.0f - mRightDrawableOffset, fromUser);
+            setProgressPercent(mFrameRightOffset, fromUser);
         } else {
-            setProgressPercent(mLeftDrawableOffset, fromUser);
+            setProgressPercent(mFrameLeftOffset, fromUser);
         }
     }
 
     private void setProgressPercent(float percent, boolean fromUser) {
-        if (!mDrawableOffsetsResolved) {
-            resolveDrawableOffsets();
+        if (Float.isNaN(mFrameLeftOffset)) {
+            resolveFrameOffsets();
         }
         final boolean rtl = Utils.isLayoutRtl(this);
-        final float min = rtl ? mRightDrawableOffset : mLeftDrawableOffset;
-        final float max = 1.0f - (rtl ? mLeftDrawableOffset : mRightDrawableOffset);
+        final float min = rtl ? mFrameRightOffset : mFrameLeftOffset;
+        final float max = 1.0f - (rtl ? mFrameLeftOffset : mFrameRightOffset);
         percent = Util.constrainValue(percent, min, max);
-        if (mProgressPercent != percent) {
+        if (!Utils.areEqualIgnorePrecisionError(mProgressPercent, percent)) {
             mProgressPercent = percent;
             notifyListenersOfSelectionChange(fromUser);
         }
-    }
-
-    /**
-     * Sets the selection for the video clip.
-     *
-     * @param selection millisecond position within the selectable time interval
-     */
-    public void setSelection(int selection) {
-        final float old = mProgressPercent;
-        setSelectionInternal(selection);
-        if (mProgressPercent != old) {
-            invalidate(); // Redraw progress cursor
-        }
-    }
-
-    private void setSelectionInternal(int selection) {
-        final float percent = (float) selection / (mMaximumClipDuration + mMinimumUnselectedClipDuration);
-        setProgressPercent(percent, false);
     }
 
     /**
@@ -604,6 +625,20 @@ public class VideoClipView extends FrameLayout {
     }
 
     /**
+     * Sets the selection for the video clip.
+     *
+     * @param selection millisecond position within the selectable time interval
+     */
+    public void setSelection(int selection) {
+        final float old = mProgressPercent;
+        final float percent = (float) selection / (mMaximumClipDuration + mMinimumUnselectedClipDuration);
+        setProgressPercent(percent, false);
+        if (!Utils.areEqualIgnorePrecisionError(mProgressPercent, old)) {
+            invalidate(); // Redraw progress cursor
+        }
+    }
+
+    /**
      * Gets the time interval in millisecond of the selected video clip by providing an array
      * of two integers that will hold the start and end value in that order.
      */
@@ -611,17 +646,65 @@ public class VideoClipView extends FrameLayout {
         if (outInterval == null || outInterval.length < 2) {
             throw new IllegalArgumentException("outInterval must be an array of two integers");
         }
-        if (mDrawableOffsetsResolved) {
+        // The frame offset properties may have not been determined yet
+        if (Float.isNaN(mFrameLeftOffset)) {
+            outInterval[0] = 0;
+            outInterval[1] = Math.max((int) (mMaximumClipDuration / 2f + 0.5f), mMinimumClipDuration);
+        } else {
             final boolean rtl = Utils.isLayoutRtl(this);
             final float duration = mMaximumClipDuration + mMinimumUnselectedClipDuration;
             outInterval[0] = (int) (0.5f + duration *
-                    (rtl ? mRightDrawableOffset : mLeftDrawableOffset));
+                    (rtl ? mFrameRightOffset : mFrameLeftOffset));
             outInterval[1] = (int) (0.5f + duration *
-                    (1.0f - (rtl ? mLeftDrawableOffset : mRightDrawableOffset)));
-            // The drawable offset properties may have not been determined yet
+                    (1.0f - (rtl ? mFrameLeftOffset : mFrameRightOffset)));
+        }
+    }
+
+    /**
+     * Sets the time interval selected for video clip purpose
+     *
+     * @param start start value in millisecond of the interval
+     * @param end   end value in millisecond of the interval
+     */
+    public void setSelectionInterval(int start, int end) {
+        final int interval = end - start;
+        final int duration = mMaximumClipDuration + mMinimumUnselectedClipDuration;
+
+        // Checks the desired selection interval and its start and end values
+        if (end < start) {
+            throw new IllegalArgumentException("Interval end value is less than the interval start value");
+        }
+        if (start < 0) {
+            throw new IllegalArgumentException("Start millisecond of the desired selection interval " +
+                    "cannot be less than 0");
+        }
+        if (end > duration) {
+            throw new IllegalArgumentException("End millisecond of the desired selection interval " +
+                    "is out of the selectable time interval range");
+        }
+        if (interval < mMinimumClipDuration) {
+            throw new IllegalArgumentException("Desired selection interval cannot be less than " +
+                    "the minimum clip duration");
+        }
+        if (interval > mMaximumClipDuration) {
+            throw new IllegalArgumentException("Desired selection interval cannot be greater than " +
+                    "the maximum clip duration");
+        }
+
+        final float frameLeftOffset = mFrameLeftOffset;
+        final float frameRightOffset = mFrameRightOffset;
+        if (Utils.isLayoutRtl(this)) {
+            mFrameRightOffset = (float) start / duration;
+            mFrameLeftOffset = 1.0f - (float) end / duration;
         } else {
-            outInterval[0] = 0;
-            outInterval[1] = Math.max((int) (mMaximumClipDuration / 2f + 0.5f), mMinimumClipDuration);
+            mFrameLeftOffset = (float) start / duration;
+            mFrameRightOffset = 1.0f - (float) end / duration;
+        }
+        if (!Utils.areEqualIgnorePrecisionError(mFrameLeftOffset, frameLeftOffset)
+                || !Utils.areEqualIgnorePrecisionError(mFrameRightOffset, frameRightOffset)) {
+            notifyListenersOfSelectionIntervalChange(false);
+            resetProgressPercent(false);
+            invalidate();
         }
     }
 
@@ -679,37 +762,52 @@ public class VideoClipView extends FrameLayout {
                 } else {
                     final float x = mTouchX[mTouchX.length - 1];
                     final float lastX = mTouchX[mTouchX.length - 2];
+                    final float deltaX = x - lastX;
 
                     boolean invalidateNeeded = false;
                     if ((mTouchFlags & TFLAG_PROGRESS_BEING_DRAGGED) != 0) {
                         final float old = mProgressPercent;
                         final float percent = progressCenterXToProgressPercent(x + mProgressMoveOffset);
                         setProgressPercent(percent, true);
-                        invalidateNeeded = mProgressPercent != old;
-                    } else {
-                        final int[] startInterval = mSelectionInterval.clone();
-                        getSelectionInterval(startInterval);
+                        invalidateNeeded = !Utils.areEqualIgnorePrecisionError(mProgressPercent, old);
 
-                        final float originalRange = mThumbsGallery.getWidth();
-                        if ((mTouchFlags & TFLAG_LEFT_DRAWABLE_BEING_DRAGGED) != 0) {
-                            final float range = originalRange * (1.0f - mRightDrawableOffset);
-                            mLeftDrawableOffset = Util.constrainValue(
-                                    mLeftDrawableOffset * originalRange + x - lastX,
-                                    Math.max(0, range - mMaximumClipBackwardsForwardGap),
-                                    range - mMinimumClipBackwardsForwardGap) / originalRange;
-                        } else /*if ((mTouchFlags & TFLAG_RIGHT_DRAWABLE_BEING_DRAGGED) != 0)*/ {
-                            final float range = originalRange * (1.0f - mLeftDrawableOffset);
-                            mRightDrawableOffset = Util.constrainValue(
-                                    mRightDrawableOffset * originalRange + lastX - x,
-                                    Math.max(0, range - mMaximumClipBackwardsForwardGap),
-                                    range - mMinimumClipBackwardsForwardGap) / originalRange;
+                    } else if ((mTouchFlags & TFLAG_FRAME_BEING_DRAGGED) != 0) {
+                        final float frameLeftOffset = mFrameLeftOffset;
+                        final float frameRightOffset = mFrameRightOffset;
+
+                        // Order is important here: when touch goes from left to right, if the length
+                        // of the selection frame has reached its maximum, its right can only be moved
+                        // after the left offset increases, and vice versa.
+                        if (deltaX > 0) {
+                            if ((mTouchFlags & TFLAG_FRAME_LEFT_BEING_DRAGGED) != 0) {
+                                claimFrameLeftOffset(deltaX);
+                            }
+                            if ((mTouchFlags & TFLAG_FRAME_RIGHT_BEING_DRAGGED) != 0) {
+                                claimFrameRightOffset(-deltaX);
+                            }
+                        } else {
+                            if ((mTouchFlags & TFLAG_FRAME_RIGHT_BEING_DRAGGED) != 0) {
+                                claimFrameRightOffset(-deltaX);
+                            }
+                            if ((mTouchFlags & TFLAG_FRAME_LEFT_BEING_DRAGGED) != 0) {
+                                claimFrameLeftOffset(deltaX);
+                            }
+                        }
+                        if ((mTouchFlags & TFLAG_FRAME_BEING_DRAGGED) == TFLAG_FRAME_BEING_DRAGGED &&
+                                !Utils.areEqualIgnorePrecisionError(
+                                        mFrameLeftOffset - frameLeftOffset,
+                                        frameRightOffset - mFrameRightOffset)) {
+                            // Not allow inconsistent delta side offsets to the selection frame
+                            // when it is being dragged overall.
+                            mFrameLeftOffset = frameLeftOffset;
+                            mFrameRightOffset = frameRightOffset;
+                            break;
                         }
 
-                        final int[] endInterval = mSelectionInterval;
-                        getSelectionInterval(endInterval);
-                        if (!Arrays.equals(endInterval, startInterval)) {
+                        if (!Utils.areEqualIgnorePrecisionError(mFrameLeftOffset, frameLeftOffset)
+                                || !Utils.areEqualIgnorePrecisionError(mFrameRightOffset, frameRightOffset)) {
                             invalidateNeeded = true;
-                            notifyListenersOfSelectionIntervalChange();
+                            notifyListenersOfSelectionIntervalChange(true);
                             // Resets the position of the progress cursor, in case it is out of our range.
                             resetProgressPercent(true);
                         }
@@ -735,25 +833,49 @@ public class VideoClipView extends FrameLayout {
         return true;
     }
 
+    private void claimFrameLeftOffset(float deltaX) {
+        final int originalRange = mThumbGalleryWidth;
+        final float range = originalRange * (1.0f - mFrameRightOffset);
+        mFrameLeftOffset = Util.constrainValue(
+                mFrameLeftOffset * originalRange + deltaX,
+                Math.max(0, range - mMaximumClipBackwardsForwardGap),
+                range - mMinimumClipBackwardsForwardGap) / originalRange;
+    }
+
+    private void claimFrameRightOffset(float deltaX) {
+        final float originalRange = mThumbGalleryWidth;
+        final float range = originalRange * (1.0f - mFrameLeftOffset);
+        mFrameRightOffset = Util.constrainValue(
+                mFrameRightOffset * originalRange + deltaX,
+                Math.max(0, range - mMaximumClipBackwardsForwardGap),
+                range - mMinimumClipBackwardsForwardGap) / originalRange;
+    }
+
     private boolean tryHandleTouchEvent() {
-        if (mLeftDrawable.getBounds().contains((int) mDownX, (int) mDownY)) {
-            if (checkTouchSlop()) {
-                mTouchFlags |= TFLAG_LEFT_DRAWABLE_BEING_DRAGGED;
-                requestParentDisallowInterceptTouchEvent();
-                return true;
-            }
-        } else if (mRightDrawable.getBounds().contains((int) mDownX, (int) mDownY)) {
-            if (checkTouchSlop()) {
-                mTouchFlags |= TFLAG_RIGHT_DRAWABLE_BEING_DRAGGED;
-                requestParentDisallowInterceptTouchEvent();
-                return true;
-            }
-        } else {
-            mProgressMoveOffset = progressPercentToProgressCenterX(mProgressPercent) - mDownX;
-            if (!Float.isNaN(mProgressMoveOffset)) {
-                final float absPMO = Math.abs(mProgressMoveOffset);
-                if (absPMO >= 0 && absPMO <= 25f * mDip && checkTouchSlop()) {
-                    mTouchFlags |= TFLAG_PROGRESS_BEING_DRAGGED;
+        final float frameLeft = mFrameLeftOffset * mThumbGalleryWidth;
+        final float frameRight = getWidth() - mFrameRightOffset * mThumbGalleryWidth;
+        if (mDownX >= frameLeft && mDownX <= frameRight) {
+            if (mDownX <= frameLeft + mDrawableWidth /* leftDrawableRight */) {
+                if (checkTouchSlop()) {
+                    mTouchFlags |= TFLAG_FRAME_LEFT_BEING_DRAGGED;
+                    requestParentDisallowInterceptTouchEvent();
+                    return true;
+                }
+            } else if (mDownX >= frameRight - mDrawableWidth /* rightDrawableLeft */) {
+                if (checkTouchSlop()) {
+                    mTouchFlags |= TFLAG_FRAME_RIGHT_BEING_DRAGGED;
+                    requestParentDisallowInterceptTouchEvent();
+                    return true;
+                }
+            } else if (checkTouchSlop()) {
+                mProgressMoveOffset = progressPercentToProgressCenterX(mProgressPercent) - mDownX;
+                if (!Float.isNaN(mProgressMoveOffset)) {
+                    final float absPMO = Math.abs(mProgressMoveOffset);
+                    if (absPMO >= 0 && absPMO <= 25f * mDip) {
+                        mTouchFlags |= TFLAG_PROGRESS_BEING_DRAGGED;
+                    } else {
+                        mTouchFlags |= TFLAG_FRAME_BEING_DRAGGED;
+                    }
                     requestParentDisallowInterceptTouchEvent();
                     return true;
                 }
@@ -832,7 +954,7 @@ public class VideoClipView extends FrameLayout {
     public void addThumbnail(int index, @Nullable Bitmap thumb) {
         mThumbsAdapter.mThumbnails.add(index, thumb);
         mThumbsAdapter.notifyItemInserted(index);
-        mThumbsAdapter.notifyItemRangeChanged(0, mThumbsAdapter.getItemCount());
+        mThumbsAdapter.notifyItemRangeChanged(index, mThumbsAdapter.getItemCount() - index);
     }
 
     public void setThumbnail(int index, @Nullable Bitmap thumb) {
@@ -850,7 +972,7 @@ public class VideoClipView extends FrameLayout {
     public void removeThumbnail(int index) {
         mThumbsAdapter.mThumbnails.remove(index);
         mThumbsAdapter.notifyItemRemoved(index);
-        mThumbsAdapter.notifyItemRangeChanged(0, mThumbsAdapter.getItemCount());
+        mThumbsAdapter.notifyItemRangeChanged(index, mThumbsAdapter.getItemCount() - index);
     }
 
     public void clearThumbnails() {
@@ -859,32 +981,33 @@ public class VideoClipView extends FrameLayout {
         mThumbsAdapter.notifyItemRangeRemoved(0, itemCount);
     }
 
-    private static class ThumbsAdapter extends RecyclerView.Adapter<ThumbsAdapter.ViewHolder> {
+    private class ThumbsAdapter extends RecyclerView.Adapter<ThumbsAdapter.ViewHolder> {
 
         final List<Bitmap> mThumbnails = new ArrayList<>();
-
-        RecyclerView mHost;
-
-        @Override
-        public void onAttachedToRecyclerView(@NonNull RecyclerView recyclerView) {
-            mHost = recyclerView;
-        }
 
         @NonNull
         @Override
         public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
             return new ViewHolder(LayoutInflater.from(parent.getContext())
-                    .inflate(R.layout.item_clip_thumbs_gallery, parent, false));
+                    .inflate(R.layout.item_rv_videoclip_thumbs, parent, false));
         }
 
         @Override
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
             Bitmap thumb = mThumbnails.get(position);
+            if (thumb != null) {
+                final int thumbWidth = thumb.getWidth();
+                final int thumbHeight = thumb.getHeight();
 
-            ViewGroup.LayoutParams lp = holder.thumbImage.getLayoutParams();
-            lp.width = (int) ((float) mHost.getWidth() / mThumbnails.size() + 0.5f);
-            lp.height = mHost.getHeight();
-
+                ViewGroup.LayoutParams lp = holder.thumbImage.getLayoutParams();
+                if (thumbWidth != 0 && thumbHeight != 0) {
+                    lp.height = mThumbDisplayHeight;
+                    lp.width = (int) (lp.height * (float) thumbWidth / thumbHeight + 0.5f);
+                } else {
+                    lp.width = lp.height = 0;
+                }
+//                holder.thumbImage.setLayoutParams(lp);
+            }
             holder.thumbImage.setImageBitmap(thumb);
         }
 
@@ -901,5 +1024,80 @@ public class VideoClipView extends FrameLayout {
                 thumbImage = itemView.findViewById(R.id.image_thumb);
             }
         }
+    }
+
+    // --------------- Saved Instance State ------------------------
+
+    @Override
+    protected void onRestoreInstanceState(Parcelable state) {
+        if (!(state instanceof SavedState)) {
+            super.onRestoreInstanceState(state);
+            return;
+        }
+
+        final SavedState ss = (SavedState) state;
+        super.onRestoreInstanceState(ss.getSuperState());
+
+        try {
+            setSelectionInterval(ss.selectionInterval[0], ss.selectionInterval[1]);
+            setSelection(ss.selection);
+        } catch (IllegalArgumentException e) {
+            // This may be thrown by our code, e.g., the expected selection interval out of
+            // the selectable time interval range due to clip duration change(s).
+        }
+    }
+
+    @Override
+    protected Parcelable onSaveInstanceState() {
+        final Parcelable superState = super.onSaveInstanceState();
+        final SavedState ss = new SavedState(superState);
+
+        ss.selection = getSelection();
+        getSelectionInterval(ss.selectionInterval);
+
+        return ss;
+    }
+
+    /**
+     * This is the persistent state saved by {@link VideoClipView}.
+     * Only needed if you are creating a subclass of VideoClipView that must save its own state.
+     */
+    @SuppressWarnings({"WeakerAccess", "deprecation"})
+    @VisibleForTesting(otherwise = VisibleForTesting.PROTECTED)
+    public static class SavedState extends AbsSavedState {
+        int selection;
+        final int[] selectionInterval = sNoSelectionInterval.clone();
+
+        // Called by onSaveInstanceState()
+        protected SavedState(Parcelable superState) {
+            super(superState);
+        }
+
+        // Called by CREATOR
+        protected SavedState(Parcel in, ClassLoader loader) {
+            super(in, loader);
+            selection = in.readInt();
+            in.readIntArray(selectionInterval);
+        }
+
+        @Override
+        public void writeToParcel(Parcel dest, int flags) {
+            super.writeToParcel(dest, flags);
+            dest.writeInt(selection);
+            dest.writeIntArray(selectionInterval);
+        }
+
+        public static final Creator<SavedState> CREATOR = ParcelableCompat.newCreator(
+                new ParcelableCompatCreatorCallbacks<SavedState>() {
+                    @Override
+                    public SavedState createFromParcel(Parcel in, ClassLoader loader) {
+                        return new SavedState(in, loader);
+                    }
+
+                    @Override
+                    public SavedState[] newArray(int size) {
+                        return new SavedState[size];
+                    }
+                });
     }
 }

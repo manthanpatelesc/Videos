@@ -30,7 +30,7 @@ public class BitmapUtils {
     }
 
     @NonNull
-    public static Bitmap createScaledBitmap(@NonNull Bitmap src, int reqWidth, int reqHeight, boolean recycleInput) {
+    public static Bitmap createScaledBitmap(@NonNull Bitmap src, float reqWidth, float reqHeight, boolean recycleInput) {
         if (reqWidth == 0 || reqHeight == 0) {
             return src;
         }
@@ -40,8 +40,8 @@ public class BitmapUtils {
         final int height = src.getHeight();
 
         // 计算缩放比例
-        final float widthScale = (float) reqWidth / width;
-        final float heightScale = (float) reqHeight / height;
+        final float widthScale = reqWidth / width;
+        final float heightScale = reqHeight / height;
 
         // 创建一个matrix容器
         Matrix matrix = new Matrix();

@@ -59,9 +59,8 @@ import com.liuzhenlin.videos.R;
 import com.liuzhenlin.videos.dao.VideoDaoHelper;
 import com.liuzhenlin.videos.model.Video;
 import com.liuzhenlin.videos.utils.DisplayCutoutUtils;
-import com.liuzhenlin.videos.utils.FileUtils2;
 import com.liuzhenlin.videos.utils.OSHelper;
-import com.liuzhenlin.videos.utils.VideoUtils;
+import com.liuzhenlin.videos.utils.VideoUtils2;
 import com.liuzhenlin.videos.utils.observer.OnOrientationChangeListener;
 import com.liuzhenlin.videos.utils.observer.RotationObserver;
 import com.liuzhenlin.videos.utils.observer.ScreenNotchSwitchObserver;
@@ -267,7 +266,7 @@ public class VideoActivity extends SwipeBackActivity {
                 // 解析视频地址
                 Uri uri = intent.getData();
                 if (uri != null) {
-                    final String path = FileUtils2.UriResolver.getPath(this, uri);
+                    final String path = FileUtils.UriResolver.getPath(this, uri);
                     if (path != null) {
                         video = VideoDaoHelper.getInstance(this).queryVideoByPath(path);
                         if (video == null) {
@@ -492,7 +491,7 @@ public class VideoActivity extends SwipeBackActivity {
         mVideoView.setCanSkipToPrevious(videoIndex > 0);
         mVideoView.setCanSkipToNext(videoIndex < mVideos.length - 1);
         mVideoView.setVideoPath(video.getPath());
-        mVideoView.setTitle(FileUtils2.getFileSimpleName(video.getName()));
+        mVideoView.setTitle(FileUtils.getFileSimpleName(video.getName()));
     }
 
     @Override
@@ -1215,7 +1214,7 @@ public class VideoActivity extends SwipeBackActivity {
                             holder.videoProgressDurationText.setText(mWatching);
                         } else {
                             holder.videoProgressDurationText.setText(
-                                    VideoUtils.concatVideoProgressAndDuration(
+                                    VideoUtils2.concatVideoProgressAndDuration(
                                             video.getProgress(), video.getDuration()));
                         }
                     } else if (payload == sHighlightSelectedItemIfExistsPayload) {
@@ -1230,13 +1229,13 @@ public class VideoActivity extends SwipeBackActivity {
             highlightSelectedItemIfExists(holder, position);
 
             Video video = mVideos[position];
-            VideoUtils.loadVideoThumbnail(holder.videoImage, video);
+            VideoUtils2.loadVideoThumbnail(holder.videoImage, video);
             holder.videoNameText.setText(video.getName());
             if (position == mVideoIndex) {
                 holder.videoProgressDurationText.setText(mWatching);
             } else {
                 holder.videoProgressDurationText.setText(
-                        VideoUtils.concatVideoProgressAndDuration(video.getProgress(), video.getDuration()));
+                        VideoUtils2.concatVideoProgressAndDuration(video.getProgress(), video.getDuration()));
             }
         }
 

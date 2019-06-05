@@ -17,6 +17,7 @@ import androidx.appcompat.app.AppCompatDelegate;
 import com.liuzhenlin.floatingmenu.DensityUtils;
 import com.liuzhenlin.texturevideoview.utils.SystemBarUtils;
 
+import java.io.File;
 import java.util.WeakHashMap;
 
 /**
@@ -59,7 +60,7 @@ public class App extends Application implements Application.ActivityLifecycleCal
 
     public static String getAppDirectory() {
         if (sAppDirectory == null) {
-            sAppDirectory = Environment.getExternalStorageDirectory() + "/videos_lzl";
+            sAppDirectory = Environment.getExternalStorageDirectory() + File.separator + "videos_lzl";
         }
         return sAppDirectory;
     }

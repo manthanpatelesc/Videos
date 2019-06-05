@@ -57,6 +57,7 @@ import com.liuzhenlin.floatingmenu.DensityUtils;
 import com.liuzhenlin.slidingdrawerlayout.SlidingDrawerLayout;
 import com.liuzhenlin.swipeback.SwipeBackLayout;
 import com.liuzhenlin.texturevideoview.utils.BitmapUtils;
+import com.liuzhenlin.texturevideoview.utils.FileUtils;
 import com.liuzhenlin.texturevideoview.utils.SystemBarUtils;
 import com.liuzhenlin.videos.App;
 import com.liuzhenlin.videos.BuildConfig;
@@ -426,7 +427,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         switch (requestCode) {
             case REQUEST_CODE_CHOSE_DRAWER_BACKGROUND_PICTURE:
                 if (data != null && data.getData() != null) {
-                    setDrawerBackground(FileUtils2.UriResolver.getPath(this, data.getData()));
+                    setDrawerBackground(FileUtils.UriResolver.getPath(this, data.getData()));
                 }
                 break;
         }

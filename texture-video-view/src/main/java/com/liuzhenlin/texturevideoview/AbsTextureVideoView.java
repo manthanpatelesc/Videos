@@ -30,6 +30,7 @@ import android.os.Build;
 import android.os.Environment;
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.provider.MediaStore;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.text.ParcelableSpan;
 import android.text.SpannableString;
@@ -101,8 +102,10 @@ import com.liuzhenlin.texturevideoview.utils.ScreenUtils;
 import com.liuzhenlin.texturevideoview.utils.TimeUtil;
 import com.liuzhenlin.texturevideoview.utils.TransitionListenerAdapter;
 import com.liuzhenlin.texturevideoview.utils.Utils;
+import com.liuzhenlin.texturevideoview.utils.VideoUtils;
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.reflect.Field;
@@ -117,7 +120,7 @@ import java.util.List;
  * <ul>
  *   <li>{@link android.Manifest.permission#READ_EXTERNAL_STORAGE} for a local audio/video file</li>
  *   <li>{@link android.Manifest.permission#WRITE_EXTERNAL_STORAGE} for saving captured video photos
- *       or cutout video clips into disk</li>
+ *       or cutout short-videos/GIFs into disk</li>
  *   <li>{@link android.Manifest.permission#INTERNET} to network based streaming content</li>
  * </ul>
  *
@@ -352,7 +355,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
         Window getWindow();
 
         /**
-         * Returns the base directory used to store the captured video photos or cutout video clips.
+         * Returns the base directory used to store the captured video photos or cutout short-videos/GIFs.
          * <p>
          * If the returned value is nonnull, the final storage directory will be the directory
          * with `/screenshots` appended or the primary external storage directory concatenating with
@@ -428,7 +431,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
 
     private static final String TAG = "AbsTextureVideoView";
 
-    /* package-private */ int mPrivateFlags;
+    protected int mPrivateFlags;
 
     /** If the controls are showing, this is marked into {@link #mPrivateFlags}. */
     private static final int PFLAG_CONTROLS_SHOWING = 1;
@@ -472,10 +475,10 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     private static final int PFLAG_TURN_OFF_WHEN_THIS_EPISODE_ENDS = 1 << 10;
 
     /** Indicates that the video info (width, height, duration, etc.) is now available. */
-    /* package-private */ static final int PFLAG_VIDEO_INFO_RESOLVED = 1 << 11;
+    protected static final int PFLAG_VIDEO_INFO_RESOLVED = 1 << 11;
 
     /** Indicates that the video is manually paused by the user. */
-    /* package-private */ static final int PFLAG_VIDEO_PAUSED_BY_USER = 1 << 12;
+    protected static final int PFLAG_VIDEO_PAUSED_BY_USER = 1 << 12;
 
     /**
      * Flag indicates the video is being closed, i.e., we are releasing the player object,
@@ -483,7 +486,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
      * (this may happen as we call the onVideoStopped() method of the VideoListener object in our
      * closeVideoInternal() method if this view is currently playing).
      */
-    /* package-private */ static final int PFLAG_VIDEO_IS_CLOSING = 1 << 13;
+    protected static final int PFLAG_VIDEO_IS_CLOSING = 1 << 13;
 
     @ViewMode
     private int mViewMode = VIEW_MODE_DEFAULT;
@@ -605,6 +608,10 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     private String mTitle;
 
     /* package-private */ final String mAppName;
+    /**
+     * A user agent string based on the application name resolved from this view's context object
+     * and the `exoplayer-core` library version.
+     */
     /* package-private */ final String mUserAgent;
 
     private final String mStringPlay;
@@ -1132,20 +1139,20 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     @Nullable
     private List<OnPlaybackStateChangeListener> mOnPlaybackStateChangeListeners;
 
-    /* package-private */ Surface mSurface;
+    protected Surface mSurface;
 
     /** The Uri for the video to play, set in {@link #setVideoUri(Uri)}. */
-    /* package-private */ Uri mVideoUri;
+    protected Uri mVideoUri;
 
-    /* package-private */ int mVideoWidth;
-    /* package-private */ int mVideoHeight;
+    protected int mVideoWidth;
+    protected int mVideoHeight;
 
     /** How long the playback will last for. */
-    /* package-private */ int mVideoDuration;
+    protected int mVideoDuration;
 
     /** The string representation of the video duration. */
-    /* package-private */ String mVideoDurationString = DEFAULT_STRING_VIDEO_DURATION;
-    /* package-private */ static final String DEFAULT_STRING_VIDEO_DURATION = "00:00";
+    protected String mVideoDurationString = DEFAULT_STRING_VIDEO_DURATION;
+    protected static final String DEFAULT_STRING_VIDEO_DURATION = "00:00";
 
     /** The current state of the player or the playback of the video */
     @PlaybackState
@@ -1155,14 +1162,14 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
      * Caches the speed at which the player works, used on saving instance state and maybe
      * retrieved on state restore.
      */
-    /* package-private */ float mPlaybackSpeed = DEFAULT_PLAYBACK_SPEED;
+    protected float mPlaybackSpeed = DEFAULT_PLAYBACK_SPEED;
     /**
      * Caches the speed the user sets for the player at any time, even when the player has not
      * been created.
      * <p>
      * This may fail if the value is not supported by the framework.
      */
-    /* package-private */ float mUserPlaybackSpeed = DEFAULT_PLAYBACK_SPEED;
+    protected float mUserPlaybackSpeed = DEFAULT_PLAYBACK_SPEED;
 
     /**
      * Recording the seek position used when playback is just started.
@@ -1170,7 +1177,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
      * Normally this is requested by the user (e.g., dragging the video progress bar)
      * or saved when the user leaves current UI.
      */
-    /* package-private */ int mSeekOnPlay;
+    protected int mSeekOnPlay;
 
     /** The amount of time we are stepping forward or backward for fast-forward and fast-rewind. */
     public static final int FAST_FORWARD_REWIND_INTERVAL = 15000; // ms
@@ -1197,8 +1204,9 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     /** Maximum volume of the system media audio stream ({@link AudioManager#STREAM_MUSIC}) */
     private final int mMaxVolume;
 
-    /* package-private */ final AudioManager mAudioManager;
+    protected final AudioManager mAudioManager;
 
+    // Used for subclasses within the same package to avoid duplicate field declarations
     /* package-private */ MediaSessionCompat mSession;
     /* package-private */ HeadsetEventsReceiver mHeadsetEventsReceiver;
 
@@ -1610,7 +1618,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
      * if no {@link OpCallback} is set.
      */
     @Override
-    public final int getBrightness() {
+    public int getBrightness() {
         if (mOpCallback != null) {
             return ScreenUtils.getWindowBrightness(mOpCallback.getWindow());
         }
@@ -1624,7 +1632,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
      * this method instead of a direct call to {@link ScreenUtils#setWindowBrightness(Window, int)}
      */
     @Override
-    public final void setBrightness(int brightness) {
+    public void setBrightness(int brightness) {
         if (mOpCallback != null) {
             brightness = Util.constrainValue(brightness, BRIGHTNESS_FOLLOWS_SYSTEM, MAX_BRIGHTNESS);
             // Changes the brightness of the current Window
@@ -1643,12 +1651,12 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     }
 
     @Override
-    public final int getVolume() {
+    public int getVolume() {
         return mAudioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
     }
 
     @Override
-    public final void setVolume(int volume) {
+    public void setVolume(int volume) {
         volume = Util.constrainValue(volume, 0, mMaxVolume);
         // Changes the system's media volume
         mAudioManager.setStreamVolume(AudioManager.STREAM_MUSIC, volume, 0);
@@ -1670,7 +1678,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
 
     /** @see #openVideo(boolean) */
     @Override
-    public final void openVideo() {
+    public void openVideo() {
         openVideo(false);
     }
 
@@ -1690,16 +1698,16 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
      * @see #closeVideo()
      * @see #play()
      */
-    public final void openVideo(boolean replayIfCompleted) {
+    public void openVideo(boolean replayIfCompleted) {
         if (replayIfCompleted || mPlaybackState != PLAYBACK_STATE_COMPLETED) {
             openVideoInternal();
         }
     }
 
-    abstract void openVideoInternal();
+    protected abstract void openVideoInternal();
 
     @Override
-    public final void closeVideo() {
+    public void closeVideo() {
         if (!isPureAudioPlayback()) {
             closeVideoInternal(false /* ignored */);
         }
@@ -1711,17 +1719,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
      *
      * @param fromUser `true` if the video is turned off by the user.
      */
-    abstract void closeVideoInternal(boolean fromUser);
-
-    @Override
-    public final boolean isPlaying() {
-        return mPlaybackState == PLAYBACK_STATE_PLAYING;
-    }
-
-    @Override
-    public final void toggle() {
-        VideoPlayerControl.super.toggle();
-    }
+    protected abstract void closeVideoInternal(boolean fromUser);
 
     @Override
     public void fastForward() {
@@ -1734,7 +1732,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     }
 
     @Override
-    public final int getVideoDuration() {
+    public int getVideoDuration() {
         if ((mPrivateFlags & PFLAG_VIDEO_INFO_RESOLVED) != 0) {
             return mVideoDuration;
         }
@@ -1742,7 +1740,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     }
 
     @Override
-    public final int getVideoWidth() {
+    public int getVideoWidth() {
         if ((mPrivateFlags & PFLAG_VIDEO_INFO_RESOLVED) != 0) {
             return mVideoWidth;
         }
@@ -1750,7 +1748,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     }
 
     @Override
-    public final int getVideoHeight() {
+    public int getVideoHeight() {
         if ((mPrivateFlags & PFLAG_VIDEO_INFO_RESOLVED) != 0) {
             return mVideoHeight;
         }
@@ -1758,7 +1756,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     }
 
     @Override
-    public final boolean isPureAudioPlayback() {
+    public boolean isPureAudioPlayback() {
         return (mPrivateFlags & PFLAG_PURE_AUDIO_PLAYBACK) != 0;
     }
 
@@ -1777,7 +1775,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     }
 
     @Override
-    public final boolean isSingleVideoLoopPlayback() {
+    public boolean isSingleVideoLoopPlayback() {
         return (mPrivateFlags & PFLAG_SINGLE_VIDEO_LOOP_PLAYBACK) != 0;
     }
 
@@ -1806,7 +1804,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
         return isPlaying() ? mPlaybackSpeed : 0;
     }
 
-    @VisibleForTesting(otherwise = VisibleForTesting.PACKAGE_PRIVATE)
+    @VisibleForTesting(otherwise = VisibleForTesting.PROTECTED)
     @CallSuper
     @Override
     public void setPlaybackSpeed(float speed) {
@@ -1817,17 +1815,17 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
 
     @PlaybackState
     @Override
-    public final int getPlaybackState() {
+    public int getPlaybackState() {
         return mPlaybackState;
     }
 
-    final void setPlaybackState(@PlaybackState int newState) {
+    protected void setPlaybackState(@PlaybackState int newState) {
         final int oldState = mPlaybackState;
         if (newState != oldState) {
             mPlaybackState = newState;
             if (mOnPlaybackStateChangeListeners != null) {
                 // Since onPlaybackStateChange() is implemented by the app, it could do anything,
-                // including removing itself from {@link mOnPlaybackStateChangeListeners} – and
+                // including removing itself from {@link mOnPlaybackStateChangeListeners} — and
                 // that could cause problems if an iterator is used on the ArrayList.
                 // To avoid such problems, just march thru the list in the reverse order.
                 for (int i = mOnPlaybackStateChangeListeners.size() - 1; i >= 0; i--) {
@@ -1838,7 +1836,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     }
 
     @Override
-    public final void addOnPlaybackStateChangeListener(@Nullable OnPlaybackStateChangeListener listener) {
+    public void addOnPlaybackStateChangeListener(@Nullable OnPlaybackStateChangeListener listener) {
         if (listener != null) {
             if (mOnPlaybackStateChangeListeners == null) {
                 mOnPlaybackStateChangeListeners = new ArrayList<>(1);
@@ -1850,13 +1848,13 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     }
 
     @Override
-    public final void removeOnPlaybackStateChangeListener(@Nullable OnPlaybackStateChangeListener listener) {
+    public void removeOnPlaybackStateChangeListener(@Nullable OnPlaybackStateChangeListener listener) {
         if (listener != null && mOnPlaybackStateChangeListeners != null) {
             mOnPlaybackStateChangeListeners.remove(listener);
         }
     }
 
-    void onVideoStarted() {
+    protected void onVideoStarted() {
         setPlaybackState(PLAYBACK_STATE_PLAYING);
 
         if (!isPureAudioPlayback()) {
@@ -1882,7 +1880,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
         }
     }
 
-    void onVideoStopped() {
+    protected void onVideoStopped() {
         onVideoStopped(false /* uncompleted */);
     }
 
@@ -1924,12 +1922,12 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     /**
      * @return whether or not the player object is created for playing the video(s)
      */
-    abstract boolean isPlayerCreated();
+    protected abstract boolean isPlayerCreated();
 
     /**
      * @return true if the video is closed, as scheduled by the user, when playback completes
      */
-    boolean onPlaybackCompleted() {
+    protected boolean onPlaybackCompleted() {
         setPlaybackState(PLAYBACK_STATE_COMPLETED);
 
         if ((mPrivateFlags & PFLAG_TURN_OFF_WHEN_THIS_EPISODE_ENDS) != 0) {
@@ -1946,7 +1944,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
         }
     }
 
-    void onVideoSizeChanged(int width, int height) {
+    protected void onVideoSizeChanged(int width, int height) {
         final int oldw = mVideoWidth;
         final int oldh = mVideoHeight;
         mVideoWidth = width;
@@ -1957,7 +1955,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
         if (width != 0 && height != 0) requestLayout();
     }
 
-    final boolean skipToNextIfPossible() {
+    protected boolean skipToNextIfPossible() {
         if (mEventListener != null && mOpCallback != null && canSkipToNext()) {
             mEventListener.onSkipToNext();
             return true;
@@ -1965,7 +1963,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
         return false;
     }
 
-    final boolean skipToPreviousIfPossible() {
+    protected boolean skipToPreviousIfPossible() {
         if (mEventListener != null && mOpCallback != null && canSkipToPrevious()) {
             mEventListener.onSkipToPrevious();
             return true;
@@ -1976,14 +1974,14 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     /**
      * @return true if we can skip the video played to the previous one
      */
-    public final boolean canSkipToPrevious() {
+    public boolean canSkipToPrevious() {
         return (mPrivateFlags & PFLAG_CAN_SKIP_TO_PREVIOUS) != 0;
     }
 
     /**
      * Sets whether or not we can skip the playing video to the previous one.
      */
-    public final void setCanSkipToPrevious(boolean able) {
+    public void setCanSkipToPrevious(boolean able) {
         mPrivateFlags = mPrivateFlags & ~PFLAG_CAN_SKIP_TO_PREVIOUS
                 | (able ? PFLAG_CAN_SKIP_TO_PREVIOUS : 0);
         if (mChooseEpisodeButton != null) {
@@ -1995,7 +1993,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     /**
      * @return true if we can skip the video played to the next one
      */
-    public final boolean canSkipToNext() {
+    public boolean canSkipToNext() {
         return (mPrivateFlags & PFLAG_CAN_SKIP_TO_NEXT) != 0;
     }
 
@@ -2005,7 +2003,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
      * If set to `true` and this view is currently in full screen mode, the 'Skip Next' button
      * will become visible to the user.
      */
-    public final void setCanSkipToNext(boolean able) {
+    public void setCanSkipToNext(boolean able) {
         mPrivateFlags = mPrivateFlags & ~PFLAG_CAN_SKIP_TO_NEXT
                 | (able ? PFLAG_CAN_SKIP_TO_NEXT : 0);
         if (mSkipNextButton != null) {
@@ -2022,7 +2020,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
      *
      * @see VideoListener
      */
-    public final void setVideoListener(@Nullable VideoListener listener) {
+    public void setVideoListener(@Nullable VideoListener listener) {
         mVideoListener = listener;
     }
 
@@ -2031,7 +2029,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
      *
      * @see EventListener
      */
-    public final void setEventListener(@Nullable EventListener listener) {
+    public void setEventListener(@Nullable EventListener listener) {
         mEventListener = listener;
     }
 
@@ -2040,7 +2038,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
      *
      * @see OpCallback
      */
-    public final void setOpCallback(@Nullable OpCallback opCallback) {
+    public void setOpCallback(@Nullable OpCallback opCallback) {
         mOpCallback = opCallback;
     }
 
@@ -2049,7 +2047,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
      * @return the RecyclerView adapter for the video playlist or `null` if not set
      */
     @Nullable
-    public final <VH extends RecyclerView.ViewHolder> PlayListAdapter<VH> getPlayListAdapter() {
+    public <VH extends RecyclerView.ViewHolder> PlayListAdapter<VH> getPlayListAdapter() {
         //noinspection unchecked
         return (PlayListAdapter<VH>) mPlayList.getAdapter();
     }
@@ -2060,7 +2058,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
      * @param adapter see {@link PlayListAdapter}
      * @param <VH>    A class that extends {@link RecyclerView.ViewHolder} that will be used by the adapter.
      */
-    public final <VH extends RecyclerView.ViewHolder> void setPlayListAdapter(@Nullable PlayListAdapter<VH> adapter) {
+    public <VH extends RecyclerView.ViewHolder> void setPlayListAdapter(@Nullable PlayListAdapter<VH> adapter) {
         if (adapter != null && mPlayList.getLayoutManager() == null) {
             mPlayList.setLayoutManager(new LinearLayoutManager(mContext));
             mPlayList.addItemDecoration(
@@ -2074,14 +2072,14 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
      * @return title of the video.
      */
     @Nullable
-    public final String getTitle() {
+    public String getTitle() {
         return mTitle;
     }
 
     /**
      * Sets the title of the video to play.
      */
-    public final void setTitle(@Nullable String title) {
+    public void setTitle(@Nullable String title) {
         if (!ObjectsCompat.equals(title, mTitle)) {
             mTitle = title;
             if (isInFullscreenMode()) {
@@ -2093,7 +2091,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     /**
      * @return <code>true</code> if the bounds of this view is clipped to adapt for the video
      */
-    public final boolean isClipViewBounds() {
+    public boolean isClipViewBounds() {
         return (mPrivateFlags & PFLAG_CLIP_VIEW_BOUNDS) != 0;
     }
 
@@ -2107,7 +2105,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
      * @param clip If true, the bounds of this view will be clipped;
      *             otherwise, black bars will be filled to the view's remaining area.
      */
-    public final void setClipViewBounds(boolean clip) {
+    public void setClipViewBounds(boolean clip) {
         if (clip != isClipViewBounds()) {
             mPrivateFlags = mPrivateFlags & ~PFLAG_CLIP_VIEW_BOUNDS
                     | (clip ? PFLAG_CLIP_VIEW_BOUNDS : 0);
@@ -2122,7 +2120,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     /**
      * @return whether the video is forced to be stretched to fit the layout size in fullscreen.
      */
-    public final boolean isVideoStretchedToFitFullscreenLayout() {
+    public boolean isVideoStretchedToFitFullscreenLayout() {
         return (mPrivateFlags & PFLAG_VIDEO_STRETCHED_TO_FIT_FULLSCREEN_LAYOUT) != 0;
     }
 
@@ -2132,7 +2130,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
      * <p>
      * <strong>NOTE:</strong> If the clip view bounds flag is also set, then it always wins.
      */
-    public final void setVideoStretchedToFitFullscreenLayout(boolean stretched) {
+    public void setVideoStretchedToFitFullscreenLayout(boolean stretched) {
         setVideoStretchedToFitFullscreenLayoutInternal(stretched, true);
     }
 
@@ -2142,8 +2140,29 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
         }
         mPrivateFlags = mPrivateFlags & ~PFLAG_VIDEO_STRETCHED_TO_FIT_FULLSCREEN_LAYOUT
                 | (stretched ? PFLAG_VIDEO_STRETCHED_TO_FIT_FULLSCREEN_LAYOUT : 0);
-        final boolean fullscreen = isInFullscreenMode();
-        if (fullscreen) {
+        if (checkSwitch && mMoreView != null) {
+            Checkable toggle = mMoreView.findViewById(R.id.bt_stretchVideo);
+            if (stretched != toggle.isChecked()) {
+                toggle.setChecked(stretched);
+            }
+        }
+        if (isInFullscreenMode()) {
+            if (!isClipViewBounds() && mVideoWidth != 0 && mVideoHeight != 0) {
+                final int width = mContentView.getWidth();
+                final int height = mContentView.getHeight();
+                if (!Utils.areEqualIgnorePrecisionError(
+                        (float) width / height, (float) mVideoWidth / mVideoHeight)) {
+                    ViewPropertyAnimatorCompat vpac = ViewCompat.animate(mTextureView);
+                    vpac.withLayer()
+                            .scaleX(stretched ? (float) width / mTextureView.getWidth() : 1.0f)
+                            .scaleY(stretched ? (float) height / mTextureView.getHeight() : 1.0f)
+                            .setInterpolator(sStretchShrinkVideoInterpolator)
+                            .setDuration(500)
+                            .start();
+                    mTextureView.setTag(vpac);
+                }
+            }
+
             if (isLocked()) {
                 if (stretched) {
                     setViewMode(VIEW_MODE_VIDEO_STRETCHED_LOCKED_FULLSCREEN);
@@ -2156,32 +2175,12 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
                 setViewMode(VIEW_MODE_FULLSCREEN);
             }
         }
-        if (checkSwitch && mMoreView != null) {
-            Checkable toggle = mMoreView.findViewById(R.id.bt_stretchVideo);
-            if (stretched != toggle.isChecked()) {
-                toggle.setChecked(stretched);
-            }
-        }
-        if (fullscreen && !isClipViewBounds() && mVideoWidth != 0 && mVideoHeight != 0) {
-            final int width = mContentView.getWidth();
-            final int height = mContentView.getHeight();
-            if ((float) width / height != (float) mVideoWidth / mVideoHeight) {
-                ViewPropertyAnimatorCompat vpac = ViewCompat.animate(mTextureView);
-                vpac.withLayer()
-                        .scaleX(stretched ? (float) width / mTextureView.getWidth() : 1.0f)
-                        .scaleY(stretched ? (float) height / mTextureView.getHeight() : 1.0f)
-                        .setInterpolator(sStretchShrinkVideoInterpolator)
-                        .setDuration(500)
-                        .start();
-                mTextureView.setTag(vpac);
-            }
-        }
     }
 
     /**
      * @return whether this view is in fullscreen mode or not
      */
-    public final boolean isInFullscreenMode() {
+    public boolean isInFullscreenMode() {
         return (mPrivateFlags & PFLAG_IN_FULLSCREEN_MODE) != 0;
     }
 
@@ -2199,7 +2198,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
      *                    position. Normally, when setting fullscreen mode, you need to move it
      *                    down a proper distance, so that it appears below the status bar.
      */
-    public final void setFullscreenMode(boolean fullscreen, int navTopInset) {
+    public void setFullscreenMode(boolean fullscreen, int navTopInset) {
         try {
             if (fullscreen == isInFullscreenMode()) {
                 return;
@@ -2316,6 +2315,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
             lp.width = ViewGroup.LayoutParams.MATCH_PARENT;
             lp.height = (int) (height * 0.88f + 0.5f);
         }
+//        mDrawerView.setLayoutParams(lp);
 
         super.onMeasure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY),
                 MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY));
@@ -2360,7 +2360,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     }
 
     @Override
-    public final int getDrawerLockMode(@NonNull View drawerView) {
+    public int getDrawerLockMode(@NonNull View drawerView) {
         LayoutParams lp = (LayoutParams) drawerView.getLayoutParams();
         checkDrawerView(drawerView, Utils.getAbsoluteHorizontalGravity(this, lp.gravity));
         return getDrawerLockModeInternal(drawerView);
@@ -2373,7 +2373,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     }
 
     @Override
-    public final void setDrawerLockMode(int lockMode, @NonNull View drawerView) {
+    public void setDrawerLockMode(int lockMode, @NonNull View drawerView) {
         LayoutParams lp = (LayoutParams) drawerView.getLayoutParams();
         checkDrawerView(drawerView, Utils.getAbsoluteHorizontalGravity(this, lp.gravity));
         setDrawerLockModeInternal(lockMode, drawerView);
@@ -2419,7 +2419,6 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
      * @return true if the back key event is handled by this view
      */
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
-    @CallSuper
     public boolean onBackPressed() {
         if (mClipView != null) {
             hideClipView();
@@ -2444,7 +2443,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
      * {@link #VIEW_MODE_VIDEO_STRETCHED_LOCKED_FULLSCREEN}
      */
     @ViewMode
-    public final int getViewMode() {
+    public int getViewMode() {
         return mViewMode;
     }
 
@@ -2460,12 +2459,12 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     /**
      * Returns whether or not the current view is locked.
      */
-    public final boolean isLocked() {
+    public boolean isLocked() {
         return (mPrivateFlags & PFLAG_LOCKED) != 0;
     }
 
     /** @see #setLocked(boolean, boolean) */
-    public final void setLocked(boolean locked) {
+    public void setLocked(boolean locked) {
         setLocked(locked, true);
     }
 
@@ -2478,7 +2477,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
      * @param animate Whether the locking or unlocking of this view should be animated.
      *                This only makes sense when this view is currently in fullscreen mode.
      */
-    public final void setLocked(boolean locked, boolean animate) {
+    public void setLocked(boolean locked, boolean animate) {
         if (locked != isLocked()) {
             final boolean fullscreen = isInFullscreenMode();
             final boolean showing = isControlsShowing();
@@ -2532,12 +2531,12 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     /**
      * @return whether the controls are currently showing or not
      */
-    public final boolean isControlsShowing() {
+    public boolean isControlsShowing() {
         return (mPrivateFlags & PFLAG_CONTROLS_SHOWING) != 0;
     }
 
     /** @see #showControls(boolean, boolean) */
-    public final void showControls(boolean show) {
+    public void showControls(boolean show) {
         showControls(show, true);
     }
 
@@ -2549,7 +2548,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
      *
      * @param animate whether to fade in/out the controls smoothly or not
      */
-    public final void showControls(boolean show, boolean animate) {
+    public void showControls(boolean show, boolean animate) {
         if ((mPrivateFlags & PFLAG_CONTROLS_SHOW_STICKILY) != 0) {
             return;
         }
@@ -2666,7 +2665,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
         }
     }
 
-    final void showLoadingView(boolean show) {
+    protected void showLoadingView(boolean show) {
         if (show) {
             if (mLoadingImage.getVisibility() != VISIBLE) {
                 mLoadingImage.setVisibility(VISIBLE);
@@ -2711,6 +2710,8 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
                 transition.addListener(new TransitionListenerAdapter() {
                     @Override
                     public void onTransitionEnd(Transition transition) {
+                        // Recycling of the bitmap captured for the playing video MUST ONLY be done
+                        // after the transition ends, in case we use a recycled bitmap for drawing.
                         mCapturedBitmap.recycle();
                         mCapturedBitmap = null;
                     }
@@ -2734,6 +2735,10 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     private void cancelVideoPhotoCapture() {
         Animation a = mContentView.getAnimation();
         if (a != null && a.hasStarted() && !a.hasEnded()) {
+            // We call onAnimationEnd() manually to ensure it to be called immediately to restore
+            // the playback state when the animation cancels and before the next animation starts
+            // (if any), where the listener of the animation will be removed, so that no second call
+            // will be introduced by the clearAnimation() method below.
             ((Animation.AnimationListener) mContentView.getTag()).onAnimationEnd(a);
             mContentView.clearAnimation();
         }
@@ -2803,17 +2808,9 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
                     @SuppressLint("SimpleDateFormat")
                     @Override
                     protected File doInBackground(Void... voids) {
-                        String directory = null;
-                        if (mOpCallback != null) {
-                            directory = mOpCallback.getFileOutputDirectory();
-                        }
-                        if (directory == null) {
-                            directory = Environment.getExternalStorageDirectory() + "/" + mAppName;
-                        }
-                        directory += "/screenshots";
                         return FileUtils.saveBitmapToDisk(mContext,
                                 bitmap, Bitmap.CompressFormat.PNG, 100,
-                                directory,
+                                getFileOutputDirectory() + "/screenshots",
                                 mTitle + "_"
                                         + new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss-SSS") //@formatter:off
                                                 .format(System.currentTimeMillis()) //@formatter:on
@@ -2853,7 +2850,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
                             ImageView photoImage = cpv.findViewById(R.id.image_videoPhoto);
                             photoImage.setImageBitmap(bitmap);
 
-                            if (aspectRatio != oldAspectRatio) {
+                            if (!Utils.areEqualIgnorePrecisionError(aspectRatio, oldAspectRatio)) {
                                 ViewGroup.LayoutParams lp = photoImage.getLayoutParams();
                                 if (aspectRatio > 1) {
                                     shareButton.measure(0, 0);
@@ -2913,24 +2910,50 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
         content.startAnimation(animation);
     }
 
+    private String getFileOutputDirectory() {
+        String directory = null;
+        if (mOpCallback != null) {
+            directory = mOpCallback.getFileOutputDirectory();
+        }
+        if (directory == null) {
+            directory = Environment.getExternalStorageDirectory() + "/" + mAppName;
+        }
+        return directory;
+    }
+
     @SuppressLint("StaticFieldLeak")
     private void showClipView() {
-        // No duration is available when video info is waiting to be known
+        // Not available when video info is waiting to be known
         if ((mPrivateFlags & PFLAG_VIDEO_INFO_RESOLVED) == 0) return;
 
-        final int rangeStart = getVideoProgress();
-        final int range = mVideoDuration - rangeStart;
+        final int progress = getVideoProgress();
+        final int duration = mVideoDuration;
+        final float videoAspectRatio = (float) mVideoWidth / mVideoHeight;
+
         final int defaultRange = VideoClipView.DEFAULT_MAX_CLIP_DURATION
                 + VideoClipView.DEFAULT_MIN_UNSELECTED_CLIP_DURATION;
-        final int finalRange = range < defaultRange ? range : defaultRange;
+        final int range; // selectable time interval in millisecond, starting with 0.
+        final int rangeOffset; // first value of the above interval plus the mapped playback position.
+        if (duration >= defaultRange) {
+            range = defaultRange;
+            final float halfOfMaxClipDuration = VideoClipView.DEFAULT_MAX_CLIP_DURATION / 2f;
+            final float intervalOffset = (defaultRange - halfOfMaxClipDuration) / 2f;
+            float intervalEnd = progress + halfOfMaxClipDuration + intervalOffset;
+            if (intervalEnd > duration) {
+                intervalEnd = duration;
+            }
+            rangeOffset = Math.max((int) (intervalEnd - range + 0.5f), 0);
+        } else {
+            range = duration;
+            rangeOffset = 0;
+        }
 
         final int[] interval = new int[2];
 
-        final ViewGroup view = (ViewGroup) LayoutInflater.from(mContext)
+        final ViewGroup view;
+        mClipView = view = (ViewGroup) LayoutInflater.from(mContext)
                 .inflate(R.layout.layout_video_clip, mContentView, false);
-        mClipView = view;
-
-        final View cutoutClipButton = view.findViewById(R.id.bt_cutoutClip);
+        final View cutoutShortVideoButton = view.findViewById(R.id.bt_cutoutShortVideo);
         final View cutoutGifButton = view.findViewById(R.id.bt_cutoutGif);
         final View cancelButton = view.findViewById(R.id.bt_cancel);
         final View okButton = view.findViewById(R.id.bt_ok);
@@ -2938,39 +2961,95 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
         final SurfaceView sv = view.findViewById(R.id.surfaceView);
         final VideoClipView vcv = view.findViewById(R.id.view_videoclip);
 
-        cutoutClipButton.setSelected(true);
+        cutoutShortVideoButton.setSelected(true);
 
-        cutoutClipButton.setTag(cutoutGifButton);
-        cutoutGifButton.setTag(cutoutClipButton);
+        @SuppressLint("SimpleDateFormat") final OnClickListener listener = v -> {
+            if (v == cutoutShortVideoButton) {
+                cutoutShortVideoButton.setSelected(true);
+                cutoutGifButton.setSelected(false);
 
-        final OnClickListener listener = v -> {
-            final int id = v.getId();
-            if (id == R.id.bt_cutoutClip) {
-                v.setSelected(true);
-                ((View) v.getTag()).setSelected(false);
+            } else if (v == cutoutGifButton) {
+                cutoutGifButton.setSelected(true);
+                cutoutShortVideoButton.setSelected(false);
 
-            } else if (id == R.id.bt_cutoutGif) {
-                v.setSelected(true);
-                ((View) v.getTag()).setSelected(false);
-
-            } else if (id == R.id.bt_cancel) {
+            } else if (v == cancelButton) {
                 hideClipView();
 
-            } else if (id == R.id.bt_ok) {
+            } else if (v == okButton) {
                 hideClipView();
+
+                /*
+                 * Below code blocks for cutting out the desired short video or GIF.
+                 * This should normally be done on a worker thread rather than the main thread that
+                 * blocks the UI from updating itself till the op completes, but here we do it on
+                 * the main thread just for temporary convenience as the code undoubtedly needs
+                 * to be improved at some point in the future.
+                 */
+                final boolean cutoutShortVideo = cutoutShortVideoButton.isSelected();
+                if (!cutoutShortVideo) {
+                    Toast.makeText(mContext, R.string.gifClippingIsNotYetSupported, Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                final String srcPath = FileUtils.UriResolver.getPath(mContext, mVideoUri);
+                if (srcPath == null) {
+                    Toast.makeText(mContext, R.string.clippingFailed, Toast.LENGTH_SHORT).show();
+                    if (BuildConfig.DEBUG) {
+                        Log.e(TAG, "", new IOException("Failed to resolve the path of the video being clipped."));
+                    }
+                    return;
+                }
+
+                final String destDirectory = getFileOutputDirectory()
+                        + "/clips/" + (cutoutShortVideo ? "ShortVideos" : "GIFs");
+                final String destName = mTitle + "_"
+                        + new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss-SSS") //@formatter:off
+                                .format(System.currentTimeMillis()) //@formatter:on
+                        + (cutoutShortVideo ? ".mp4" : ".gif");
+                final String destPath = destDirectory + "/" + destName;
+                File destFile = null;
+                if (cutoutShortVideo) {
+                    try {
+                        destFile = VideoUtils.clip(srcPath, destPath, interval[0], interval[1]);
+                    } catch (IOException | IllegalArgumentException | UnsupportedOperationException e) {
+                        e.printStackTrace();
+                    } catch (OutOfMemoryError e) {
+                        // This error occurs as we clip a video that is not in MPEG-4 format.
+                        e.printStackTrace();
+                    }
+                } else {
+                    //TODO: the logic of cutting out a GIF
+                }
+                if (destFile == null) {
+                    Toast.makeText(mContext, R.string.clippingFailed, Toast.LENGTH_SHORT).show();
+
+                } else if (cutoutShortVideo) {
+                    FileUtils.recordMediaFileToDatabaseAndScan(mContext,
+                            MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+                            destFile, "video/mp4");
+                    Toast.makeText(mContext,
+                            mResources.getString(R.string.shortVideoHasBeenSavedTo, destName, destDirectory),
+                            Toast.LENGTH_LONG).show();
+                } else {
+                    FileUtils.recordMediaFileToDatabaseAndScan(mContext,
+                            MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                            destFile, "image/gif");
+                    Toast.makeText(mContext,
+                            mResources.getString(R.string.gifHasBeenSavedTo, destName, destDirectory),
+                            Toast.LENGTH_LONG).show();
+                }
             }
         };
-        cutoutClipButton.setOnClickListener(listener);
+        cutoutShortVideoButton.setOnClickListener(listener);
         cutoutGifButton.setOnClickListener(listener);
         cancelButton.setOnClickListener(listener);
         okButton.setOnClickListener(listener);
 
 //        view.measure(MeasureSpec.makeMeasureSpec(mContentView.getWidth(), MeasureSpec.EXACTLY),
 //                MeasureSpec.makeMeasureSpec(mContentView.getHeight(), MeasureSpec.EXACTLY));
-//        sv.getLayoutParams().width = (int) (
-//                sv.getMeasuredHeight() * ((float) mVideoWidth / mVideoHeight) + 0.5f);
+//        sv.getLayoutParams().width = (int) (sv.getMeasuredHeight() * videoAspectRatio + 0.5f);
         ConstraintLayout.LayoutParams svlp = (ConstraintLayout.LayoutParams) sv.getLayoutParams();
-        svlp.dimensionRatio = String.valueOf((float) mVideoWidth / mVideoHeight);
+        svlp.dimensionRatio = String.valueOf(videoAspectRatio);
 
         final SurfaceHolder holder = sv.getHolder();
         final Surface surface = holder.getSurface();
@@ -2979,7 +3058,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
             @Override
             public void run() {
                 final int position = player.getCurrentPosition();
-                vcv.setSelection(position - rangeStart);
+                vcv.setSelection(position - rangeOffset);
                 if (player.isPlaying()) {
                     if (position < interval[0] || position > interval[1]) {
                         player.seekTo(interval[0]);
@@ -2991,6 +3070,9 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
         final boolean[] thumbRetrievalCompleted = {false};
         final boolean[] selectionBeingDragged = {false};
         vcv.addOnSelectionChangeListener(new VideoClipView.OnSelectionChangeListener() {
+            final String seconds = mResources.getString(R.string.seconds);
+            final ForegroundColorSpan colorAccentSpan = new ForegroundColorSpan(mColorAccent);
+
             @Override
             public void onStartTrackingTouch() {
                 if (player.isPlaying()) {
@@ -3002,18 +3084,26 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
             }
 
             @Override
-            public void onSelectionIntervalChange(int start, int end) {
-                interval[0] = rangeStart + start;
-                interval[1] = rangeStart + end;
-                vcdText.setText(mResources.getString(R.string.canTakeUpToXSecondsXSecondsSelected,
-                        (int) (vcv.getMaximumClipDuration() / 1000f + 0.5f),
-                        (int) ((interval[1] - interval[0]) / 1000f + 0.5f)));
+            public void onSelectionIntervalChange(int start, int end, boolean fromUser) {
+                interval[0] = rangeOffset + start;
+                interval[1] = rangeOffset + end;
+
+                final int total = (int) (vcv.getMaximumClipDuration() / 1000f + 0.5f);
+                final int selected = (int) ((end - start) / 1000f + 0.5f);
+                final String s = mResources.getString(
+                        R.string.canTakeUpToXSecondsXSecondsSelected, total, selected);
+                final SpannableString ss = new SpannableString(s);
+                ss.setSpan(colorAccentSpan,
+                        s.lastIndexOf(String.valueOf(selected)),
+                        s.lastIndexOf(seconds) + seconds.length(),
+                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                vcdText.setText(ss);
             }
 
             @Override
             public void onSelectionChange(int start, int end, int selection, boolean fromUser) {
                 if (fromUser) {
-                    player.seekTo(rangeStart + selection);
+                    player.seekTo(rangeOffset + selection);
                 }
             }
 
@@ -3029,16 +3119,98 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
         });
         // MUST set the durations after the above OnSelectionChangeListener was added to vcv, which
         // will ensure the onSelectionInternalChange() method to be called for the first time.
-        if (finalRange < defaultRange) {
-            vcv.setMinimumClipDuration(Math.min(VideoClipView.DEFAULT_MIN_CLIP_DURATION, finalRange));
-            vcv.setMaximumClipDuration(finalRange);
+        if (range < defaultRange) {
+            vcv.setMaximumClipDuration(range);
+            vcv.setMinimumClipDuration(Math.min(VideoClipView.DEFAULT_MIN_CLIP_DURATION, range));
             vcv.setMinimumUnselectedClipDuration(0);
         }
+        final int minClipDuration = vcv.getMinimumClipDuration();
+        final int maxClipDuration = vcv.getMaximumClipDuration();
+        final int minUnselectedClipDuration = vcv.getMinimumUnselectedClipDuration();
+        final int totalDuration = maxClipDuration + minUnselectedClipDuration;
+        final int initialSelection = progress - rangeOffset;
+        final int tmpInterval = (int) (maxClipDuration / 2f + 0.5f);
+        int intervalEnd = initialSelection + tmpInterval;
+        if (intervalEnd > totalDuration) {
+            intervalEnd = totalDuration;
+        }
+        int intervalStart = intervalEnd - tmpInterval;
+        if (tmpInterval < minClipDuration) {
+            final int diff = minClipDuration - tmpInterval;
+            final int remaining = totalDuration - intervalEnd;
+            if (remaining >= diff) {
+                intervalEnd += diff;
+            } else {
+                intervalEnd = totalDuration;
+                intervalStart -= diff - remaining;
+            }
+        }
+        vcv.setSelectionInterval(intervalStart, intervalEnd);
+        vcv.setSelection(initialSelection);
+        vcv.post(() -> {
+            final int thumbHeight = vcv.getThumbDisplayHeight();
+            final float thumbWidth = thumbHeight * videoAspectRatio;
+            final int thumbGalleryWidth = vcv.getThumbGalleryWidth();
+            final int thumbCount = (int) (thumbGalleryWidth / thumbWidth + 0.5f);
+            final int finalThumbWidth = (int) ((float) thumbGalleryWidth / thumbCount + 0.5f);
+            mLoadClipThumbsTask = new AsyncTask<Void, Bitmap, Void>() {
+                @Override
+                protected Void doInBackground(Void... voids) {
+                    MediaMetadataRetriever mmr = new MediaMetadataRetriever();
+                    try {
+                        mmr.setDataSource(mContext, mVideoUri);
+                        if (mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_HAS_VIDEO) != null) {
+                            for (int i = 0; i < thumbCount && !isCancelled(); ) {
+                                Bitmap frame = mmr.getFrameAtTime(
+                                        (rangeOffset + ++i * range / thumbCount) * 1000L);
+                                if (frame == null) {
+                                    // If no frame at the specified time position is retrieved,
+                                    // create a empty placeholder bitmap instead.
+                                    frame = Bitmap.createBitmap(
+                                            finalThumbWidth, thumbHeight, Bitmap.Config.ALPHA_8);
+                                } else {
+                                    frame = BitmapUtils.createScaledBitmap(
+                                            frame, finalThumbWidth, thumbHeight, true);
+                                }
+                                publishProgress(frame);
+                            }
+                        }
+                    } catch (IllegalArgumentException e) {
+                        e.printStackTrace();
+                    } finally {
+                        mmr.release();
+                    }
+                    return null;
+                }
+
+                @Override
+                protected void onProgressUpdate(Bitmap... thumbs) {
+                    vcv.addThumbnail(thumbs[0]);
+                }
+
+                @Override
+                protected void onPostExecute(Void aVoid) {
+                    thumbRetrievalCompleted[0] = true;
+                    if (!selectionBeingDragged[0] && surface.isValid()) {
+                        holder.setKeepScreenOn(true);
+                        player.play();
+                        vcv.post(trackProgressRunnable);
+                    }
+                    mLoadClipThumbsTask = null;
+                }
+            }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        });
         holder.addCallback(new SurfaceHolder.Callback() {
             @Override
             public void surfaceCreated(SurfaceHolder holder) {
                 player.init();
-                if (thumbRetrievalCompleted[0] && !selectionBeingDragged[0] && !player.isPlaying()) {
+                // Seeks to the playback millisecond position mapping to the initial selection
+                // as we were impossible to seek in the above OnSelectionChangeListener's
+                // onSelectionChange() method when the player was not created; also we
+                // have been leaving out the selection changes that are caused by the program code
+                // rather than the user.
+                player.seekTo(progress);
+                if (thumbRetrievalCompleted[0] && !selectionBeingDragged[0] /*&& !player.isPlaying()*/) {
                     holder.setKeepScreenOn(true);
                     player.play();
                     vcv.post(trackProgressRunnable);
@@ -3057,42 +3229,6 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
                 vcv.removeCallbacks(trackProgressRunnable);
             }
         });
-        mLoadClipThumbsTask = new AsyncTask<Void, Bitmap, Void>() {
-            MediaMetadataRetriever mmr;
-            static final int THUMB_COUNT = 30;
-
-            @Override
-            protected Void doInBackground(Void... voids) {
-                mmr = new MediaMetadataRetriever();
-                try {
-                    mmr.setDataSource(mContext, mVideoUri);
-                } catch (IllegalArgumentException e) {
-                    mmr = null;
-                    return null;
-                }
-                for (int i = 0; i < THUMB_COUNT && !isCancelled(); i++) {
-                    final long timeUs = (rangeStart + (i + 1) * finalRange / THUMB_COUNT) * 1000L;
-                    publishProgress(mmr.getFrameAtTime(timeUs));
-                }
-                return null;
-            }
-
-            @Override
-            protected void onProgressUpdate(Bitmap... thumbs) {
-                vcv.addThumbnail(thumbs[0]);
-            }
-
-            @Override
-            protected void onPostExecute(Void aVoid) {
-                if (!selectionBeingDragged[0] && mmr != null && surface.isValid()) {
-                    thumbRetrievalCompleted[0] = true;
-                    holder.setKeepScreenOn(true);
-                    player.play();
-                    vcv.post(trackProgressRunnable);
-                }
-                mLoadClipThumbsTask = null;
-            }
-        }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
             Transition transition = new Fade();
@@ -3122,6 +3258,8 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
                 TransitionManager.beginDelayedTransition(mContentView, (Transition) clipView.getTag());
             }
             mContentView.removeView(clipView);
+            // play() will call showControls(true, true) when resuming the playback, therefore,
+            // we call showControls(true, false) first to make the `animate` parameter meaningless.
             showControls(true, false);
             play();
         }
@@ -3179,7 +3317,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
      * if the seek bar is being dragged, so as to hide the widgets showing in that case.
      */
     @SuppressLint("ClickableViewAccessibility")
-    final void cancelDraggingVideoSeekBar() {
+    protected void cancelDraggingVideoSeekBar() {
         MotionEvent ev = null;
         if ((mOnChildTouchListener.touchFlags & OnChildTouchListener.TFLAG_ADJUSTING_VIDEO_PROGRESS) != 0) {
             ev = Utils.obtainCancelEvent();
@@ -3299,7 +3437,9 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
                 // it was focusable.
                 return true;
             }
-            if (isLocked() && ev.getAction() == MotionEvent.ACTION_DOWN) {
+            // No child of the content view but the 'unlock' button can receive touch events when
+            // this view is locked.
+            if (isLocked()) {
                 final float x = ev.getX();
                 final float y = ev.getY();
                 final View lub = mLockUnlockButton;
@@ -3613,7 +3753,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
         }
     }
 
-    class SessionCallback extends MediaSessionCompat.Callback {
+    protected class SessionCallback extends MediaSessionCompat.Callback {
         private int playPauseKeyTappedTime;
 
         private final Runnable playPauseKeyTimeoutRunnable =
@@ -3724,7 +3864,6 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
         super.onRestoreInstanceState(ss.getSuperState());
 
         setLocked(ss.locked, false);
-        setClipViewBounds(ss.clipViewBounds);
         setVideoStretchedToFitFullscreenLayout(ss.videoStretchedToFitFullscreenLayout);
         setFullscreenMode(ss.fullscreen, ss.navTopInset);
         setPureAudioPlayback(ss.pureAudioPlayback);
@@ -3748,7 +3887,6 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
         ss.pureAudioPlayback = isPureAudioPlayback();
         ss.looping = isSingleVideoLoopPlayback();
         ss.locked = isLocked();
-        ss.clipViewBounds = isClipViewBounds();
         ss.videoStretchedToFitFullscreenLayout = isVideoStretchedToFitFullscreenLayout();
         ss.fullscreen = isInFullscreenMode();
         ss.navTopInset = mTopControlsFrame.getPaddingTop() - mNavInitialPaddingTop;
@@ -3766,7 +3904,6 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
         private boolean pureAudioPlayback;
         private boolean looping;
         private boolean locked;
-        private boolean clipViewBounds;
         private boolean videoStretchedToFitFullscreenLayout;
         private boolean fullscreen;
         private int navTopInset;
@@ -3782,7 +3919,6 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
             pureAudioPlayback = in.readByte() != (byte) 0;
             looping = in.readByte() != (byte) 0;
             locked = in.readByte() != (byte) 0;
-            clipViewBounds = in.readByte() != (byte) 0;
             videoStretchedToFitFullscreenLayout = in.readByte() != (byte) 0;
             fullscreen = in.readByte() != (byte) 0;
             navTopInset = in.readInt();
@@ -3796,7 +3932,6 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
             dest.writeByte(pureAudioPlayback ? (byte) 1 : (byte) 0);
             dest.writeByte(looping ? (byte) 1 : (byte) 0);
             dest.writeByte(locked ? (byte) 1 : (byte) 0);
-            dest.writeByte(clipViewBounds ? (byte) 1 : (byte) 0);
             dest.writeByte(videoStretchedToFitFullscreenLayout ? (byte) 1 : (byte) 0);
             dest.writeByte(fullscreen ? (byte) 1 : (byte) 0);
             dest.writeInt(navTopInset);

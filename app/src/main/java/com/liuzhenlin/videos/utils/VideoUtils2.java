@@ -23,8 +23,8 @@ import com.liuzhenlin.videos.model.Video;
 /**
  * @author 刘振林
  */
-public class VideoUtils {
-    private VideoUtils() {
+public class VideoUtils2 {
+    private VideoUtils2() {
     }
 
     public static void loadVideoThumbnail(@NonNull ImageView image, @NonNull Video video) {

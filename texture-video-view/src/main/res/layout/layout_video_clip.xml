@@ -32,7 +32,7 @@
         android:textColor="@color/color_selector_white_color_accent" />
 
     <TextView
-        android:id="@+id/bt_cutoutClip"
+        android:id="@+id/bt_cutoutShortVideo"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         app:layout_constraintStart_toEndOf="@id/bt_cancel"
@@ -41,13 +41,13 @@
         app:layout_constraintBottom_toTopOf="@id/surfaceView"
         app:layout_constraintHorizontal_chainStyle="packed"
         app:layout_constraintVertical_chainStyle="spread_inside"
-        android:background="@drawable/selector_cutout_clip_btn"
+        android:background="@drawable/selector_cutout_shortvideo_btn"
         android:paddingLeft="20dp"
         android:paddingTop="5dp"
         android:paddingRight="20dp"
         android:paddingBottom="5dp"
         android:includeFontPadding="false"
-        android:text="@string/cutoutClip"
+        android:text="@string/cutoutShortVideo"
         android:textSize="@dimen/widget_large_text_size"
         android:textColor="@android:color/white" />
 
@@ -55,10 +55,10 @@
         android:id="@+id/bt_cutoutGif"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:layout_constraintStart_toEndOf="@id/bt_cutoutClip"
+        app:layout_constraintStart_toEndOf="@id/bt_cutoutShortVideo"
         app:layout_constraintEnd_toStartOf="@id/bt_ok"
-        app:layout_constraintTop_toTopOf="@id/bt_cutoutClip"
-        app:layout_constraintBottom_toBottomOf="@id/bt_cutoutClip"
+        app:layout_constraintTop_toTopOf="@id/bt_cutoutShortVideo"
+        app:layout_constraintBottom_toBottomOf="@id/bt_cutoutShortVideo"
         android:background="@drawable/selector_cutout_gif_btn"
         android:paddingLeft="20dp"
         android:paddingTop="5dp"
@@ -93,7 +93,7 @@
         app:layout_constraintVertical_weight="1"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/bt_cutoutClip"
+        app:layout_constraintTop_toBottomOf="@id/bt_cutoutShortVideo"
         app:layout_constraintBottom_toTopOf="@id/text_videoclipDescription"
         android:layout_marginTop="20dp"
         android:layout_marginBottom="10dp" />

@@ -3,6 +3,6 @@
   ~ Copyright © 2019 刘振林. All rights reserved.
   -->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:state_selected="false" android:drawable="@drawable/bg_cutout_clip_btn" />
-    <item android:state_selected="true" android:drawable="@drawable/bg_cutout_clip_btn_selected" />
+    <item android:state_selected="false" android:drawable="@drawable/bg_cutout_shortvideo_btn" />
+    <item android:state_selected="true" android:drawable="@drawable/bg_cutout_shortvideo_btn_selected" />
 </selector>

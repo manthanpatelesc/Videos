@@ -34,7 +34,7 @@ import com.liuzhenlin.videos.dao.VideoDaoHelper
 import com.liuzhenlin.videos.model.Video
 import com.liuzhenlin.videos.model.VideoDirectory
 import com.liuzhenlin.videos.utils.FileUtils2
-import com.liuzhenlin.videos.utils.VideoUtils
+import com.liuzhenlin.videos.utils.VideoUtils2
 import com.liuzhenlin.videos.view.fragment.PackageConsts.*
 import com.liuzhenlin.videos.view.swiperefresh.SwipeRefreshLayout
 import java.io.File
@@ -605,7 +605,7 @@ class FoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, View.OnL
                 }
                 if (payload and PAYLOAD_REFRESH_VIDEO_PROGRESS_DURATION != 0) {
                     holder.videoProgressAndDurationText.text =
-                            VideoUtils.concatVideoProgressAndDuration(video.progress, video.duration)
+                            VideoUtils2.concatVideoProgressAndDuration(video.progress, video.duration)
                 }
             }
         }
@@ -623,11 +623,11 @@ class FoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, View.OnL
                 visibility = mVideoOptionsFrame.visibility
                 isChecked = video.isChecked
             }
-            VideoUtils.loadVideoThumbnail(holder.videoImage, video)
+            VideoUtils2.loadVideoThumbnail(holder.videoImage, video)
             holder.videoNameText.text = video.name
             holder.videoSizeText.text = FileUtils2.formatFileSize(video.size.toDouble())
             holder.videoProgressAndDurationText.text =
-                    VideoUtils.concatVideoProgressAndDuration(video.progress, video.duration)
+                    VideoUtils2.concatVideoProgressAndDuration(video.progress, video.duration)
         }
 
         private fun separateToppedItemsFromUntoppedOnes(holder: VideoListViewHolder, position: Int) {

@@ -40,7 +40,7 @@ import com.liuzhenlin.videos.dao.VideoDaoHelper
 import com.liuzhenlin.videos.model.Video
 import com.liuzhenlin.videos.utils.AlgorithmUtils
 import com.liuzhenlin.videos.utils.UiUtils
-import com.liuzhenlin.videos.utils.VideoUtils
+import com.liuzhenlin.videos.utils.VideoUtils2
 import com.liuzhenlin.videos.view.adapter.HeaderAndFooterWrapper
 import com.liuzhenlin.videos.view.fragment.PackageConsts.PAYLOAD_REFRESH_ITEM_NAME
 import com.liuzhenlin.videos.view.fragment.PackageConsts.PAYLOAD_REFRESH_VIDEO_PROGRESS_DURATION
@@ -427,7 +427,7 @@ class SearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLongClic
                 if (payload and PAYLOAD_REFRESH_VIDEO_PROGRESS_DURATION != 0) {
                     val (_, _, _, _, _, progress, duration) = mSearchedVideos[position]
                     holder.videoProgressAndDurationText.text =
-                            VideoUtils.concatVideoProgressAndDuration(progress, duration)
+                            VideoUtils2.concatVideoProgressAndDuration(progress, duration)
                 }
             }
         }
@@ -438,10 +438,10 @@ class SearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLongClic
             highlightSelectedItemIfExists(holder, position)
 
             val video = mSearchedVideos[position]
-            VideoUtils.loadVideoThumbnail(holder.videoImage, video)
+            VideoUtils2.loadVideoThumbnail(holder.videoImage, video)
             updateItemName(holder, video.name)
             holder.videoProgressAndDurationText.text =
-                    VideoUtils.concatVideoProgressAndDuration(video.progress, video.duration)
+                    VideoUtils2.concatVideoProgressAndDuration(video.progress, video.duration)
         }
 
         // 高亮搜索关键字

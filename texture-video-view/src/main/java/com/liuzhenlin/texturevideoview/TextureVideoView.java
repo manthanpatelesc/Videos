@@ -26,7 +26,6 @@ import androidx.core.util.ObjectsCompat;
 import com.liuzhenlin.texturevideoview.receiver.HeadsetEventsReceiver;
 import com.liuzhenlin.texturevideoview.utils.TimeUtil;
 
-import java.io.File;
 import java.io.IOException;
 
 /**
@@ -153,7 +152,7 @@ public class TextureVideoView extends AbsTextureVideoView {
     @Override
     public void setVideoResourceId(@RawRes int resId) {
         setVideoPath(resId == 0 ?
-                null : "android.resource://" + mContext.getPackageName() + File.separator + resId);
+                null : "android.resource://" + mContext.getPackageName() + "/" + resId);
     }
 
     @Override
@@ -182,7 +181,7 @@ public class TextureVideoView extends AbsTextureVideoView {
     }
 
     @Override
-    void openVideoInternal() {
+    protected void openVideoInternal() {
         if (mMediaPlayer == null && mSurface != null && mVideoUri != null
                 && (mPrivateFlags & PFLAG_VIDEO_PAUSED_BY_USER) == 0) {
             mMediaPlayer = new MediaPlayer();
@@ -448,7 +447,7 @@ public class TextureVideoView extends AbsTextureVideoView {
     }
 
     @Override
-    void closeVideoInternal(boolean fromUser) {
+    protected void closeVideoInternal(boolean fromUser) {
         if (mMediaPlayer != null && (mPrivateFlags & PFLAG_VIDEO_IS_CLOSING) == 0) {
             mPrivateFlags |= PFLAG_VIDEO_IS_CLOSING;
 
@@ -592,12 +591,12 @@ public class TextureVideoView extends AbsTextureVideoView {
     }
 
     @Override
-    boolean isPlayerCreated() {
+    protected boolean isPlayerCreated() {
         return mMediaPlayer != null;
     }
 
     @Override
-    boolean onPlaybackCompleted() {
+    protected boolean onPlaybackCompleted() {
         final boolean closed = super.onPlaybackCompleted();
         if (closed) {
             // Since the playback completion state deters the pause(boolean) method from being called

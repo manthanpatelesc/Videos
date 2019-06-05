@@ -203,7 +203,7 @@
             android:paddingBottom="9.25dp"
             android:background="@drawable/bg_middle_small_btns"
             app:srcCompat="@drawable/bt_gifcamera_21point5dp"
-            android:contentDescription="@string/cutoutVideoClip"
+            android:contentDescription="@string/clipVideo"
             android:visibility="gone" />
 
         <LinearLayout

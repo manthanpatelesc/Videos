@@ -4,8 +4,8 @@
     "applicationId": "com.liuzhenlin.videos",
     "minSdkVersion": 14,
     "targetSdkVersion": 28,
-    "versionCode": 28,
-    "versionName": "1.7.1-beta03",
+    "versionCode": 29,
+    "versionName": "1.7.1",
     "appLink": "https://raw.githubusercontent.com/ApksHolder/Videos/master/app-release.apk",
     "updateLogs": [
       "1. 支持其它应用跳转到此应用进行音频播放",

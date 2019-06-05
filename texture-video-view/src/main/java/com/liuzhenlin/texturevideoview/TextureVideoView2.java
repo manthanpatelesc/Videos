@@ -183,7 +183,7 @@ public class TextureVideoView2 extends AbsTextureVideoView {
     }
 
     @Override
-    void openVideoInternal() {
+    protected void openVideoInternal() {
         if (mExoPlayer == null && mSurface != null && mVideoUri != null
                 && (mPrivateFlags & PFLAG_VIDEO_PAUSED_BY_USER) == 0) {
             mExoPlayer = ExoPlayerFactory.newSimpleInstance(mContext);
@@ -211,6 +211,9 @@ public class TextureVideoView2 extends AbsTextureVideoView {
                             break;
 
                         case Player.STATE_ENDED:
+                            // For an unknown reason, the duration got from the ExoPlayer usually is
+                            // one millisecond smaller than the actual one.
+                            mVideoDuration = (int) mExoPlayer.getCurrentPosition();
                             onPlaybackCompleted();
                             break;
                     }
@@ -402,7 +405,7 @@ public class TextureVideoView2 extends AbsTextureVideoView {
     }
 
     @Override
-    void closeVideoInternal(boolean fromUser) {
+    protected void closeVideoInternal(boolean fromUser) {
         if (mExoPlayer != null && (mPrivateFlags & PFLAG_VIDEO_IS_CLOSING) == 0) {
             mPrivateFlags |= PFLAG_VIDEO_IS_CLOSING;
 
@@ -504,12 +507,12 @@ public class TextureVideoView2 extends AbsTextureVideoView {
     }
 
     @Override
-    boolean isPlayerCreated() {
+    protected boolean isPlayerCreated() {
         return mExoPlayer != null;
     }
 
     @Override
-    boolean onPlaybackCompleted() {
+    protected boolean onPlaybackCompleted() {
         final boolean closed = super.onPlaybackCompleted();
         if (closed) {
             // Since the playback completion state deters the pause(boolean) method from being called

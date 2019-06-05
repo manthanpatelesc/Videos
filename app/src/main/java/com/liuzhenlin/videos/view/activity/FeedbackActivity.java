@@ -45,13 +45,13 @@ import com.liuzhenlin.slidingdrawerlayout.Utils;
 import com.liuzhenlin.swipeback.SwipeBackActivity;
 import com.liuzhenlin.swipeback.SwipeBackLayout;
 import com.liuzhenlin.texturevideoview.utils.BitmapUtils;
+import com.liuzhenlin.texturevideoview.utils.FileUtils;
 import com.liuzhenlin.texturevideoview.utils.SystemBarUtils;
 import com.liuzhenlin.videos.App;
 import com.liuzhenlin.videos.Consts;
 import com.liuzhenlin.videos.R;
 import com.liuzhenlin.videos.dao.FeedbackSharedPreferences;
 import com.liuzhenlin.videos.utils.DisplayCutoutUtils;
-import com.liuzhenlin.videos.utils.FileUtils2;
 import com.liuzhenlin.videos.utils.MailUtil;
 import com.liuzhenlin.videos.utils.NetworkUtil;
 import com.liuzhenlin.videos.utils.OSHelper;
@@ -280,7 +280,7 @@ public class FeedbackActivity extends SwipeBackActivity implements View.OnClickL
     }
 
     @Override
-    public void onSaveInstanceState(Bundle outState) {
+    protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putString(KEY_SAVED_FEEDBACK_TEXT, mSavedFeedbackText);
         outState.putString(KEY_SAVED_CONTACT_WAY, mSavedContactWay);
@@ -344,7 +344,7 @@ public class FeedbackActivity extends SwipeBackActivity implements View.OnClickL
         if (data != null && requestCode == Consts.REQUEST_CODE_ADD_PICTURE) {
             final Uri uri = data.getData();
             if (uri != null)
-                addPicture(FileUtils2.UriResolver.getPath(this, uri));
+                addPicture(FileUtils.UriResolver.getPath(this, uri));
         }
     }
 

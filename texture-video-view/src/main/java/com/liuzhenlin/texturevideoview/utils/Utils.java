@@ -131,4 +131,18 @@ public class Utils {
             transition.excludeTarget(child, true);
         }
     }
+
+    /**
+     * Judges if two floating-point numbers (float) are equal, ignoring very small precision errors.
+     */
+    public static boolean areEqualIgnorePrecisionError(float value1, float value2) {
+        return Math.abs(value1 - value2) < 0.0001f;
+    }
+
+    /**
+     * Judges if two floating-point numbers (double) are equal, ignoring very small precision errors.
+     */
+    public static boolean areEqualIgnorePrecisionError(double value1, double value2) {
+        return Math.abs(value1 - value2) < 0.0001d;
+    }
 }
