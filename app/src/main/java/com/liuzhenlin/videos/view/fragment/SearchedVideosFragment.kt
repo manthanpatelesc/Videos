@@ -34,7 +34,6 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.NO_POSITION
 import com.liuzhenlin.floatingmenu.FloatingMenu
-import com.liuzhenlin.simrv.BuildConfig
 import com.liuzhenlin.videos.*
 import com.liuzhenlin.videos.dao.VideoDaoHelper
 import com.liuzhenlin.videos.model.Video

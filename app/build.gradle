@@ -10,8 +10,8 @@ android {
         applicationId "com.liuzhenlin.videos"
         minSdkVersion 14
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 29
-        versionName "1.7.1"
+        versionCode 29 // 29 -> 30
+        versionName "1.7.2-beta01"
 
         vectorDrawables.useSupportLibrary = true
 
@@ -39,8 +39,8 @@ dependencies {
 
     implementation 'pub.devrel:easypermissions:2.0.0'
 
-    implementation 'com.github.bumptech.glide:glide:4.8.0'
-    annotationProcessor 'com.github.bumptech.glide:compiler:4.8.0'
+    implementation 'com.github.bumptech.glide:glide:4.9.0'
+    annotationProcessor 'com.github.bumptech.glide:compiler:4.9.0'
 
     implementation project(':slidingitemmenu-recyclerview')
     implementation project(':sliding-drawer-layout')
@@ -50,10 +50,10 @@ dependencies {
     implementation project(':circular-checkbox')
     implementation project(':floating-menu')
 
-    implementation 'com.sun.mail:android-mail:1.5.6'
-    implementation 'com.sun.mail:android-activation:1.5.6'
+    implementation 'com.sun.mail:android-mail:1.6.3'
+    implementation 'com.sun.mail:android-activation:1.6.3'
 
     testImplementation 'junit:junit:4.12'
-    androidTestImplementation 'androidx.test:runner:1.2.0-beta01'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0-beta01'
+    androidTestImplementation 'androidx.test:runner:1.2.0'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
 }

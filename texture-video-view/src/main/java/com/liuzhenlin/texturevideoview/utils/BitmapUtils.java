@@ -30,18 +30,18 @@ public class BitmapUtils {
     }
 
     @NonNull
-    public static Bitmap createScaledBitmap(@NonNull Bitmap src, float reqWidth, float reqHeight, boolean recycleInput) {
-        if (reqWidth == 0 || reqHeight == 0) {
-            return src;
-        }
-
+    public static Bitmap createScaledBitmap(@NonNull Bitmap src, int reqWidth, int reqHeight, boolean recycleInput) {
         // 记录src的宽高
         final int width = src.getWidth();
         final int height = src.getHeight();
 
+        if (reqWidth == width && reqHeight == height) {
+            return src;
+        }
+
         // 计算缩放比例
-        final float widthScale = reqWidth / width;
-        final float heightScale = reqHeight / height;
+        final float widthScale = (float) reqWidth / width;
+        final float heightScale = (float) reqHeight / height;
 
         // 创建一个matrix容器
         Matrix matrix = new Matrix();
@@ -109,6 +109,8 @@ public class BitmapUtils {
     public static int getDominantColorOrThrow(@NonNull Bitmap bitmap) {
         Palette.Swatch swatch = new Palette.Builder(bitmap)
                 .maximumColorCount(24)
+                .clearFilters()
+                .addFilter(DEFAULT_FILTER)
                 .generate()
                 .getDominantSwatch();
         if (swatch != null) {
@@ -121,7 +123,40 @@ public class BitmapUtils {
     public static int getDominantColor(@NonNull Bitmap bitmap, @ColorInt int defaultColor) {
         return new Palette.Builder(bitmap)
                 .maximumColorCount(24)
+                .clearFilters()
+                .addFilter(DEFAULT_FILTER)
                 .generate()
                 .getDominantColor(defaultColor);
     }
+
+    private static final Palette.Filter DEFAULT_FILTER = new Palette.Filter() {
+//        private static final float BLACK_MAX_LIGHTNESS = 0.05f;
+//        private static final float WHITE_MIN_LIGHTNESS = 0.95f;
+
+        @Override
+        public boolean isAllowed(int rgb, @NonNull float[] hsl) {
+            return /*!isWhite(hsl) && !isBlack(hsl) &&*/ !isNearRedILine(hsl);
+        }
+
+//        /**
+//         * @return true if the color represents a color which is close to black.
+//         */
+//        private boolean isBlack(float[] hslColor) {
+//            return hslColor[2] <= BLACK_MAX_LIGHTNESS;
+//        }
+//
+//        /**
+//         * @return true if the color represents a color which is close to white.
+//         */
+//        private boolean isWhite(float[] hslColor) {
+//            return hslColor[2] >= WHITE_MIN_LIGHTNESS;
+//        }
+
+        /**
+         * @return true if the color lies close to the red side of the I line.
+         */
+        private boolean isNearRedILine(float[] hslColor) {
+            return hslColor[0] >= 10f && hslColor[0] <= 37f && hslColor[1] <= 0.82f;
+        }
+    };
 }

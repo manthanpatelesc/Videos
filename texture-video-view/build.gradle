@@ -40,7 +40,7 @@ dependencies {
     api 'androidx.constraintlayout:constraintlayout:2.0.0-beta1'
     api 'androidx.recyclerview:recyclerview:1.0.0'
     api 'androidx.palette:palette:1.0.0'
-    api 'androidx.media:media:1.1.0-beta01'
+    api 'androidx.media:media:1.1.0-beta02'
 
     api 'com.google.android.exoplayer:exoplayer-core:2.10.0'
 
@@ -48,6 +48,6 @@ dependencies {
     api 'com.googlecode.mp4parser:isoparser:1.1.22'
 
     testImplementation 'junit:junit:4.12'
-    androidTestImplementation 'androidx.test:runner:1.2.0-beta01'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0-beta01'
+    androidTestImplementation 'androidx.test:runner:1.2.0'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
 }

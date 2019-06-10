@@ -37,13 +37,13 @@ public class BitmapUtils2 {
 
     @NonNull
     public static Bitmap createScaledBitmap(@NonNull Bitmap src, int reqWidth, int reqHeight, boolean recycleInput) {
-        if (reqWidth == 0 || reqHeight == 0) {
-            return src;
-        }
-
         // 记录src的宽高
         final int width = src.getWidth();
         final int height = src.getHeight();
+
+        if (reqWidth == width && reqHeight == height) {
+            return src;
+        }
 
         // 计算缩放比例
         final float widthScale = (float) reqWidth / width;

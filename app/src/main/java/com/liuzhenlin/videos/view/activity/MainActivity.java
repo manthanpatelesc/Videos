@@ -736,7 +736,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private class UpdateChecker implements View.OnClickListener {
 
-        static final int DURATION_TIME_OUT = 10 * 1000; // ms
+        static final int TIMEOUT_CONNECTION = 10 * 1000; // ms
+        static final int TIMEOUT_READ = 30 * 1000; // ms
 
         static final String LINK_APP_INFOS =
                 "https://raw.githubusercontent.com/freeze-frames/Videos/release/app.json";
@@ -767,8 +768,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     try {
                         URL url = new URL(LINK_APP_INFOS);
                         conn = (HttpURLConnection) url.openConnection();
-                        conn.setConnectTimeout(DURATION_TIME_OUT);
-                        conn.setReadTimeout(DURATION_TIME_OUT);
+                        conn.setConnectTimeout(TIMEOUT_CONNECTION);
+                        conn.setReadTimeout(TIMEOUT_READ);
 
                         json = new StringBuilder();
                         reader = new BufferedReader(
@@ -969,8 +970,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 try {
                     URL url = new URL(mAppLink);
                     conn = (HttpURLConnection) url.openConnection();
-                    conn.setConnectTimeout(DURATION_TIME_OUT);
-                    conn.setReadTimeout(DURATION_TIME_OUT);
+                    conn.setConnectTimeout(TIMEOUT_CONNECTION);
+                    conn.setReadTimeout(TIMEOUT_READ);
 
                     final int length = conn.getContentLength();
                     if (FileUtils2.hasEnoughStorageOnDisk(length)) {
@@ -1096,8 +1097,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     try {
                         URL url = new URL(mAppLink);
                         conn = (HttpURLConnection) url.openConnection();
-                        conn.setConnectTimeout(DURATION_TIME_OUT);
-                        conn.setReadTimeout(DURATION_TIME_OUT);
+                        conn.setConnectTimeout(TIMEOUT_CONNECTION);
+                        conn.setReadTimeout(TIMEOUT_READ);
                         // 重要：请求服务器下载部分文件 指定文件的位置
                         conn.setRequestProperty("Range", "bytes=" + startIndex + "-" + endIndex);
 
@@ -1329,8 +1330,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
             mSlidingDrawerLayout.setDrawerEnabledInTouch(Gravity.START, true);
 
-//            mActionBar.setAlpha(1);
-//            mActionBar.setVisibility(View.VISIBLE);
             mActionBarContainer.removeView(mTmpActionBar);
             mTmpActionBar = null;
         }

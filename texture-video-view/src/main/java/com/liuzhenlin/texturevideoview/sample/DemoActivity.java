@@ -68,7 +68,7 @@ public class DemoActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onChangeViewMode(int mode) {
+            public void onViewModeChange(int oldMode, int newMode, boolean layoutMatches) {
                 // no-op
             }
 
@@ -84,12 +84,6 @@ public class DemoActivity extends AppCompatActivity {
             }
         });
         mVideoView.setOpCallback(new AbsTextureVideoView.OpCallback() {
-            // Optional
-            @Override
-            public boolean isInPictureInPictureMode() {
-                return false;
-            }
-
             @NonNull
             @Override
             public Window getWindow() {

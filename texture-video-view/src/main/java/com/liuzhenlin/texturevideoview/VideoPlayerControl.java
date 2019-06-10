@@ -75,11 +75,11 @@ public interface VideoPlayerControl {
 
     /**
      * Initialize the player object and prepare for the video playback.
-     * Normally, you should invoke this method to resume video playback instead of {@link #play()}
+     * Normally, you should invoke this method to resume video playback instead of {@link #play(boolean)}
      * whenever the Activity's restart() or resume() method is called unless the player won't
      * be released as the Activity's lifecycle changes.
      *
-     * @see #play()
+     * @see #play(boolean)
      * @see #closeVideo()
      */
     void openVideo();
@@ -113,37 +113,50 @@ public interface VideoPlayerControl {
      * If previously paused, playback will continue from where it was paused.
      * If never started before, playback will start at the beginning.
      *
+     * @param fromUser whether the playback is triggered by the user
      * @see #pause(boolean)
      */
-    void play();
+    void play(boolean fromUser);
 
     /**
-     * Pauses playback. Call {@link #play()} to resume.
+     * Pauses playback. Call {@link #play(boolean)} to resume.
      *
-     * @param fromUser whether this interaction is triggered by the user
-     * @see #play()
+     * @param fromUser whether the video is paused by the user
+     * @see #play(boolean)
      */
     void pause(boolean fromUser);
 
     /**
      * Switches the playback state between playing and non-playing
      */
-    default void toggle() {
+    default void toggle(boolean fromUser) {
         if (isPlaying()) {
-            pause(true);
+            pause(fromUser);
         } else {
-            play();
+            play(fromUser);
         }
     }
 
-    /** Skips video to the specified time position. */
-    void seekTo(int progress);
+    /**
+     * Skips video to the specified time position.
+     *
+     * @param fromUser whether the playback position change is initiated by the user
+     */
+    void seekTo(int progress, boolean fromUser);
 
-    /** Fast-forward the video. */
-    void fastForward();
+    /**
+     * Fast-forward the video.
+     *
+     * @param fromUser whether the video is forwarded by the user
+     */
+    void fastForward(boolean fromUser);
 
-    /** Fast-rewind the video. */
-    void fastRewind();
+    /**
+     * Fast-rewind the video.
+     *
+     * @param fromUser whether the video is rewound by the user
+     */
+    void fastRewind(boolean fromUser);
 
     /**
      * @return the current playback position of the video, in milliseconds.

@@ -17,7 +17,6 @@ import android.os.Build;
 import android.os.Environment;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
-import android.util.Log;
 import android.webkit.MimeTypeMap;
 
 import androidx.annotation.IntRange;
@@ -25,7 +24,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.FileProvider;
 
-import com.liuzhenlin.texturevideoview.BuildConfig;
 import com.liuzhenlin.texturevideoview.R;
 
 import java.io.BufferedOutputStream;
@@ -146,7 +144,6 @@ public class FileUtils {
     }
 
     public static class UriResolver {
-        private static final String TAG = "FileUtils.UriResolver";
 
         private UriResolver() {
         }
@@ -159,16 +156,10 @@ public class FileUtils {
             }
 
             // DocumentProvider
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT &&
-                    DocumentsContract.isDocumentUri(context, uri)) {
-                if (BuildConfig.DEBUG) {
-                    Log.d(TAG, "===== this is a document uri =====");
-                }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT
+                    && DocumentsContract.isDocumentUri(context, uri)) {
                 // ExternalStorageProvider
                 if (isExternalStorageDocument(uri)) {
-                    if (BuildConfig.DEBUG) {
-                        Log.d(TAG, "===== this is an external storage document uri =====");
-                    }
                     final String docId = DocumentsContract.getDocumentId(uri);
                     final String[] split = docId.split(":");
                     final String type = split[0];
@@ -178,32 +169,13 @@ public class FileUtils {
 
                     // DownloadsProvider
                 } else if (isDownloadsDocument(uri)) {
-                    if (BuildConfig.DEBUG) {
-                        Log.d(TAG, "===== this is a downloads document uri =====");
-                    }
                     final String id = DocumentsContract.getDocumentId(uri);
-                    try {
-                        Uri contentUri = ContentUris.withAppendedId(
-                                Uri.parse("content://downloads/public_downloads"), Long.valueOf(id));
-                        return getDataColumn(context, contentUri, null, null);
-                    } catch (NumberFormatException e) {
-                        if (BuildConfig.DEBUG) {
-                            Log.d(TAG, "NumberFormatException ——> id= " + id);
-                        }
-                        if (id.startsWith("raw:" + Environment.getExternalStorageDirectory())) {
-                            try {
-                                return id.substring(id.indexOf(":") + 1);
-                            } catch (IndexOutOfBoundsException e2) {
-                                e2.printStackTrace();
-                            }
-                        }
-                    }
+                    Uri contentUri = ContentUris.withAppendedId(
+                            Uri.parse("content://downloads/public_downloads"), Long.valueOf(id));
+                    return getDataColumn(context, contentUri, null, null);
 
                     // MediaProvider
                 } else if (isMediaDocument(uri)) {
-                    if (BuildConfig.DEBUG) {
-                        Log.d(TAG, "===== this is a media document uri =====");
-                    }
                     final String docId = DocumentsContract.getDocumentId(uri);
                     final String[] split = docId.split(":");
                     final String type = split[0];
@@ -220,22 +192,19 @@ public class FileUtils {
                             break;
                     }
                     final String selection = "_id=?";
-                    final String[] selectionArgs = new String[]{split[1]};
+                    final String[] selectionArgs = {split[1]};
                     return getDataColumn(context, contentUri, selection, selectionArgs);
                 }
 
                 // MediaStore (and general)
             } else if ("content".equalsIgnoreCase(uri.getScheme())) {
-                if (BuildConfig.DEBUG) {
-                    Log.d(TAG, "===== the scheme of this uri is content =====");
+                if (isGooglePhotosUri(uri)) {
+                    return uri.getLastPathSegment();
                 }
                 return getDataColumn(context, uri, null, null);
 
                 // File
             } else if ("file".equalsIgnoreCase(uri.getScheme())) {
-                if (BuildConfig.DEBUG) {
-                    Log.d(TAG, "===== the scheme of this uri is file =====");
-                }
                 return uri.getPath();
             }
 
@@ -252,8 +221,7 @@ public class FileUtils {
          * @param selectionArgs (Optional) Selection arguments used in the query.
          * @return The value of the '_data' column, which is typically a file path.
          */
-        private static String getDataColumn(Context context, Uri uri, String selection,
-                                            String[] selectionArgs) {
+        private static String getDataColumn(Context context, Uri uri, String selection, String[] selectionArgs) {
             final String column = "_data";
             final String[] projection = {column};
             Cursor cursor = context.getContentResolver().query(
@@ -292,6 +260,14 @@ public class FileUtils {
          */
         public static boolean isMediaDocument(@NonNull Uri uri) {
             return "com.android.providers.media.documents".equals(uri.getAuthority());
+        }
+
+        /**
+         * @param uri The Uri to check.
+         * @return Whether the Uri authority is Google Photos.
+         */
+        public static boolean isGooglePhotosUri(@NonNull Uri uri) {
+            return "com.google.android.apps.photos.content".equals(uri.getAuthority());
         }
     }
 }

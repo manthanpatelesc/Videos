@@ -233,10 +233,11 @@ class FoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, View.OnL
                 val videos = Array(parcelables.size) { parcelables[it] as Video }
                 for (video in videos) {
                     val index = mVideos.indexOf(video)
-                    if (index == -1) continue
-
-                    mVideos[index].progress = video.progress
-                    mAdapter.notifyItemChanged(index, PAYLOAD_REFRESH_VIDEO_PROGRESS_DURATION)
+                    val v = if (index != -1) mVideos[index] else null
+                    if (v != null && v.progress != video.progress) {
+                        v.progress = video.progress
+                        mAdapter.notifyItemChanged(index, PAYLOAD_REFRESH_VIDEO_PROGRESS_DURATION)
+                    }
                 }
             }
         }

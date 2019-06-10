@@ -334,7 +334,7 @@ public class VideoActivity extends SwipeBackActivity {
                 Video video = mVideos[mVideoIndex];
                 final int progress = video.getProgress();
                 if (progress > 0 && progress < video.getDuration()) {
-                    mVideoView.seekTo(progress); // 恢复上次关闭此页面时播放到的位置
+                    mVideoView.seekTo(progress, false); // 恢复上次关闭此页面时播放到的位置
                     video.setProgress(0);
                 }
 
@@ -425,11 +425,11 @@ public class VideoActivity extends SwipeBackActivity {
                 finish();
             }
 
-            @Override
-            public void onChangeViewMode(int mode) {
-                switch (mode) {
+            public void onViewModeChange(int oldMode, int newMode, boolean layoutMatches) {
+                switch (newMode) {
                     case AbsTextureVideoView.VIEW_MODE_MINIMUM:
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+                        if (!layoutMatches
+                                && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
                                 && mVideoWidth != 0 && mVideoHeight != 0) {
                             if (mPipParamsBuilder == null) {
                                 mPipParamsBuilder = new PictureInPictureParams.Builder();
@@ -447,9 +447,7 @@ public class VideoActivity extends SwipeBackActivity {
                         showLockUnlockOrientationButton(false);
                     case AbsTextureVideoView.VIEW_MODE_VIDEO_STRETCHED_FULLSCREEN:
                     case AbsTextureVideoView.VIEW_MODE_FULLSCREEN:
-                        if (!mVideoView.isInFullscreenMode()) {
-                            setFullscreenModeManually(true);
-                        }
+                        setFullscreenModeManually(true);
                         break;
                 }
             }
@@ -466,12 +464,6 @@ public class VideoActivity extends SwipeBackActivity {
             }
         });
         mVideoView.setOpCallback(new AbsTextureVideoView.OpCallback() {
-            @Override
-            public boolean isInPictureInPictureMode() {
-                return Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
-                        && VideoActivity.this.isInPictureInPictureMode();
-            }
-
             @NonNull
             @Override
             public Window getWindow() {
@@ -1004,6 +996,7 @@ public class VideoActivity extends SwipeBackActivity {
     @Override
     public void onPictureInPictureModeChanged(boolean isInPictureInPictureMode) {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode);
+        mVideoView.onMinimizationModeChange(isInPictureInPictureMode);
         if (isInPictureInPictureMode) {
             int actions = PIP_ACTION_FAST_REWIND;
             final int playbackState = mVideoView.getPlaybackState();
@@ -1033,17 +1026,17 @@ public class VideoActivity extends SwipeBackActivity {
                     final int action = intent.getIntExtra(EXTRA_PIP_ACTION, 0);
                     switch (action) {
                         case PIP_ACTION_PLAY:
-                            mVideoView.play();
+                            mVideoView.play(true);
                             break;
                         case PIP_ACTION_PAUSE:
                             mVideoView.pause(true);
                             break;
                         case PIP_ACTION_FAST_REWIND: {
-                            mVideoView.fastRewind();
+                            mVideoView.fastRewind(true);
                         }
                         break;
                         case PIP_ACTION_FAST_FORWARD: {
-                            mVideoView.fastForward();
+                            mVideoView.fastForward(true);
                         }
                         break;
                     }

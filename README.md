@@ -30,6 +30,7 @@ where you can perform such ops as topping, deleting and playing.
 - Development work happens on the `dev` branch. Pull requests should normally be made to this branch.
 - The `release` branch holds the most recent release.
 - The `beta` branch contains all the versions published, including tests.
+- The `lite` branch is the same as the `beta` one but without the side drawer for the application homepage.
 
 #### Using Android Studio
 To develop Videos using Android Studio, simply open the Videos project in the root directory of the repository.

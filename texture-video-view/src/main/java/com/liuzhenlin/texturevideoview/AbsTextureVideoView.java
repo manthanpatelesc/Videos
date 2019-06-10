@@ -10,7 +10,6 @@ import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
-import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Resources;
@@ -151,9 +150,8 @@ import java.util.List;
  * {@link #setCanSkipToNext(boolean)} methods to break the limit so that after clicked the button,
  * the user can have a look at the playlist and choose a preferred video from it to play.
  *
- * <P>An {@link OpCallback} usually is required for this class to better control the controls' display
- * when playback happens in picture-in-picture mode, through which we can also adjust the brightness
- * of the window this view is attached to or this feature will not be enabled at all.
+ * <P>An {@link OpCallback} usually is required for this class, which allows us to adjust the
+ * brightness of the window this view is attached to, or this feature will not be enabled at all.
  *
  * <p>{@link VideoPlayerControl.OnPlaybackStateChangeListener} can be used to monitor the state of
  * the player or the current video playback.
@@ -214,7 +212,7 @@ import java.util.List;
  *             }
  *
  *             &#064;Override
- *             public void onChangeViewMode(int mode) {
+ *             public void onViewModeChange(int oldMode, int newMode, boolean layoutMatches) {
  *                 // no-op
  *             }
  *
@@ -230,13 +228,6 @@ import java.util.List;
  *             }
  *         });
  *         mVideoView.setOpCallback(new AbsTextureVideoView.OpCallback() {
- *             // Optional
- *             &#064;Override
- *             public boolean isInPictureInPictureMode() {
- *                 return false;
- *             }
- *
- *             &#064;NonNull
  *             &#064;Override
  *             public Window getWindow() {
  *                 return DemoActivity.this.getWindow();
@@ -275,7 +266,8 @@ import java.util.List;
  *
  * @author <a href="mailto:2233788867@qq.com">刘振林</a>
  */
-public abstract class AbsTextureVideoView extends DrawerLayout implements VideoPlayerControl {
+public abstract class AbsTextureVideoView extends DrawerLayout implements VideoPlayerControl,
+        ViewHostEventCallback {
 
     /** Monitors all events related to the video playback. */
     public interface VideoListener {
@@ -319,12 +311,13 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
         void onReturnClicked();
 
         /**
-         * Called when the mode of this view is being changed, for you to decide whether or not to
-         * perform some layout changes depending on the different mode values.
+         * Called when the mode of this view changes.
          *
-         * @param mode the new view mode, one of the constants defined with the `VIEW_MODE_` prefix
+         * @param oldMode       the old view mode, one of the constants defined with the `VIEW_MODE_` prefix
+         * @param newMode       the new view mode, one of the constants defined with the `VIEW_MODE_` prefix
+         * @param layoutMatches true if the layout has been adjusted to match the corresponding mode
          */
-        void onChangeViewMode(@ViewMode int mode);
+        void onViewModeChange(@ViewMode int oldMode, @ViewMode int newMode, boolean layoutMatches);
 
         /** Called when the video being played is about to be shared with another application. */
         void onShareVideo();
@@ -338,16 +331,6 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     }
 
     public interface OpCallback {
-        /**
-         * @return true if the activity to which this view belongs is currently in
-         * picture-in-picture mode.
-         * @see Activity#isInPictureInPictureMode()
-         */
-        @SuppressWarnings("BooleanMethodIsAlwaysInverted")
-        default boolean isInPictureInPictureMode() {
-            return false;
-        }
-
         /**
          * @return the window this view is currently attached to
          */
@@ -506,7 +489,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     /** Default mode for this view (unlocked, non-fullscreen and non-minimized) */
     public static final int VIEW_MODE_DEFAULT = 1;
 
-    /** This view is minimized now. */
+    /** This view is minimized now, typically in picture-in-picture mode. */
     public static final int VIEW_MODE_MINIMUM = 2;
 
     /** This view is currently in fullscreen mode. */
@@ -691,17 +674,18 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
                 showClipView();
 
             } else if (mToggleButton == v) {
-                toggle();
+                toggle(true);
 
             } else if (mSkipNextButton == v) {
                 skipToNextIfPossible();
 
             } else if (mFullscreenButton == v) {
-                setViewMode(isVideoStretchedToFitFullscreenLayout() ?
-                        VIEW_MODE_VIDEO_STRETCHED_FULLSCREEN : VIEW_MODE_FULLSCREEN);
+                final int mode = isVideoStretchedToFitFullscreenLayout() ?
+                        VIEW_MODE_VIDEO_STRETCHED_FULLSCREEN : VIEW_MODE_FULLSCREEN;
+                setViewMode(mode, false);
 
             } else if (mMinimizeButton == v) {
-                setViewMode(VIEW_MODE_MINIMUM);
+                setViewMode(VIEW_MODE_MINIMUM, false);
 
             } else if (mChooseEpisodeButton == v) {
                 if (ViewCompat.getMinimumHeight(mPlayList) != mDrawerViewMinimumHeight) {
@@ -1015,7 +999,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
         @Override
         public void onStopTrackingTouch(SeekBar seekBar) {
             final int progress = current;
-            if (progress != start) seekTo(progress);
+            if (progress != start) seekTo(progress, true);
 
             mPrivateFlags &= ~PFLAG_CONTROLS_SHOW_STICKILY;
             showControls(true, false);
@@ -1614,6 +1598,13 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     }
 
     /**
+     * @return whether or not this view is in the foreground
+     */
+    /* package-private */ boolean isInForeground() {
+        return getWindowVisibility() == VISIBLE;
+    }
+
+    /**
      * @return the brightness of the window this view is attached to or 0
      * if no {@link OpCallback} is set.
      */
@@ -1684,19 +1675,19 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
 
     /**
      * Initialize the player object and prepare for the video playback.
-     * Normally, you should invoke this method to resume video playback instead of {@link #play()}
+     * Normally, you should invoke this method to resume video playback instead of {@link #play(boolean)}
      * whenever the Activity's restart() or resume() method is called unless the player won't
      * be released as the Activity's lifecycle changes.
      * <p>
      * <strong>NOTE:</strong> When the window this view is attached to leaves the foreground,
      * if the video has already been paused by the user, the player will not be instantiated
      * even if you call this method when this view is displayed in front of the user again and
-     * only when the user manually clicks to play, will it be initialized (see {@link #play()}),
+     * only when the user manually clicks to play, will it be initialized (see {@link #play(boolean)}),
      * but you should still call this method as usual.
      *
      * @param replayIfCompleted whether to replay the video if it is over
      * @see #closeVideo()
-     * @see #play()
+     * @see #play(boolean)
      */
     public void openVideo(boolean replayIfCompleted) {
         if (replayIfCompleted || mPlaybackState != PLAYBACK_STATE_COMPLETED) {
@@ -1722,13 +1713,13 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     protected abstract void closeVideoInternal(boolean fromUser);
 
     @Override
-    public void fastForward() {
-        seekTo(getVideoProgress() + FAST_FORWARD_REWIND_INTERVAL);
+    public void fastForward(boolean fromUser) {
+        seekTo(getVideoProgress() + FAST_FORWARD_REWIND_INTERVAL, fromUser);
     }
 
     @Override
-    public void fastRewind() {
-        seekTo(getVideoProgress() - FAST_FORWARD_REWIND_INTERVAL);
+    public void fastRewind(boolean fromUser) {
+        seekTo(getVideoProgress() - FAST_FORWARD_REWIND_INTERVAL, fromUser);
     }
 
     @Override
@@ -1862,7 +1853,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
         }
         setKeepScreenOn(true);
         adjustToggleState(true);
-        if (mOpCallback == null || !mOpCallback.isInPictureInPictureMode()) {
+        if (mViewMode != VIEW_MODE_MINIMUM) {
             if ((mPrivateFlags & PFLAG_CONTROLS_SHOW_STICKILY) != 0) {
                 // If the PFLAG_CONTROLS_SHOW_STICKILY flag is marked into mPrivateFlags, Calling
                 // showControls(true) is meaningless as this flag is a hindrance for the subsequent
@@ -1900,7 +1891,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
 
         setKeepScreenOn(false);
         adjustToggleState(false);
-        if (mOpCallback == null || !mOpCallback.isInPictureInPictureMode()) {
+        if (mViewMode != VIEW_MODE_MINIMUM) {
             showControls(true);
         }
 
@@ -2165,14 +2156,14 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
 
             if (isLocked()) {
                 if (stretched) {
-                    setViewMode(VIEW_MODE_VIDEO_STRETCHED_LOCKED_FULLSCREEN);
+                    setViewMode(VIEW_MODE_VIDEO_STRETCHED_LOCKED_FULLSCREEN, true);
                 } else {
-                    setViewMode(VIEW_MODE_LOCKED_FULLSCREEN);
+                    setViewMode(VIEW_MODE_LOCKED_FULLSCREEN, true);
                 }
             } else if (stretched) {
-                setViewMode(VIEW_MODE_VIDEO_STRETCHED_FULLSCREEN);
+                setViewMode(VIEW_MODE_VIDEO_STRETCHED_FULLSCREEN, true);
             } else {
-                setViewMode(VIEW_MODE_FULLSCREEN);
+                setViewMode(VIEW_MODE_FULLSCREEN, true);
             }
         }
     }
@@ -2222,7 +2213,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
                     mCameraButton.setVisibility(GONE);
                     mVideoCameraButton.setVisibility(GONE);
                     cancelVideoPhotoCapture();
-                    hideClipView();
+                    hideClipView(true /* usually true */);
 
                     // Only closes the playlist when this view is out of fullscreen mode
                     if (mMoreView == null && isDrawerVisible(mDrawerView)) {
@@ -2232,10 +2223,11 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
             }
             inflateBottomControls();
 
-            setViewMode(fullscreen
+            final int mode = fullscreen
                     ? isVideoStretchedToFitFullscreenLayout() ? //@formatter:off
                             VIEW_MODE_VIDEO_STRETCHED_FULLSCREEN : VIEW_MODE_FULLSCREEN //@formatter:on
-                    : VIEW_MODE_DEFAULT);
+                    : VIEW_MODE_DEFAULT;
+            setViewMode(mode, true);
         } finally {
             final int paddingTop = mNavInitialPaddingTop + navTopInset;
             if (mTopControlsFrame.getPaddingTop() != paddingTop) {
@@ -2404,7 +2396,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
         mBrightnessOrVolumeFrame.setVisibility(GONE);
 
         cancelVideoPhotoCapture();
-        hideClipView();
+        hideClipView(false);
 
         if (mTimedOffRunnable != null) {
             removeCallbacks(mTimedOffRunnable);
@@ -2418,19 +2410,24 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
      *
      * @return true if the back key event is handled by this view
      */
-    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
+    @Override
     public boolean onBackPressed() {
         if (mClipView != null) {
-            hideClipView();
+            hideClipView(true);
             return true;
         } else if (isDrawerVisible(mDrawerView)) {
             closeDrawer(mDrawerView);
             return true;
         } else if (isInFullscreenMode()) {
-            setViewMode(VIEW_MODE_DEFAULT);
+            setViewMode(VIEW_MODE_DEFAULT, false);
             return true;
         }
         return false;
+    }
+
+    @Override
+    public void onMinimizationModeChange(boolean minimized) {
+        setViewMode(minimized ? VIEW_MODE_MINIMUM : VIEW_MODE_DEFAULT, true);
     }
 
     /**
@@ -2447,11 +2444,12 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
         return mViewMode;
     }
 
-    private void setViewMode(@ViewMode int mode) {
-        if (mViewMode != mode) {
+    private void setViewMode(@ViewMode int mode, boolean layoutMatches) {
+        final int old = mViewMode;
+        if (old != mode) {
             mViewMode = mode;
             if (mEventListener != null) {
-                mEventListener.onChangeViewMode(mode);
+                mEventListener.onViewModeChange(old, mode, layoutMatches);
             }
         }
     }
@@ -2514,15 +2512,14 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
 
                 if (locked) {
                     if (isVideoStretchedToFitFullscreenLayout()) {
-                        setViewMode(VIEW_MODE_VIDEO_STRETCHED_LOCKED_FULLSCREEN);
+                        setViewMode(VIEW_MODE_VIDEO_STRETCHED_LOCKED_FULLSCREEN, true);
                     } else {
-                        setViewMode(VIEW_MODE_LOCKED_FULLSCREEN);
+                        setViewMode(VIEW_MODE_LOCKED_FULLSCREEN, true);
                     }
-                }
-                if (isVideoStretchedToFitFullscreenLayout()) {
-                    setViewMode(VIEW_MODE_VIDEO_STRETCHED_FULLSCREEN);
+                } else if (isVideoStretchedToFitFullscreenLayout()) {
+                    setViewMode(VIEW_MODE_VIDEO_STRETCHED_FULLSCREEN, true);
                 } else {
-                    setViewMode(VIEW_MODE_FULLSCREEN);
+                    setViewMode(VIEW_MODE_FULLSCREEN, true);
                 }
             }
         }
@@ -2897,7 +2894,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
                 animation.setAnimationListener(null);
                 content.setTag(null);
                 if (playing) {
-                    play();
+                    play(false);
                 }
             }
 
@@ -2973,10 +2970,10 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
                 cutoutShortVideoButton.setSelected(false);
 
             } else if (v == cancelButton) {
-                hideClipView();
+                hideClipView(true);
 
             } else if (v == okButton) {
-                hideClipView();
+                hideClipView(true);
 
                 /*
                  * Below code blocks for cutting out the desired short video or GIF.
@@ -3067,7 +3064,6 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
                 }
             }
         };
-        final boolean[] thumbRetrievalCompleted = {false};
         final boolean[] selectionBeingDragged = {false};
         vcv.addOnSelectionChangeListener(new VideoClipView.OnSelectionChangeListener() {
             final String seconds = mResources.getString(R.string.seconds);
@@ -3109,8 +3105,9 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
 
             @Override
             public void onStopTrackingTouch() {
-                if (thumbRetrievalCompleted[0] && surface.isValid()) {
+                if (surface.isValid()) {
                     holder.setKeepScreenOn(true);
+                    closeVideoInternal(true /* no or little use */);
                     player.play();
                     vcv.post(trackProgressRunnable);
                 }
@@ -3190,12 +3187,6 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
 
                 @Override
                 protected void onPostExecute(Void aVoid) {
-                    thumbRetrievalCompleted[0] = true;
-                    if (!selectionBeingDragged[0] && surface.isValid()) {
-                        holder.setKeepScreenOn(true);
-                        player.play();
-                        vcv.post(trackProgressRunnable);
-                    }
                     mLoadClipThumbsTask = null;
                 }
             }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
@@ -3210,8 +3201,15 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
                 // have been leaving out the selection changes that are caused by the program code
                 // rather than the user.
                 player.seekTo(progress);
-                if (thumbRetrievalCompleted[0] && !selectionBeingDragged[0] /*&& !player.isPlaying()*/) {
+                if (!selectionBeingDragged[0]) {
                     holder.setKeepScreenOn(true);
+                    // We need to make sure of the video to be closed before the clip preview starts,
+                    // because the video in one of the special formats (e.g. mov) will not play if
+                    // the video resource is not released in advance.
+                    // This will also abandon the audio focus gained for the preceding video playback.
+                    // That's why we do this just before the preview starts, for the purpose of not
+                    // letting another media application have the opportunity to resume its playback.
+                    closeVideoInternal(true /* no or little use */);
                     player.play();
                     vcv.post(trackProgressRunnable);
                 }
@@ -3237,31 +3235,25 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
                     mLockUnlockButton, mCameraButton, mVideoCameraButton,
                     mBottomControlsFrame,
                     view);
+            transition.excludeTarget(sv, true);
             TransitionManager.beginDelayedTransition(mContentView, transition);
-
-            view.setTag(transition);
         }
         pause(true);
         showControls(false, false);
         mContentView.addView(view);
     }
 
-    private void hideClipView() {
-        View clipView = mClipView;
-        if (clipView != null) {
+    private void hideClipView(boolean fromUser) {
+        if (mClipView != null) {
+            mContentView.removeView(mClipView);
             mClipView = null;
             if (mLoadClipThumbsTask != null) {
                 mLoadClipThumbsTask.cancel(false);
                 mLoadClipThumbsTask = null;
             }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-                TransitionManager.beginDelayedTransition(mContentView, (Transition) clipView.getTag());
-            }
-            mContentView.removeView(clipView);
-            // play() will call showControls(true, true) when resuming the playback, therefore,
-            // we call showControls(true, false) first to make the `animate` parameter meaningless.
-            showControls(true, false);
-            play();
+
+            play(fromUser);
+            showControls(true); // Make sure the controls will be showed immediately
         }
     }
 
@@ -3407,7 +3399,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
                 if (isSpinnerPopupShowing()) {
                     dismissSpinnerPopup();
                 } else {
-                    toggle();
+                    toggle(true);
                 }
                 return true;
             }
@@ -3819,7 +3811,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
 
             switch (tappedTime) {
                 case 1:
-                    toggle();
+                    toggle(true);
                     break;
                 // Consider double tap as the next.
                 case 2:
@@ -3873,7 +3865,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
             // Seeks to the saved playback position for the video even if it was paused by the user
             // before, as this method is invoked after the Activity's onStart() was called, so that
             // the flag PFLAG_VIDEO_PAUSED_BY_USER makes no sense.
-            seekTo(ss.seekOnPlay);
+            seekTo(ss.seekOnPlay, false);
         }
     }
 

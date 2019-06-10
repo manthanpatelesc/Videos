@@ -60,10 +60,7 @@ public class TextureVideoView2 extends AbsTextureVideoView {
             switch (focusChange) {
                 // Audio focus gained
                 case AudioManager.AUDIOFOCUS_GAIN:
-                    if (mExoPlayer.getVolume() != 1.0f) {
-                        mExoPlayer.setVolume(1.0f);
-                    }
-                    play();
+                    play(false);
                     break;
 
                 // Loss of audio focus of unknown duration.
@@ -71,9 +68,8 @@ public class TextureVideoView2 extends AbsTextureVideoView {
                 // that causes our view to stop playing, so the video can be thought of as
                 // being paused/closed by the user.
                 case AudioManager.AUDIOFOCUS_LOSS:
-                    if (getWindowVisibility() == VISIBLE) {
-                        // If the window container of this view is still visible to the user,
-                        // pauses the video only.
+                    if (isInForeground()) {
+                        // If this view is still in the foreground, pauses the video only.
                         pause(true);
                     } else {
                         // But if this occurs during background playback, we must close the video
@@ -91,7 +87,9 @@ public class TextureVideoView2 extends AbsTextureVideoView {
                 // Temporarily lose the audio focus but the playback can continue.
                 // The volume of the playback needs to be turned down.
                 case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK:
-                    mExoPlayer.setVolume(0.5f);
+                    if (mExoPlayer != null) {
+                        mExoPlayer.setVolume(0.5f);
+                    }
                     break;
             }
         }
@@ -206,7 +204,7 @@ public class TextureVideoView2 extends AbsTextureVideoView {
                                     mPrivateFlags |= PFLAG_VIDEO_INFO_RESOLVED;
                                 }
                                 setPlaybackState(PLAYBACK_STATE_PREPARED);
-                                play();
+                                play(false);
                             }
                             break;
 
@@ -304,7 +302,7 @@ public class TextureVideoView2 extends AbsTextureVideoView {
     }
 
     @Override
-    public void play() {
+    public void play(boolean fromUser) {
         if ((mPrivateFlags & PFLAG_VIDEO_IS_CLOSING) != 0) {
             // In case the video playback is closing
             return;
@@ -313,18 +311,18 @@ public class TextureVideoView2 extends AbsTextureVideoView {
         final int playbackState = getPlaybackState();
 
         if (mExoPlayer == null) {
-            // Maybe the ExoPlayer has not been created since this page showed again after
-            // the video had been paused by the user instead of our program itself or ended
-            // in the last playback. Initialize it here as the user hits play.
-            if (playbackState == PLAYBACK_STATE_COMPLETED) {
+            // Opens the video only if this is a user request
+            if (fromUser) {
                 // If the video playback finished, skip to the next video if possible
-                if (!(skipToNextIfPossible() && mExoPlayer != null)) {
-                    mPrivateFlags &= ~PFLAG_VIDEO_PAUSED_BY_USER;
-                    openVideoInternal();
+                if (playbackState == PLAYBACK_STATE_COMPLETED &&
+                        skipToNextIfPossible() && mExoPlayer != null) {
+                    return;
                 }
-            } else if ((mPrivateFlags & PFLAG_VIDEO_PAUSED_BY_USER) != 0) {
+
                 mPrivateFlags &= ~PFLAG_VIDEO_PAUSED_BY_USER;
                 openVideoInternal();
+            } else {
+                Log.w(TAG, "Cannot start playback programmatically before the video is opened");
             }
             return;
         }
@@ -444,12 +442,12 @@ public class TextureVideoView2 extends AbsTextureVideoView {
     }
 
     @Override
-    public void seekTo(int progress) {
+    public void seekTo(int progress, boolean fromUser) {
         if (isPlaying()) {
             mExoPlayer.seekTo(progress);
         } else {
             mSeekOnPlay = progress;
-            play();
+            play(fromUser);
         }
     }
 

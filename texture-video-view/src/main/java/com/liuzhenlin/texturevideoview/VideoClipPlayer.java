@@ -32,6 +32,12 @@ import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
 
     private int mSeekOnPlay;
 
+    private final AudioAttributes mAudioAttrs =
+            new AudioAttributes.Builder()
+                    .setUsage(C.USAGE_MEDIA)
+                    .setContentType(C.CONTENT_TYPE_MOVIE)
+                    .build();
+
     public VideoClipPlayer(@NonNull Context context, @NonNull Uri videoUri, @NonNull String userAgent,
                            @NonNull Surface surface) {
         mContext = context;
@@ -84,10 +90,7 @@ import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
         if (mExoPlayer == null) {
             mExoPlayer = ExoPlayerFactory.newSimpleInstance(mContext);
             mExoPlayer.setVideoSurface(mSurface);
-            mExoPlayer.setAudioAttributes(new AudioAttributes.Builder()
-                    .setUsage(C.USAGE_MEDIA)
-                    .setContentType(C.CONTENT_TYPE_MOVIE)
-                    .build());
+            mExoPlayer.setAudioAttributes(mAudioAttrs, true);
             mExoPlayer.setRepeatMode(Player.REPEAT_MODE_ONE);
             mExoPlayer.prepare(
                     new ProgressiveMediaSource.Factory(new DefaultDataSourceFactory(mContext, mUserAgent))

@@ -468,8 +468,8 @@ public class FeedbackActivity extends SwipeBackActivity implements View.OnClickL
     }
 
     private void addPicture(String path) {
-        if (path != null && (mGridAdapter.mPicturePaths == null ||
-                !mGridAdapter.mPicturePaths.contains(path))) {
+        if (path != null &&
+                (mGridAdapter.mPicturePaths == null || !mGridAdapter.mPicturePaths.contains(path))) {
             Bitmap bitmap = BitmapFactory.decodeFile(path, null);
             if (bitmap != null) {
                 if (mGridAdapter.mPicturePaths == null)
@@ -580,6 +580,7 @@ public class FeedbackActivity extends SwipeBackActivity implements View.OnClickL
                 setOnDismissListener(this);
                 mWindow = getWindow();
 
+                assert mWindow != null;
                 View view = View.inflate(mContext,
                         R.layout.dialog_picture_preview,
                         mWindow.getDecorView().findViewById(Window.ID_ANDROID_CONTENT));

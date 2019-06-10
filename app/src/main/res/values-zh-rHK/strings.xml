@@ -89,7 +89,7 @@
     <string name="theInstallationPackageHasBeenDestroyed">安装包已损坏</string>
     <string name="pleaseGoToAppSettingsScreenFirstToAllowAppsFromThisSourceToBeInstalled">
         请前往应用程序设置界面以允许安装此来源的应用</string>
-    <string name="version">v1.7.1</string>
+    <string name="version">v1.7.2-beta01</string>
     <string name="copyright">Copyright © 2017–present 刘振林.\nAll rights reserved.</string>
     <string name="updateAppendedColon" translatable="false">更新：</string>
     <string name="setBackground">设置背景</string>

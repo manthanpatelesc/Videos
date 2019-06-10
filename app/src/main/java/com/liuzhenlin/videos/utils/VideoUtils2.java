@@ -6,7 +6,10 @@
 package com.liuzhenlin.videos.utils;
 
 import android.content.Context;
+import android.content.res.Resources;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.drawable.BitmapDrawable;
 import android.media.ThumbnailUtils;
 import android.provider.MediaStore;
 import android.widget.ImageView;
@@ -15,7 +18,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.bumptech.glide.Glide;
-import com.bumptech.glide.request.RequestOptions;
+import com.liuzhenlin.texturevideoview.utils.BitmapUtils;
 import com.liuzhenlin.videos.App;
 import com.liuzhenlin.videos.R;
 import com.liuzhenlin.videos.model.Video;
@@ -29,20 +32,22 @@ public class VideoUtils2 {
 
     public static void loadVideoThumbnail(@NonNull ImageView image, @NonNull Video video) {
         Context context = image.getContext();
+        Resources res = context.getResources();
 
-        final float scale = (float) video.getWidth() / (float) video.getHeight();
+        final float aspectRatio = (float) video.getWidth() / (float) video.getHeight();
         final int thumbWidth = App.getInstance().getVideoThumbWidth();
-        final int height = (int) ((float) thumbWidth / scale + 0.5f);
+        final int height = (int) ((float) thumbWidth / aspectRatio + 0.5f);
         final int maxHeight = (int) (thumbWidth * 9f / 16f + 0.5f);
         final int thumbHeight = height > maxHeight ? maxHeight : height;
 
-        RequestOptions options = new RequestOptions()
-                .placeholder(R.drawable.ic_default_image)
-                .override(thumbWidth, thumbHeight)
-                .centerCrop();
+        Bitmap bitmap = BitmapUtils.createScaledBitmap(
+                BitmapFactory.decodeResource(res, R.drawable.ic_default_image),
+                thumbWidth, thumbHeight, true);
         Glide.with(context)
                 .load(video.getPath())
-                .apply(options)
+                .override(thumbWidth, thumbHeight)
+                .centerCrop()
+                .placeholder(new BitmapDrawable(res, bitmap))
                 .into(image);
     }
 

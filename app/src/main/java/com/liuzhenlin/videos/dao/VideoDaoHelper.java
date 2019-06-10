@@ -205,7 +205,7 @@ public class VideoDaoHelper extends SQLiteOpenHelper implements IVideoDao {
         final int strlength = directory.length();
         return mContentResolver.query(VIDEO_URI, PROJECTION_VIDEO_URI
                 , "SUBSTR(" + VIDEO_PATH + ",1," + strlength + ")='" + directory + "' " +
-                        "COLLATE NOCASE AND SUBSTR(" + VIDEO_PATH + "," + strlength + 2 + ") " +
+                        "COLLATE NOCASE AND SUBSTR(" + VIDEO_PATH + "," + (strlength + 2) + ") " +
                         "NOT LIKE '%" + File.separator + "%'", null
                 , VIDEO_NAME + " COLLATE NOCASE");
     }
