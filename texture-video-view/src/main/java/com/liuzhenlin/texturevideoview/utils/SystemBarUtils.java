@@ -239,7 +239,7 @@ public class SystemBarUtils {
         View decorView = window.getDecorView();
         int flags = decorView.getSystemUiVisibility();
         if (light) {
-            // Make sure the request flag is added
+            // Make sure the required flag is added
             final int flag = WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS;
             if ((window.getAttributes().flags & flag) == 0) {
                 window.addFlags(flag);

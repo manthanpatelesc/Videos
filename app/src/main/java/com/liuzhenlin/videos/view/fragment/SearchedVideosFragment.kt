@@ -335,7 +335,7 @@ class SearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLongClic
                 for (index in searchedVideos.indices) {
                     if (changedIndices?.contains(index) == true) {
                         mSearchedVideos[index] = searchedVideos[index]
-                        mAdapterWrapper.notifyItemChanged(headersCount + index)
+                        mAdapterWrapper.notifyItemChanged(headersCount + index) // without payload
                     } else {
                         mAdapterWrapper.notifyItemChanged(headersCount + index, PAYLOAD_REFRESH_ITEM_NAME)
                     }
@@ -343,7 +343,7 @@ class SearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLongClic
             } else if (changedIndices != null) {
                 for (index in changedIndices) {
                     mSearchedVideos[index] = searchedVideos[index]
-                    mAdapterWrapper.notifyItemChanged(headersCount + index)
+                    mAdapterWrapper.notifyItemChanged(headersCount + index) // without payload
                 }
             }
         } else {

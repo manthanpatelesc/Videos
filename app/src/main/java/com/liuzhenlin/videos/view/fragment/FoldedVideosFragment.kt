@@ -494,7 +494,7 @@ class FoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, View.OnL
                 if (changedIndices != null) {
                     for (index in changedIndices) {
                         mVideos[index] = videos[index]
-                        mAdapter.notifyItemChanged(index)
+                        mAdapter.notifyItemChanged(index) // without payload
                     }
                     if (mVideoOptionsFrame.visibility == View.VISIBLE) {
                         hideMultiselectVideoControls()

@@ -150,11 +150,6 @@ public class FileUtils {
 
         @Nullable
         public static String getPath(@NonNull Context context, @NonNull Uri uri) {
-            // Uri.parse(String)
-            if ("android.net.Uri$StringUri".equals(uri.getClass().getName())) {
-                return uri.toString();
-            }
-
             // DocumentProvider
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT
                     && DocumentsContract.isDocumentUri(context, uri)) {
@@ -206,6 +201,11 @@ public class FileUtils {
                 // File
             } else if ("file".equalsIgnoreCase(uri.getScheme())) {
                 return uri.getPath();
+            }
+
+            // Uri.parse(String)
+            if ("android.net.Uri$StringUri".equals(uri.getClass().getName())) {
+                return uri.toString();
             }
 
             return null;

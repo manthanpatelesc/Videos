@@ -10,13 +10,16 @@ import android.net.Uri;
 import android.view.Surface;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.ExoPlayerFactory;
 import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.audio.AudioAttributes;
+import com.google.android.exoplayer2.source.MediaSource;
 import com.google.android.exoplayer2.source.ProgressiveMediaSource;
+import com.google.android.exoplayer2.source.ads.AdsMediaSource;
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
 
 /**
@@ -24,9 +27,8 @@ import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
  */
 /* package-private */ final class VideoClipPlayer {
     private final Context mContext;
-    private final Uri mVideoUri;
-    private final String mUserAgent;
     private final Surface mSurface;
+    private final MediaSource mMediaSource;
 
     private SimpleExoPlayer mExoPlayer;
 
@@ -38,12 +40,16 @@ import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
                     .setContentType(C.CONTENT_TYPE_MOVIE)
                     .build();
 
-    public VideoClipPlayer(@NonNull Context context, @NonNull Uri videoUri, @NonNull String userAgent,
-                           @NonNull Surface surface) {
+    public VideoClipPlayer(@NonNull Context context, @NonNull Surface surface,
+                           @NonNull Uri videoUri, @NonNull String userAgent,
+                           @Nullable AdsMediaSource.MediaSourceFactory mediaSourceFactory) {
         mContext = context;
-        mVideoUri = videoUri;
-        mUserAgent = userAgent;
         mSurface = surface;
+        if (mediaSourceFactory == null) {
+            mediaSourceFactory = new ProgressiveMediaSource.Factory(
+                    new DefaultDataSourceFactory(context, userAgent));
+        }
+        mMediaSource = mediaSourceFactory.createMediaSource(videoUri);
     }
 
     public boolean isPlaying() {
@@ -92,9 +98,7 @@ import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
             mExoPlayer.setVideoSurface(mSurface);
             mExoPlayer.setAudioAttributes(mAudioAttrs, true);
             mExoPlayer.setRepeatMode(Player.REPEAT_MODE_ONE);
-            mExoPlayer.prepare(
-                    new ProgressiveMediaSource.Factory(new DefaultDataSourceFactory(mContext, mUserAgent))
-                            .createMediaSource(mVideoUri));
+            mExoPlayer.prepare(mMediaSource);
         }
     }
 

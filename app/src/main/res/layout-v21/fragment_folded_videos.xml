@@ -12,7 +12,6 @@
         android:scrollbars="vertical" />
 
     <include
-        android:id="@+id/divider"
         android:layout_width="match_parent"
         android:layout_height="1dp"
         layout="@layout/divider_horizontal_opaque"

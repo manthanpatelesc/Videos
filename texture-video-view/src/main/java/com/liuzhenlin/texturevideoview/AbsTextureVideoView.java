@@ -92,6 +92,7 @@ import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.exoplayer2.source.ads.AdsMediaSource;
 import com.google.android.exoplayer2.util.Util;
 import com.liuzhenlin.texturevideoview.drawable.CircularProgressDrawable;
 import com.liuzhenlin.texturevideoview.receiver.HeadsetEventsReceiver;
@@ -3050,7 +3051,10 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
 
         final SurfaceHolder holder = sv.getHolder();
         final Surface surface = holder.getSurface();
-        final VideoClipPlayer player = new VideoClipPlayer(mContext, mVideoUri, mUserAgent, surface);
+        final AdsMediaSource.MediaSourceFactory factory =
+                Build.VERSION.SDK_INT >= 16 /* Jelly Bean */ && this instanceof TextureVideoView2
+                        ? ((TextureVideoView2) this).mMediaSourceFactory : null;
+        final VideoClipPlayer player = new VideoClipPlayer(mContext, surface, mVideoUri, mUserAgent, factory);
         final Runnable trackProgressRunnable = new Runnable() {
             @Override
             public void run() {

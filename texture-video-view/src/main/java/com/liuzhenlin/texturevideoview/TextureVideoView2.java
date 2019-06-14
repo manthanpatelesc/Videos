@@ -49,7 +49,7 @@ public class TextureVideoView2 extends AbsTextureVideoView {
     private static final String TAG = "TextureVideoView2";
 
     private SimpleExoPlayer mExoPlayer;
-    private AdsMediaSource.MediaSourceFactory mMediaSourceFactory;
+    /* package-private */ AdsMediaSource.MediaSourceFactory mMediaSourceFactory;
 
     private final AudioAttributes mAudioAttrs;
     private final AudioFocusRequest mAudioFocusRequest;

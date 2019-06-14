@@ -294,24 +294,12 @@ class VideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefreshLayo
                             }
                             1 -> {
                                 val video = videos[0]
-                                var payloads = 0
-                                if (item is Video && item.id == video.id) {
-                                    if (item.name != video.name) {
-                                        payloads = payloads or PAYLOAD_REFRESH_ITEM_NAME
-                                    }
-                                    if (item.progress != video.progress) {
-                                        payloads = payloads or PAYLOAD_REFRESH_VIDEO_PROGRESS_DURATION
-                                    }
-                                    if (payloads == 0) {
-                                        break@loop
-                                    }
-                                }
                                 video.isTopped = false
                                 mVideoListItems[i] = video
                                 mVideoListItems.sortByElementName()
                                 val newIndex = mVideoListItems.indexOf(video)
                                 if (newIndex == i) {
-                                    mAdapter.notifyItemChanged(i, if (payloads == 0) null else payloads)
+                                    mAdapter.notifyItemChanged(i) // without payload
                                 } else {
                                     mAdapter.notifyItemRemoved(i)
                                     mAdapter.notifyItemInserted(newIndex)
@@ -383,7 +371,7 @@ class VideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefreshLayo
                 if (changedIndices != null)
                     for (index in changedIndices) {
                         mVideoListItems[index] = items[index]
-                        mAdapter.notifyItemChanged(index)
+                        mAdapter.notifyItemChanged(index) // without payload
                     }
                 if (notifyListeners) notifyListenersOnReloadVideos()
             } else {
@@ -837,7 +825,7 @@ class VideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefreshLayo
             R.id.bt_confirm_videoListItemDetailsDialog -> mItemDetailsDialog!!.cancel()
 
             R.id.button_cancel_vow -> mItemOptionsWindow!!.dismiss()
-            // 全选
+            // 全（不）选
             R.id.bt_selectAll -> {
                 // 全选
                 if (SELECT_ALL == mSelectAllButton!!.text.toString()) {
