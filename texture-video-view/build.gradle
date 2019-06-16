@@ -40,9 +40,9 @@ dependencies {
     api 'androidx.constraintlayout:constraintlayout:2.0.0-beta1'
     api 'androidx.recyclerview:recyclerview:1.0.0'
     api 'androidx.palette:palette:1.0.0'
-    api 'androidx.media:media:1.1.0-beta02'
+    api 'androidx.media:media:1.1.0-rc01'
 
-    api 'com.google.android.exoplayer:exoplayer-core:2.10.0'
+    api 'com.google.android.exoplayer:exoplayer-core:2.10.1'
 
 //    api 'org.mp4parser:muxer:1.9.39'
     api 'com.googlecode.mp4parser:isoparser:1.1.22'

@@ -20,8 +20,7 @@
         android:fullBackupContent="@xml/backup_descriptor">
         <activity
             android:name=".view.activity.RequireExternalStoragePermissionActivity"
-            android:theme="@style/ActivityStyle_Translucent"
-            android:screenOrientation="portrait">
+            android:theme="@style/ActivityStyle_Translucent">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

@@ -8,7 +8,9 @@ package com.liuzhenlin.videos.view.activity;
 import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -44,7 +46,13 @@ public class RequireExternalStoragePermissionActivity extends AppCompatActivity
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
+        // Only fullscreen opaque activities can request fixed orientation on Oreo
+        setRequestedOrientation(
+                Build.VERSION.SDK_INT == Build.VERSION_CODES.O
+                        ? ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+                        : ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         super.onCreate(savedInstanceState);
+
         checkStoragePermission();
     }
 
