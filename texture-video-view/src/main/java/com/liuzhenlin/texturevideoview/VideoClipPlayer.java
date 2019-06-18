@@ -16,7 +16,6 @@ import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.ExoPlayerFactory;
 import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.SimpleExoPlayer;
-import com.google.android.exoplayer2.audio.AudioAttributes;
 import com.google.android.exoplayer2.source.MediaSource;
 import com.google.android.exoplayer2.source.ProgressiveMediaSource;
 import com.google.android.exoplayer2.source.ads.AdsMediaSource;
@@ -33,12 +32,6 @@ import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
     private SimpleExoPlayer mExoPlayer;
 
     private int mSeekOnPlay;
-
-    private final AudioAttributes mAudioAttrs =
-            new AudioAttributes.Builder()
-                    .setUsage(C.USAGE_MEDIA)
-                    .setContentType(C.CONTENT_TYPE_MOVIE)
-                    .build();
 
     public VideoClipPlayer(@NonNull Context context, @NonNull Surface surface,
                            @NonNull Uri videoUri, @NonNull String userAgent,
@@ -96,7 +89,7 @@ import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
         if (mExoPlayer == null) {
             mExoPlayer = ExoPlayerFactory.newSimpleInstance(mContext);
             mExoPlayer.setVideoSurface(mSurface);
-            mExoPlayer.setAudioAttributes(mAudioAttrs, true);
+            mExoPlayer.setAudioAttributes(AbsTextureVideoView.sDefaultAudioAttrs, true);
             mExoPlayer.setRepeatMode(Player.REPEAT_MODE_ONE);
             mExoPlayer.prepare(mMediaSource);
         }

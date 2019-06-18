@@ -272,7 +272,7 @@ public class VideoActivity extends SwipeBackActivity {
                         if (video == null) {
                             video = new Video();
                             video.setId(Consts.NO_ID);
-                            video.setName(path.substring(path.lastIndexOf(File.separatorChar) + 1));
+                            video.setName(FileUtils.getFileNameFromFilePath(path));
                             video.setPath(path);
                         }
                     }
@@ -483,7 +483,7 @@ public class VideoActivity extends SwipeBackActivity {
         mVideoView.setCanSkipToPrevious(videoIndex > 0);
         mVideoView.setCanSkipToNext(videoIndex < mVideos.length - 1);
         mVideoView.setVideoPath(video.getPath());
-        mVideoView.setTitle(FileUtils.getFileSimpleName(video.getName()));
+        mVideoView.setTitle(FileUtils.getFileTitleFromFileName(video.getName()));
     }
 
     @Override
@@ -1148,7 +1148,7 @@ public class VideoActivity extends SwipeBackActivity {
         final String path = mVideos[mVideoIndex].getPath();
         startActivity(new Intent(Intent.ACTION_VIEW)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                .setDataAndType(Uri.parse(path), FileUtils.getMimeType(path, "video/*")));
+                .setDataAndType(Uri.parse(path), FileUtils.getMimeTypeFromPath(path, "video/*")));
     }
 
     private void notifyItemSelectionChanged(int oldPosition, int position, boolean checkNewItemVisibility) {

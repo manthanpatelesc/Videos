@@ -6,7 +6,6 @@
 package com.liuzhenlin.texturevideoview;
 
 import android.content.Context;
-import android.media.AudioAttributes;
 import android.media.AudioFocusRequest;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
@@ -67,8 +66,6 @@ public class TextureVideoView extends AbsTextureVideoView {
      */
     private int mBuffering;
 
-    private final AudioAttributes mAudioAttrs;
-    private final AudioFocusRequest mAudioFocusRequest;
     private final AudioManager.OnAudioFocusChangeListener mOnAudioFocusChangeListener
             = new AudioManager.OnAudioFocusChangeListener() {
         @Override
@@ -111,28 +108,14 @@ public class TextureVideoView extends AbsTextureVideoView {
             }
         }
     };
-
-    /* class initializer */ {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            mAudioAttrs = new AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_MEDIA)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_MOVIE)
-                    .setLegacyStreamType(AudioManager.STREAM_MUSIC)
-                    .build();
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                mAudioFocusRequest = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
-                        .setAudioAttributes(mAudioAttrs)
-                        .setOnAudioFocusChangeListener(mOnAudioFocusChangeListener)
-                        .setAcceptsDelayedFocusGain(true)
-                        .build();
-            } else {
-                mAudioFocusRequest = null;
-            }
-        } else {
-            mAudioAttrs = null;
-            mAudioFocusRequest = null;
-        }
-    }
+    private final AudioFocusRequest mAudioFocusRequest =
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ?
+                    new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+                            .setAudioAttributes(sDefaultAudioAttrs.getAudioAttributesV21())
+                            .setOnAudioFocusChangeListener(mOnAudioFocusChangeListener)
+                            .setAcceptsDelayedFocusGain(true)
+                            .build()
+                    : null;
 
     public TextureVideoView(Context context) {
         super(context);
@@ -184,7 +167,7 @@ public class TextureVideoView extends AbsTextureVideoView {
             mMediaPlayer = new MediaPlayer();
             mMediaPlayer.setSurface(isPureAudioPlayback() ? null : mSurface);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                mMediaPlayer.setAudioAttributes(mAudioAttrs);
+                mMediaPlayer.setAudioAttributes(sDefaultAudioAttrs.getAudioAttributesV21());
             } else {
                 mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
             }

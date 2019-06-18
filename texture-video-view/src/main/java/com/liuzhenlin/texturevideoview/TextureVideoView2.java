@@ -21,14 +21,12 @@ import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.core.util.ObjectsCompat;
 
-import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.ExoPlaybackException;
 import com.google.android.exoplayer2.ExoPlayer;
 import com.google.android.exoplayer2.ExoPlayerFactory;
 import com.google.android.exoplayer2.PlaybackParameters;
 import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.SimpleExoPlayer;
-import com.google.android.exoplayer2.audio.AudioAttributes;
 import com.google.android.exoplayer2.source.MediaSource;
 import com.google.android.exoplayer2.source.ProgressiveMediaSource;
 import com.google.android.exoplayer2.source.ads.AdsMediaSource;
@@ -51,8 +49,6 @@ public class TextureVideoView2 extends AbsTextureVideoView {
     private SimpleExoPlayer mExoPlayer;
     /* package-private */ AdsMediaSource.MediaSourceFactory mMediaSourceFactory;
 
-    private final AudioAttributes mAudioAttrs;
-    private final AudioFocusRequest mAudioFocusRequest;
     private final AudioManager.OnAudioFocusChangeListener mOnAudioFocusChangeListener
             = new AudioManager.OnAudioFocusChangeListener() {
         @Override
@@ -94,20 +90,14 @@ public class TextureVideoView2 extends AbsTextureVideoView {
             }
         }
     };
-
-    /* class initializer */ {
-        mAudioAttrs = new AudioAttributes.Builder()
-                .setUsage(C.USAGE_MEDIA)
-                .setContentType(C.CONTENT_TYPE_MOVIE)
-                .build();
-        mAudioFocusRequest = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ?
-                new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
-                        .setAudioAttributes(mAudioAttrs.getAudioAttributesV21())
-                        .setOnAudioFocusChangeListener(mOnAudioFocusChangeListener)
-                        .setAcceptsDelayedFocusGain(true)
-                        .build()
-                : null;
-    }
+    private final AudioFocusRequest mAudioFocusRequest =
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ?
+                    new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+                            .setAudioAttributes(sDefaultAudioAttrs.getAudioAttributesV21())
+                            .setOnAudioFocusChangeListener(mOnAudioFocusChangeListener)
+                            .setAcceptsDelayedFocusGain(true)
+                            .build()
+                    : null;
 
     public TextureVideoView2(Context context) {
         this(context, null);
@@ -186,7 +176,7 @@ public class TextureVideoView2 extends AbsTextureVideoView {
                 && (mPrivateFlags & PFLAG_VIDEO_PAUSED_BY_USER) == 0) {
             mExoPlayer = ExoPlayerFactory.newSimpleInstance(mContext);
             mExoPlayer.setVideoSurface(isPureAudioPlayback() ? null : mSurface);
-            mExoPlayer.setAudioAttributes(mAudioAttrs);
+            mExoPlayer.setAudioAttributes(sDefaultAudioAttrs);
             setPlaybackSpeed(mUserPlaybackSpeed);
             mExoPlayer.setRepeatMode(
                     isSingleVideoLoopPlayback() ? Player.REPEAT_MODE_ONE : Player.REPEAT_MODE_OFF);

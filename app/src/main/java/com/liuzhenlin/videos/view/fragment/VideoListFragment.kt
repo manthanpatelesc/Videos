@@ -39,6 +39,7 @@ import com.liuzhenlin.circularcheckbox.CircularCheckBox
 import com.liuzhenlin.floatingmenu.DensityUtils
 import com.liuzhenlin.simrv.SlidingItemMenuRecyclerView
 import com.liuzhenlin.swipeback.SwipeBackFragment
+import com.liuzhenlin.texturevideoview.utils.FileUtils
 import com.liuzhenlin.videos.*
 import com.liuzhenlin.videos.dao.IVideoDao
 import com.liuzhenlin.videos.dao.VideoDaoHelper
@@ -50,7 +51,6 @@ import com.liuzhenlin.videos.utils.UiUtils
 import com.liuzhenlin.videos.utils.VideoUtils2
 import com.liuzhenlin.videos.view.fragment.PackageConsts.*
 import com.liuzhenlin.videos.view.swiperefresh.SwipeRefreshLayout
-import java.io.File
 import java.util.*
 
 /**
@@ -1196,7 +1196,7 @@ class VideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefreshLayo
             thumb = VideoUtils2.generateMiniThumbnail(mContext, videos[0].path)
 
             val path = item.path
-            val dirname = path.substring(path.lastIndexOf(File.separatorChar) + 1)
+            val dirname = FileUtils.getFileNameFromFilePath(path)
 
             val videodirNameText = view.findViewById<TextView>(R.id.text_videodirName)
             videodirNameText.setCompoundDrawablesWithIntrinsicBounds(null,

@@ -94,14 +94,14 @@ public class FileUtils {
         final String fileName = file.getName();
         final String filePath = file.getAbsolutePath();
         if (mimeType == null) {
-            mimeType = getMimeType(filePath, null);
+            mimeType = getMimeTypeFromPath(filePath, null);
             if (mimeType == null) {
                 throw new NullPointerException("Failed to infer mimeType from the file extension");
             }
         }
 
         ContentValues values = new ContentValues(6);
-        values.put(MediaStore.MediaColumns.TITLE, fileName);
+        values.put(MediaStore.MediaColumns.TITLE, getFileTitleFromFileName(fileName));
         values.put(MediaStore.MediaColumns.DISPLAY_NAME, fileName);
         values.put(MediaStore.MediaColumns.DATA, filePath);
         values.put(MediaStore.MediaColumns.SIZE, file.length());
@@ -113,13 +113,18 @@ public class FileUtils {
     }
 
     @NonNull
-    public static String getFileSimpleName(@NonNull String fileName) {
+    public static String getFileNameFromFilePath(@NonNull String filePath) {
+        return filePath.substring(filePath.lastIndexOf(File.separatorChar) + 1);
+    }
+
+    @NonNull
+    public static String getFileTitleFromFileName(@NonNull String fileName) {
         final int lastIndex = fileName.lastIndexOf(".");
         return lastIndex == -1 ? fileName : fileName.substring(0, lastIndex);
     }
 
     @Nullable
-    public static String getMimeType(@NonNull String filePath, @Nullable String defMineType) {
+    public static String getMimeTypeFromPath(@NonNull String filePath, @Nullable String defMineType) {
         final int index = filePath.lastIndexOf(".");
         if (index != -1) {
             return MimeTypeMap.getSingleton().getMimeTypeFromExtension(filePath.substring(index + 1));
@@ -139,7 +144,7 @@ public class FileUtils {
             uri = Uri.fromFile(file);
         }
         it.putExtra(Intent.EXTRA_STREAM, uri);
-        it.setType(getMimeType(file.getPath(), defMimeType));
+        it.setType(getMimeTypeFromPath(file.getPath(), defMimeType));
         context.startActivity(Intent.createChooser(it, context.getString(R.string.share)));
     }
 

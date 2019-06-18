@@ -92,6 +92,8 @@ import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.exoplayer2.C;
+import com.google.android.exoplayer2.audio.AudioAttributes;
 import com.google.android.exoplayer2.source.ads.AdsMediaSource;
 import com.google.android.exoplayer2.util.Util;
 import com.liuzhenlin.texturevideoview.drawable.CircularProgressDrawable;
@@ -1190,6 +1192,18 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
     private final int mMaxVolume;
 
     protected final AudioManager mAudioManager;
+
+    /**
+     * Default attributes for audio playback, which configure the underlying platform.
+     * <p>
+     * To get a {@link android.media.AudioAttributes} first accessible on api 21, simply call
+     * the method {@link AudioAttributes#getAudioAttributesV21()} of this property.
+     */
+    protected static final AudioAttributes sDefaultAudioAttrs =
+            new AudioAttributes.Builder()
+                    .setUsage(C.USAGE_MEDIA)
+                    .setContentType(C.CONTENT_TYPE_MOVIE)
+                    .build();
 
     // Used for subclasses within the same package to avoid duplicate field declarations
     /* package-private */ MediaSessionCompat mSession;

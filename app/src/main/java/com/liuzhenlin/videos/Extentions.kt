@@ -6,6 +6,7 @@
 package com.liuzhenlin.videos
 
 import androidx.collection.ArrayMap
+import com.liuzhenlin.texturevideoview.utils.FileUtils
 import com.liuzhenlin.videos.dao.VideoDaoHelper
 import com.liuzhenlin.videos.model.Video
 import com.liuzhenlin.videos.model.VideoDirectory
@@ -97,7 +98,7 @@ fun VideoDaoHelper.queryVideoDirByPathOrInsert(path: String): VideoDirectory {
     var videodir = queryVideoDirByPath(path)
     if (videodir == null) {
         videodir = VideoDirectory()
-        videodir.name = path.substring(path.lastIndexOf(File.separatorChar) + 1)
+        videodir.name = FileUtils.getFileNameFromFilePath(path)
         videodir.path = path
 
         insertVideoDir(videodir)

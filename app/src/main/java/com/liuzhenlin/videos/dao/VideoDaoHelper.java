@@ -18,6 +18,7 @@ import android.media.MediaMetadataRetriever;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.liuzhenlin.texturevideoview.utils.FileUtils;
 import com.liuzhenlin.videos.BuildConfig;
 import com.liuzhenlin.videos.Consts;
 import com.liuzhenlin.videos.model.Video;
@@ -269,10 +270,17 @@ public class VideoDaoHelper extends SQLiteOpenHelper implements IVideoDao {
                     video.setId(cursor.getLong(i));
                     break;
                 case VIDEO_NAME:
-                    video.setName(cursor.getString(i));
+                    final String name = cursor.getString(i);
+                    if (name != null) {
+                        video.setName(name);
+                    }
                     break;
                 case VIDEO_PATH:
-                    video.setPath(cursor.getString(i));
+                    final String path = cursor.getString(i);
+                    video.setPath(path);
+                    if (video.getName().isEmpty()) {
+                        video.setName(FileUtils.getFileNameFromFilePath(path));
+                    }
                     break;
                 case VIDEO_SIZE:
                     video.setSize(cursor.getLong(i));
