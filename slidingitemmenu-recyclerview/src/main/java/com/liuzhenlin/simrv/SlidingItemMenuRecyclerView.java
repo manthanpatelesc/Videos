@@ -24,13 +24,13 @@ import android.view.animation.Interpolator;
 import android.view.animation.OvershootInterpolator;
 import android.widget.FrameLayout;
 
-import java.util.LinkedList;
-import java.util.List;
-
 import androidx.annotation.Nullable;
 import androidx.collection.SimpleArrayMap;
 import androidx.core.view.ViewCompat;
 import androidx.recyclerview.widget.RecyclerView;
+
+import java.util.LinkedList;
+import java.util.List;
 
 /**
  * @author <a href="mailto:2233788867@qq.com">刘振林</a>
@@ -638,7 +638,7 @@ public class SlidingItemMenuRecyclerView extends RecyclerView {
         }
     }
 
-    private static class TranslateItemViewXAnimator extends ValueAnimator {
+    private static final class TranslateItemViewXAnimator extends ValueAnimator {
         final AnimatorListener listener;
 
         float cachedDeltaTransX;

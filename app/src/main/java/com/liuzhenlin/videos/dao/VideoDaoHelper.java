@@ -30,7 +30,7 @@ import java.io.File;
 /**
  * @author 刘振林
  */
-public class VideoDaoHelper extends SQLiteOpenHelper implements IVideoDao {
+public final class VideoDaoHelper extends SQLiteOpenHelper implements IVideoDao {
 
     private static volatile VideoDaoHelper sHelper;
 

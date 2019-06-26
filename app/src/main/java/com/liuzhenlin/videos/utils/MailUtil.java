@@ -43,7 +43,7 @@ public class MailUtil {
                 .executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, mailInfo);
     }
 
-    private static class SendMailAsyncTask extends AsyncTask<MailInfo, Void, Boolean>
+    private static final class SendMailAsyncTask extends AsyncTask<MailInfo, Void, Boolean>
             implements Dialog.OnCancelListener {
         ProgressDialog mProgressDialog;
         @SuppressLint("StaticFieldLeak")

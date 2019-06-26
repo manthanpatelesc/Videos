@@ -339,7 +339,7 @@ public class SlidingDrawerLayout extends ViewGroup {
     @interface EdgeGravity {
     }
 
-    private class DrawerAnimator extends ValueAnimator {
+    private final class DrawerAnimator extends ValueAnimator {
         final AnimatorListener listener = new AnimatorListenerAdapter() {
             boolean canceled;
 
@@ -392,7 +392,7 @@ public class SlidingDrawerLayout extends ViewGroup {
         }
     }
 
-    private class DrawerRunnable implements Runnable {
+    private final class DrawerRunnable implements Runnable {
         private View drawer;
         private boolean open;
 
@@ -433,7 +433,7 @@ public class SlidingDrawerLayout extends ViewGroup {
         }
     }
 
-    private class OpenStubDrawerRunnable implements Runnable {
+    private final class OpenStubDrawerRunnable implements Runnable {
         final View drawer;
         final boolean animate;
 

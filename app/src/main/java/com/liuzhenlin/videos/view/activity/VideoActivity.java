@@ -180,7 +180,7 @@ public class VideoActivity extends SwipeBackActivity {
     private RefreshVideoProgressInPiPTask mRefreshVideoProgressInPiPTask;
 
     @RequiresApi(api = Build.VERSION_CODES.O)
-    private class RefreshVideoProgressInPiPTask {
+    private final class RefreshVideoProgressInPiPTask {
         final Runnable runnable = new Runnable() {
             @Override
             public void run() {
@@ -326,6 +326,10 @@ public class VideoActivity extends SwipeBackActivity {
         mVideoView = findViewById(R.id.video_view);
         if (mVideos.length > 1) {
             mVideoView.setPlayListAdapter(new VideoEpisodesAdapter());
+        }
+        // 确保列表滚动到所播放视频的位置
+        if (savedInstanceState == null && mVideoIndex != 0) {
+            notifyItemSelectionChanged(0, mVideoIndex, true);
         }
         setVideoToPlay(mVideoIndex);
         mVideoView.setVideoListener(new AbsTextureVideoView.VideoListener() {
@@ -643,7 +647,13 @@ public class VideoActivity extends SwipeBackActivity {
                 setResult(Consts.RESULT_CODE_PLAY_VIDEOS, new Intent().putExtra(Consts.KEY_VIDEOS, mVideos));
             }
         }
-        super.finish();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            // finish() does not remove the activity in PIP mode from the recents stack.
+            // Only finishAndRemoveTask() does this.
+            finishAndRemoveTask();
+        } else {
+            super.finish();
+        }
     }
 
     private void recordCurrVideoProgress() {
@@ -1180,7 +1190,8 @@ public class VideoActivity extends SwipeBackActivity {
         }
     }
 
-    private class VideoEpisodesAdapter extends AbsTextureVideoView.PlayListAdapter<VideoEpisodesAdapter.ViewHolder> {
+    private final class VideoEpisodesAdapter
+            extends AbsTextureVideoView.PlayListAdapter<VideoEpisodesAdapter.ViewHolder> {
 
         @Override
         public void onAttachedToRecyclerView(@NonNull RecyclerView recyclerView) {
@@ -1259,7 +1270,7 @@ public class VideoActivity extends SwipeBackActivity {
             }
         }
 
-        class ViewHolder extends RecyclerView.ViewHolder {
+        final class ViewHolder extends RecyclerView.ViewHolder {
             final ImageView videoImage;
             final TextView videoNameText;
             final TextView videoProgressDurationText;

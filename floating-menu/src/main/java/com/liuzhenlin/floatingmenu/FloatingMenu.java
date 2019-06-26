@@ -342,7 +342,7 @@ public class FloatingMenu extends PopupWindow {
         boolean onLongClick(@NonNull MenuItem menuItem, int position);
     }
 
-    private static class OnMenuTouchListener implements View.OnTouchListener {
+    private static final class OnMenuTouchListener implements View.OnTouchListener {
         final WeakReference<FloatingMenu> menuRef;
 
         OnMenuTouchListener(FloatingMenu menu) {

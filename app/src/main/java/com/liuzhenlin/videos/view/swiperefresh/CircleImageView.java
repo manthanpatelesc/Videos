@@ -126,7 +126,7 @@ class CircleImageView extends AppCompatImageView {
         }
     }
 
-    private class OvalShadow extends OvalShape {
+    private final class OvalShadow extends OvalShape {
         private RadialGradient mRadialGradient;
         private Paint mShadowPaint;
 

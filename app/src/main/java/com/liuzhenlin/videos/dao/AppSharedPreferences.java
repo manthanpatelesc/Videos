@@ -15,7 +15,7 @@ import androidx.annotation.Nullable;
 /**
  * @author 刘振林
  */
-public class AppSharedPreferences {
+public final class AppSharedPreferences {
 
     private static volatile AppSharedPreferences sAppSP;
 

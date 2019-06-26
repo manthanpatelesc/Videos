@@ -15,7 +15,7 @@ import androidx.annotation.Nullable;
 /**
  * @author 刘振林
  */
-class ConstraintLayout extends androidx.constraintlayout.widget.ConstraintLayout {
+/* package-private */ final class ConstraintLayout extends androidx.constraintlayout.widget.ConstraintLayout {
     private TouchInterceptor mTouchInterceptor;
 
     public interface TouchInterceptor {

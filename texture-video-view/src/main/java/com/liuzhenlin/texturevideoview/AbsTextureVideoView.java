@@ -1065,7 +1065,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
         }
 
         @SuppressLint("StaticFieldLeak")
-        class UpdateVideoThumbTask extends AsyncTask<Void, Object, Void> {
+        final class UpdateVideoThumbTask extends AsyncTask<Void, Object, Void> {
             static final boolean RETRIEVE_SCALED_FRAME_FROM_MMR = false;
             static final float RATIO = 0.25f;
             int last = -1;
@@ -3366,7 +3366,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
         }
     }
 
-    private class OnChildTouchListener implements OnTouchListener, ConstraintLayout.TouchInterceptor {
+    private final class OnChildTouchListener implements OnTouchListener, ConstraintLayout.TouchInterceptor {
 
         int touchFlags;
         static final int TFLAG_STILL_DOWN_ON_POPUP = 1;
@@ -3839,7 +3839,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
         }
     }
 
-    private class TimedOffRunnable implements Runnable {
+    private final class TimedOffRunnable implements Runnable {
         int offTime;
         static final int OFF_TIME_30_MINUTES = 30 * 60 * 1000; // ms
         static final int OFF_TIME_AN_HOUR = 60 * 60 * 1000; // ms
@@ -3908,7 +3908,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
      * State persisted across instances
      */
     @VisibleForTesting
-    public static class SavedState extends AbsSavedState {
+    public static final class SavedState extends AbsSavedState {
         private float playbackSpeed;
         private int seekOnPlay;
         private boolean pureAudioPlayback;

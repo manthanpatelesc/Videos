@@ -496,7 +496,7 @@ public class SwipeBackLayout extends FrameLayout {
         return true;
     }
 
-    private class ViewDragCallback extends ViewDragHelper.Callback {
+    private final class ViewDragCallback extends ViewDragHelper.Callback {
 
         @Override
         public boolean tryCaptureView(@NonNull View child, int pointerId) {

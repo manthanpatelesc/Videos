@@ -473,7 +473,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             R.string.setBackground
     };
 
-    private class DrawerListAdapter extends BaseAdapter2 {
+    private final class DrawerListAdapter extends BaseAdapter2 {
 
         final String[] mDrawerListItems;
 
@@ -577,7 +577,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             return super.getView(position, convertView, mDrawerList);
         }
 
-        class DrawerListViewHolder {
+        final class DrawerListViewHolder {
             final View convertView;
             final TextView text;
             final TextView subText;
@@ -734,7 +734,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
-    private class UpdateChecker implements View.OnClickListener {
+    private final class UpdateChecker implements View.OnClickListener {
 
         static final int TIMEOUT_CONNECTION = 10 * 1000; // ms
         static final int TIMEOUT_READ = 30 * 1000; // ms
@@ -931,7 +931,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
 
         @SuppressLint("StaticFieldLeak")
-        class UpdateAppTask extends AsyncTask<Void, Void, Void> {
+        final class UpdateAppTask extends AsyncTask<Void, Void, Void> {
             Dialog mDialog;
             ProgressBar mProgressBar;
             TextView mPercentText;
@@ -965,7 +965,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
 
             @Override
-            protected final Void doInBackground(Void... voids) {
+            protected Void doInBackground(Void... voids) {
                 HttpURLConnection conn = null;
                 try {
                     URL url = new URL(mAppLink);
@@ -1085,7 +1085,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 }
             }
 
-            class DownloadAppTask extends AsyncTask<Integer, Integer, Void> {
+            final class DownloadAppTask extends AsyncTask<Integer, Integer, Void> {
                 @Override
                 protected Void doInBackground(Integer... indices) {
                     final int startIndex = indices[0];

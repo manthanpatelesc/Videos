@@ -481,7 +481,7 @@ public class FeedbackActivity extends SwipeBackActivity implements View.OnClickL
         }
     }
 
-    private class PictureGridAdapter extends BaseAdapter implements AdapterView.OnItemClickListener {
+    private final class PictureGridAdapter extends BaseAdapter implements AdapterView.OnItemClickListener {
         final Context mContext;
 
         final List<Bitmap> mPictures = new ArrayList<>(1);
@@ -553,7 +553,7 @@ public class FeedbackActivity extends SwipeBackActivity implements View.OnClickL
             }
         }
 
-        class PicturePreviewDialog extends Dialog implements DialogInterface.OnDismissListener,
+        final class PicturePreviewDialog extends Dialog implements DialogInterface.OnDismissListener,
                 View.OnClickListener, View.OnLongClickListener {
             final Window mWindow;
 
@@ -808,7 +808,7 @@ public class FeedbackActivity extends SwipeBackActivity implements View.OnClickL
             }
         }
 
-        class PictureGridViewHolder {
+        final class PictureGridViewHolder {
             final ViewGroup convertView;
             final ImageView pictureImage;
             final TextView pictureText;

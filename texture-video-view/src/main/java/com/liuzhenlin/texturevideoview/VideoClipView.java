@@ -981,7 +981,7 @@ public class VideoClipView extends FrameLayout {
         mThumbsAdapter.notifyItemRangeRemoved(0, itemCount);
     }
 
-    private class ThumbsAdapter extends RecyclerView.Adapter<ThumbsAdapter.ViewHolder> {
+    private final class ThumbsAdapter extends RecyclerView.Adapter<ThumbsAdapter.ViewHolder> {
 
         final List<Bitmap> mThumbnails = new ArrayList<>();
 
@@ -1016,7 +1016,7 @@ public class VideoClipView extends FrameLayout {
             return mThumbnails.size();
         }
 
-        class ViewHolder extends RecyclerView.ViewHolder {
+        final class ViewHolder extends RecyclerView.ViewHolder {
             final ImageView thumbImage;
 
             ViewHolder(@NonNull View itemView) {
