@@ -89,15 +89,24 @@ class SearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLongClic
         super.onAttach(context)
         mActivity = context as Activity
         mContext = context.applicationContext
-        if (context is InteractionCallback) {
-            mInteractionCallback = context
-        } else {
-            throw RuntimeException("$context must implement SearchedVideosFragment.InteractionCallback")
+
+        val parent = parentFragment
+
+        mInteractionCallback = when {
+            parent is InteractionCallback -> parent
+            context is InteractionCallback -> context
+            parent != null -> throw RuntimeException("Neither $parent nor $context " +
+                    "has implemented SearchedVideosFragment.InteractionCallback")
+            else -> throw RuntimeException(
+                    "$context must implement SearchedVideosFragment.InteractionCallback")
         }
-        if (context is FragmentPartLifecycleCallback) {
+
+        if (parent is FragmentPartLifecycleCallback) {
+            mLifecycleCallback = parent
+        } else if (context is FragmentPartLifecycleCallback) {
             mLifecycleCallback = context
-            context.onFragmentAttached(this)
         }
+        mLifecycleCallback?.onFragmentAttached(this)
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
@@ -269,6 +278,11 @@ class SearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLongClic
         mInteractionCallback.setOnRefreshLayoutChildScrollUpCallback(null)
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        App.getInstance(mContext).refWatcher.watch(this)
+    }
+
     override fun onDetach() {
         super.onDetach()
         mLifecycleCallback?.onFragmentDetached(this)
@@ -391,6 +405,7 @@ class SearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLongClic
             }
             videoCursor.close()
 
+            videos.sortByElementName()
             return videos
         }
 

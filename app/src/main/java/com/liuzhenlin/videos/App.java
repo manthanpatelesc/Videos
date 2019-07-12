@@ -7,15 +7,19 @@ package com.liuzhenlin.videos;
 
 import android.app.Activity;
 import android.app.Application;
+import android.content.Context;
 import android.content.res.Configuration;
 import android.os.Bundle;
 import android.os.Environment;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatDelegate;
 
 import com.liuzhenlin.floatingmenu.DensityUtils;
 import com.liuzhenlin.texturevideoview.utils.SystemBarUtils;
+import com.squareup.leakcanary.LeakCanary;
+import com.squareup.leakcanary.RefWatcher;
 
 import java.io.File;
 import java.util.WeakHashMap;
@@ -24,12 +28,17 @@ import java.util.WeakHashMap;
  * @author 刘振林
  */
 public class App extends Application implements Application.ActivityLifecycleCallbacks {
+
     private static App sApp;
 
     private static final WeakHashMap</* class name */ String, Activity> sActivities =
             new WeakHashMap<>(3);
 
-    private int mStatusHeight = -1;
+    private static String sAppDirectory;
+
+    private String mAuthority;
+
+    private int mStatusHeight;
 
     private int mScreenWidth = -1;
     private int mScreenHeight = -1;
@@ -39,9 +48,7 @@ public class App extends Application implements Application.ActivityLifecycleCal
 
     private int mVideoThumbWidth = -1;
 
-    private static String sAppDirectory;
-
-    private String mAuthority;
+    private RefWatcher mRefWatcher;
 
     static {
         AppCompatDelegate.setCompatVectorFromResourcesEnabled(true);
@@ -50,14 +57,29 @@ public class App extends Application implements Application.ActivityLifecycleCal
     @Override
     public void onCreate() {
         super.onCreate();
+        if (LeakCanary.isInAnalyzerProcess(this)) {
+            // This process is dedicated to LeakCanary for heap analysis.
+            // You should not init your app in this process.
+            return;
+        }
+        mRefWatcher = LeakCanary.install(this);
+
         sApp = this;
         registerActivityLifecycleCallbacks(this);
+        mStatusHeight = SystemBarUtils.getStatusHeight(this);
     }
 
-    public static App getInstance() {
+    @NonNull
+    public static App getInstance(@NonNull Context context) {
+        return sApp == null ? (App) context.getApplicationContext() : sApp;
+    }
+
+    @Nullable
+    public static App getInstanceUnsafe() {
         return sApp;
     }
 
+    @NonNull
     public static String getAppDirectory() {
         if (sAppDirectory == null) {
             sAppDirectory = Environment.getExternalStorageDirectory() + File.separator + "videos_lzl";
@@ -65,6 +87,7 @@ public class App extends Application implements Application.ActivityLifecycleCal
         return sAppDirectory;
     }
 
+    @NonNull
     public String getAuthority() {
         if (mAuthority == null) {
             mAuthority = getPackageName() + ".provider";
@@ -72,10 +95,7 @@ public class App extends Application implements Application.ActivityLifecycleCal
         return mAuthority;
     }
 
-    public int getStatusHeight() {
-        if (mStatusHeight == -1) {
-            mStatusHeight = SystemBarUtils.getStatusHeight(this);
-        }
+    public int getStatusHeightInPortrait() {
         return mStatusHeight;
     }
 
@@ -162,6 +182,11 @@ public class App extends Application implements Application.ActivityLifecycleCal
             mVideoThumbWidth = (int) (getScreenWidthIgnoreOrientation() * 0.2778f + 0.5f);
         }
         return mVideoThumbWidth;
+    }
+
+    @NonNull
+    public RefWatcher getRefWatcher() {
+        return mRefWatcher;
     }
 
     @Nullable

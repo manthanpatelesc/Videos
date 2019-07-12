@@ -164,7 +164,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         }
 
-        initViews(this);
+        initViews();
 
         if (savedInstanceState == null) {
             mVideoListFragment = new VideoListFragment();
@@ -193,13 +193,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
-    private void initViews(final Context context) {
-        final int screenWidth = App.getInstance().getScreenWidthIgnoreOrientation();
+    private void initViews() {
+        final App app = App.getInstance(this);
+        final int screenWidth = app.getScreenWidthIgnoreOrientation();
 
         mSlidingDrawerLayout = findViewById(R.id.slidingDrawerLayout);
         mSlidingDrawerLayout.setStartDrawerWidthPercent(
-                1f - (App.getInstance().getVideoThumbWidth() +
-                        DensityUtils.dp2px(context, 20f)) / (float) screenWidth);
+                1f - (app.getVideoThumbWidth() + DensityUtils.dp2px(app, 20f)) / (float) screenWidth);
         mSlidingDrawerLayout.setContentSensitiveEdgeSize(screenWidth);
         mSlidingDrawerLayout.addOnDrawerScrollListener(new SlidingDrawerLayout.SimpleOnDrawerScrollListener() {
             @Override
@@ -209,7 +209,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                 mDrawerList = drawer.findViewById(R.id.list_drawer);
                 mDrawerListAdapter = new DrawerListAdapter();
-                View divider = new ViewStub(context);
+                View divider = new ViewStub(app);
                 mDrawerList.addHeaderView(divider);
                 mDrawerList.addFooterView(divider);
                 mDrawerList.setAdapter(mDrawerListAdapter);
@@ -218,7 +218,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 mDrawerList.setScrollEnabled(false);
 
                 mDrawerImage = findViewById(R.id.image_drawer);
-                AppSharedPreferences asp = AppSharedPreferences.getInstance(context);
+                AppSharedPreferences asp = AppSharedPreferences.getInstance(app);
                 final String path = asp.getDrawerBackgroundPath();
                 // 未设置背景图片
                 if (path == null) {
@@ -266,8 +266,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 ViewGroup.MarginLayoutParams hauilp = (ViewGroup.MarginLayoutParams) mHomeAsUpIndicator.getLayoutParams();
                 ViewGroup.MarginLayoutParams ttlp = (ViewGroup.MarginLayoutParams) mTitleText.getLayoutParams();
                 MarginLayoutParamsCompat.setMarginStart(ttlp, (int) (
-                        DensityUtils.dp2px(MainActivity.this, 10) // margin
-                                + App.getInstance().getVideoThumbWidth()
+                        DensityUtils.dp2px(app, 10) /* margin */ + app.getVideoThumbWidth()
                                 - hauilp.leftMargin - hauilp.rightMargin
                                 - mHomeAsUpIndicator.getWidth() - mTitleText.getWidth() + 0.5f));
                 mTitleText.setLayoutParams(ttlp);
@@ -280,7 +279,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private void insertTopPaddingToActionBarIfNeeded(View actionbar) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-            final int statusHeight = App.getInstance().getStatusHeight();
+            final int statusHeight = App.getInstance(this).getStatusHeightInPortrait();
             actionbar.getLayoutParams().height += statusHeight;
             actionbar.setPadding(
                     actionbar.getPaddingLeft(),
@@ -614,34 +613,34 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     @Override
     public boolean onItemLongClick(AdapterView<?> parent, final View view, int position, long id) {
-        switch ((int) id) {
-            case R.string.setBackground:
-                PopupMenu ppm = new PopupMenu(this, view);
-                Menu menu = ppm.getMenu();
-                menu.add(Menu.NONE, R.id.changeTextColor, Menu.NONE,
-                        mIsDrawerListForegroundLight ? R.string.setDarkTexts : R.string.setLightTexts);
-                if (Build.VERSION.SDK_INT > Build.VERSION_CODES.KITKAT) {
-                    menu.add(Menu.NONE, R.id.changeStatusTextColor, Menu.NONE,
-                            mIsDrawerStatusLight ? R.string.setLightStatus : R.string.setDarkStatus);
-                }
-                ppm.setGravity(Gravity.END);
-                ppm.show();
-                ppm.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
-                    @Override
-                    public boolean onMenuItemClick(MenuItem item) {
-                        switch (item.getItemId()) {
-                            case R.id.changeTextColor:
-                                mDrawerListAdapter.setLightDrawerListForeground(
-                                        !mIsDrawerListForegroundLight);
-                                return true;
-                            case R.id.changeStatusTextColor:
-                                setLightDrawerStatus(!mIsDrawerStatusLight);
-                                return true;
-                        }
-                        return false;
+        if (id == R.string.setBackground) {
+            PopupMenu ppm = new PopupMenu(this, view);
+            Menu menu = ppm.getMenu();
+            menu.add(Menu.NONE, R.id.changeTextColor, Menu.NONE,
+                    mIsDrawerListForegroundLight ? R.string.setDarkTexts : R.string.setLightTexts);
+            if (Build.VERSION.SDK_INT > Build.VERSION_CODES.KITKAT) {
+                menu.add(Menu.NONE, R.id.changeStatusTextColor, Menu.NONE,
+                        mIsDrawerStatusLight ? R.string.setLightStatus : R.string.setDarkStatus);
+            }
+            ppm.setGravity(Gravity.END);
+            ppm.show();
+            ppm.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+                @Override
+                public boolean onMenuItemClick(MenuItem item) {
+                    switch (item.getItemId()) {
+                        case R.id.changeTextColor:
+                            mDrawerListAdapter.setLightDrawerListForeground(
+                                    !mIsDrawerListForegroundLight);
+                            return true;
+                        case R.id.changeStatusTextColor:
+                            setLightDrawerStatus(!mIsDrawerStatusLight);
+                            return true;
+                        default:
+                            return false;
                     }
-                });
-                return true;
+                }
+            });
+            return true;
         }
         return false;
     }
@@ -941,11 +940,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             File mApk;
             int mApkLength = -1;
 
-            final int CPU_COUNT = Runtime.getRuntime().availableProcessors();
+            /* static */ final int CPU_COUNT = Runtime.getRuntime().availableProcessors();
             // We want at least 2 threads and at most 4 threads to download the new apk,
             // preferring to have 1 less than the CPU count to avoid saturating the CPU
             // with background work
-            final int COUNT_DOWNLOAD_APP_TASK = Math.max(2, Math.min(CPU_COUNT - 1, 4));
+            /* static */ final int COUNT_DOWNLOAD_APP_TASK = Math.max(2, Math.min(CPU_COUNT - 1, 4));
 
             @Override
             protected void onPreExecute() {
@@ -1181,7 +1180,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                     it.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                     Uri contentUri = FileProvider.getUriForFile(
-                            context, App.getInstance().getAuthority(), apk);
+                            context, App.getInstance(context).getAuthority(), apk);
                     it.setDataAndType(contentUri, "application/vnd.android.package-archive");
                 } else {
                     it.setDataAndType(Uri.fromFile(apk), "application/vnd.android.package-archive");
@@ -1278,7 +1277,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     R.layout.actionbar_searched_videos_fragment, mActionBarContainer, false);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
                 UiUtils.setViewMargins(mTmpActionBar,
-                        0, App.getInstance().getStatusHeight(), 0, 0);
+                        0, App.getInstance(this).getStatusHeightInPortrait(), 0, 0);
             }
             mActionBarContainer.addView(mTmpActionBar, 1);
         } else if (fragment == mFoldedVideosFragment) {

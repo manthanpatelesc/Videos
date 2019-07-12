@@ -38,10 +38,6 @@ import androidx.annotation.Nullable;
         super(context, attrs, defStyleAttr);
     }
 
-    public ConstraintLayout(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
-        super(context, attrs, defStyleAttr, defStyleRes);
-    }
-
     @Override
     public boolean onInterceptTouchEvent(MotionEvent ev) {
         if (mTouchInterceptor != null) {

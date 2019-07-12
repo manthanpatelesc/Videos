@@ -119,15 +119,24 @@ class FoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, View.OnL
         super.onAttach(context)
         mActivity = context as Activity
         mContext = context.applicationContext
-        if (context is InteractionCallback) {
-            mInteractionCallback = context
-        } else {
-            throw RuntimeException("$context must implement FoldedVideosFragment.InteractionCallback")
+
+        val parent = parentFragment
+
+        mInteractionCallback = when {
+            parent is InteractionCallback -> parent
+            context is InteractionCallback -> context
+            parent != null -> throw RuntimeException("Neither $parent nor $context " +
+                    "has implemented FoldedVideosFragment.InteractionCallback")
+            else -> throw RuntimeException(
+                    "$context must implement FoldedVideosFragment.InteractionCallback")
         }
-        if (context is FragmentPartLifecycleCallback) {
+
+        if (parent is FragmentPartLifecycleCallback) {
+            mLifecycleCallback = parent
+        } else if (context is FragmentPartLifecycleCallback) {
             mLifecycleCallback = context
-            context.onFragmentAttached(this)
         }
+        mLifecycleCallback?.onFragmentAttached(this)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -154,6 +163,11 @@ class FoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, View.OnL
             }
             mInteractionCallback.isRefreshLayoutEnabled = true
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        App.getInstance(mContext).refWatcher.watch(this)
     }
 
     override fun onDetach() {

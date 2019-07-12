@@ -194,8 +194,9 @@ public final class VideoDaoHelper extends SQLiteOpenHelper implements IVideoDao 
 
     @Override
     public Cursor queryAllVideos() {
-        return mContentResolver.query(VIDEO_URI, PROJECTION_VIDEO_URI,
-                null, null, VIDEO_NAME + " COLLATE NOCASE");
+        return mContentResolver.query(
+                VIDEO_URI, PROJECTION_VIDEO_URI, null, null,
+                null /* no sort order instead of VIDEO_NAME + " COLLATE NOCASE" */);
     }
 
     @Nullable

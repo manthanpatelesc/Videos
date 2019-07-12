@@ -35,7 +35,7 @@ public class VideoUtils2 {
         Resources res = context.getResources();
 
         final float aspectRatio = (float) video.getWidth() / (float) video.getHeight();
-        final int thumbWidth = App.getInstance().getVideoThumbWidth();
+        final int thumbWidth = App.getInstance(context).getVideoThumbWidth();
         final int height = (int) ((float) thumbWidth / aspectRatio + 0.5f);
         final int maxHeight = (int) (thumbWidth * 9f / 16f + 0.5f);
         final int thumbHeight = height > maxHeight ? maxHeight : height;
@@ -95,7 +95,7 @@ public class VideoUtils2 {
         final StringBuilder result = new StringBuilder();
 
         final boolean chinese = "zh".equals(
-                App.getInstance().getResources().getConfiguration().locale.getLanguage());
+                App.getInstanceUnsafe().getResources().getConfiguration().locale.getLanguage());
 
         final String haveFinishedWatching = chinese ? "已看完" : "Have finished watching";
         final String separator = " | ";

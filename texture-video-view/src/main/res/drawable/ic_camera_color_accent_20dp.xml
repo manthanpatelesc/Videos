@@ -11,7 +11,7 @@
 
     <path
         android:strokeWidth="2"
-        android:strokeColor="?attr/colorAccent"
+        android:strokeColor="@color/colorAccent"
         android:strokeLineJoin="round"
         android:pathData="
                           M8,3 l-2,3 h-5 v15 h21 v-15 h-5 l-2,-3 z

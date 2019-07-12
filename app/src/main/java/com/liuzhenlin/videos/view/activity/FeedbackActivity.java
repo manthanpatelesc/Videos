@@ -520,7 +520,7 @@ public class FeedbackActivity extends SwipeBackActivity implements View.OnClickL
                 convertView = vh.convertView;
                 convertView.setTag(vh);
 
-                final int screenWidth = App.getInstance().getScreenWidthIgnoreOrientation();
+                final int screenWidth = App.getInstance(mContext).getScreenWidthIgnoreOrientation();
                 final int dp_20 = DensityUtils.dp2px(mContext, 20f);
 
                 View child = vh.convertView.getChildAt(0);
@@ -792,7 +792,7 @@ public class FeedbackActivity extends SwipeBackActivity implements View.OnClickL
                     case SCREEN_ORIENTATION_PORTRAIT:
                         mGalleryViewPager.setPadding(0,
                                 mIsNotchHidden
-                                        ? App.getInstance().getStatusHeight()
+                                        ? App.getInstance(mContext).getStatusHeightInPortrait()
                                         : mNotchHeight, 0, 0);
                         break;
                     case SCREEN_ORIENTATION_LANDSCAPE:

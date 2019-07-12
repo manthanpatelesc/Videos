@@ -96,7 +96,7 @@ public class VideoActivity extends SwipeBackActivity {
     private int mVideoWidth;
     private int mVideoHeight;
 
-    private final int mStatusHeight = App.getInstance().getStatusHeight();
+    private final int mStatusHeight = App.getInstanceUnsafe().getStatusHeightInPortrait();
     private int mStatusHeightInLandscapeOfNotchSupportDevices;
     private int mNotchHeight;
     @Nullable
@@ -389,7 +389,7 @@ public class VideoActivity extends SwipeBackActivity {
                 mVideoHeight = height;
 
                 if (width == 0 && height == 0) return;
-                if (width >= height) {
+                if (width > height) {
                     mPrivateFlags &= ~PFLAG_SCREEN_ORIENTATION_PORTRAIT_IMMUTABLE;
                     if (mScreenOrientation == SCREEN_ORIENTATION_PORTRAIT
                             && mVideoView.isInFullscreenMode()) {
@@ -463,7 +463,8 @@ public class VideoActivity extends SwipeBackActivity {
 
             @Override
             public void onShareCapturedVideoPhoto(@NonNull File photo) {
-                FileUtils.shareFile(VideoActivity.this, App.getInstance().getAuthority(),
+                Context context = VideoActivity.this;
+                FileUtils.shareFile(context, App.getInstance(context).getAuthority(),
                         photo, "image/*");
             }
         });
@@ -474,7 +475,7 @@ public class VideoActivity extends SwipeBackActivity {
                 return VideoActivity.this.getWindow();
             }
 
-            @Nullable
+            @NonNull
             @Override
             public String getFileOutputDirectory() {
                 return App.getAppDirectory();
@@ -866,7 +867,7 @@ public class VideoActivity extends SwipeBackActivity {
                                 0, 0);
                     }
                 } else {
-                    final int screenWidth = App.getInstance().getRealScreenWidthIgnoreOrientation();
+                    final int screenWidth = App.getInstance(this).getRealScreenWidthIgnoreOrientation();
                     // portrait w : h = 16 : 9
                     final int minLayoutHeight = (int) ((float) screenWidth / 16f * 9f + 0.5f);
 

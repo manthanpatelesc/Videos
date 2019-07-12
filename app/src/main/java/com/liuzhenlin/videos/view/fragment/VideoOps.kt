@@ -29,10 +29,16 @@ private fun deleteVideosInternal(vararg videos: Video) {
 
     sDeleteVideoTasks.offer(object : AsyncTask<Unit, Unit, Unit>() {
         override fun doInBackground(vararg units: Unit) {
-            for ((id, _, path) in videos) {
-                File(path).delete()
+            val helper = VideoDaoHelper.getInstance(App.getInstanceUnsafe()!!)
 
-                VideoDaoHelper.getInstance(App.getInstance()).deleteVideo(id)
+            for ((id) in videos) {
+                // videos[i]的路径可能已在主线程中被修改（重命名视频）
+                val video = helper.queryVideoById(id)
+                if (video != null) {
+                    File(video.path).delete()
+                }
+
+                helper.deleteVideo(id)
             }
         }
 
@@ -60,7 +66,7 @@ interface VideoOpCallback {
         // 如果名称没有变化
         if (newName == video.name) return false
 
-        val context: Context = App.getInstance()
+        val context: Context = App.getInstanceUnsafe()!!
 
         // 如果不存在该视频文件
         val file = File(video.path)
@@ -101,7 +107,7 @@ fun Fragment.shareVideo(video: Video) {
 }
 
 fun Context?.shareVideo(video: Video) {
-    val app = App.getInstance()
+    val app = App.getInstanceUnsafe()!!
     FileUtils.shareFile(this ?: app, app.authority, File(video.path), "video/*")
 }
 

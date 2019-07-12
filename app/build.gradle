@@ -10,8 +10,8 @@ android {
         applicationId "com.liuzhenlin.videos"
         minSdkVersion 14
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 30
-        versionName "1.7.2"
+        versionCode 30 // 30 -> 31
+        versionName "1.7.3-beta01"
 
         vectorDrawables.useSupportLibrary = true
 
@@ -52,6 +52,10 @@ dependencies {
 
     implementation 'com.sun.mail:android-mail:1.6.3'
     implementation 'com.sun.mail:android-activation:1.6.3'
+
+    debugImplementation 'com.squareup.leakcanary:leakcanary-android:1.6.3'
+    releaseImplementation 'com.squareup.leakcanary:leakcanary-android-no-op:1.6.3'
+    testImplementation 'com.squareup.leakcanary:leakcanary-android-no-op:1.6.3'
 
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'androidx.test:runner:1.2.0'

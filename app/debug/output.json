@@ -7,7 +7,7 @@
       "type": "MAIN",
       "splits": [],
       "versionCode": 30,
-      "versionName": "1.7.2",
+      "versionName": "1.7.3-beta01",
       "enabled": true,
       "outputFile": "app-debug.apk",
       "fullName": "debug",

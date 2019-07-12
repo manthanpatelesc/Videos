@@ -73,7 +73,8 @@
                 android:id="@+id/pb_seekingProgress"
                 android:layout_width="match_parent"
                 android:layout_height="@dimen/progressbarHeight"
-                android:minHeight="0dp"
+                android:minHeight="@dimen/progressbarHeight"
+                android:maxHeight="@dimen/progressbarHeight"
                 android:layout_marginTop="9dp"
                 style="@style/Widget.AppCompat.ProgressBar.Horizontal" />
         </LinearLayout>
@@ -233,7 +234,8 @@
                 android:id="@+id/pb_brightness_or_volume"
                 android:layout_width="match_parent"
                 android:layout_height="@dimen/progressbarHeight"
-                android:minHeight="0dp"
+                android:minHeight="@dimen/progressbarHeight"
+                android:maxHeight="@dimen/progressbarHeight"
                 android:layout_marginTop="10dp"
                 style="@style/Widget.AppCompat.ProgressBar.Horizontal" />
         </LinearLayout>

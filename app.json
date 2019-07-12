@@ -5,7 +5,7 @@
     "minSdkVersion": 14,
     "targetSdkVersion": 28,
     "versionCode": 30,
-    "versionName": "1.7.2",
+    "versionName": "1.7.1-beta01",
     "appLink": "https://raw.githubusercontent.com/ApksHolder/Videos/master/app-release.apk",
     "updateLogs": [
       "1. 若干bug修复"

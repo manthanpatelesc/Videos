@@ -108,6 +108,8 @@
         app:layout_constraintBottom_toTopOf="@id/view_videoclip"
         android:layout_marginTop="10dp"
         android:layout_marginBottom="10dp"
+        android:paddingLeft="20dp"
+        android:paddingRight="20dp"
         android:includeFontPadding="false"
         android:textSize="@dimen/widget_small_text_size"
         android:textColor="@android:color/white" />

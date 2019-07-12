@@ -308,7 +308,7 @@ public class VideoClipView extends FrameLayout {
         mThumbGallery.setHasFixedSize(true);
         mThumbGallery.setAdapter(mThumbsAdapter);
 
-        if (BuildConfig.DEBUG) {
+        if (PackageConsts.DEBUG_LISTENER) {
             addOnSelectionChangeListener(new OnSelectionChangeListener() {
                 @Override
                 public void onStartTrackingTouch() {

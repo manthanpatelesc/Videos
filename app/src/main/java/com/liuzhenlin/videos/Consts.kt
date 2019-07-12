@@ -39,10 +39,10 @@ const val EMPTY_STRING = ""
 @JvmField
 val EMPTY_STRING_ARRAY = arrayOf<String>()
 
-private val _COLOR_SELECTOR by lazy(LazyThreadSafetyMode.NONE) { ContextCompat.getColor(App.getInstance(), R.color.selectorColor) }
+private val _COLOR_SELECTOR by lazy(LazyThreadSafetyMode.NONE) { ContextCompat.getColor(App.getInstanceUnsafe()!!, R.color.selectorColor) }
 @JvmField
 internal val COLOR_SELECTOR = _COLOR_SELECTOR
 
-private val _COLOR_ACCENT by lazy(LazyThreadSafetyMode.NONE) { ContextCompat.getColor(App.getInstance(), R.color.colorAccent) }
+private val _COLOR_ACCENT by lazy(LazyThreadSafetyMode.NONE) { ContextCompat.getColor(App.getInstanceUnsafe()!!, R.color.colorAccent) }
 @JvmField
 internal val COLOR_ACCENT = _COLOR_ACCENT

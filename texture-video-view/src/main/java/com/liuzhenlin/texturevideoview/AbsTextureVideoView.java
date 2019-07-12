@@ -1324,7 +1324,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
         setBackgroundColor(Color.BLACK);
         mContext = context;
         mResources = getResources();
-        mAppName = mResources.getString(context.getApplicationInfo().labelRes);
+        mAppName = context.getApplicationInfo().loadLabel(context.getPackageManager()).toString();
         mUserAgent = Util.getUserAgent(context, mAppName);
 
         mStringPlay = mResources.getString(R.string.play);
@@ -1480,7 +1480,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
         mLoadingDrawable.setStrokeCap(Paint.Cap.ROUND);
         mLoadingImage.setImageDrawable(mLoadingDrawable);
 
-        if (BuildConfig.DEBUG) {
+        if (PackageConsts.DEBUG_LISTENER) {
             addOnPlaybackStateChangeListener((oldState, newState) ->
                     Toast.makeText(context,
                             Utils.playbackStateIntToString(oldState)
@@ -2301,7 +2301,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
             ViewGroup.LayoutParams tvlp = mTextureView.getLayoutParams();
             tvlp.width = tvw;
             tvlp.height = tvh;
-            mTextureView.setLayoutParams(tvlp);
+//            mTextureView.setLayoutParams(tvlp);
         }
 
         ViewGroup.LayoutParams lp = mDrawerView.getLayoutParams();

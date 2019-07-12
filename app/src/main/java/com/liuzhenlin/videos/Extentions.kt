@@ -138,10 +138,16 @@ fun List<Video>?.classifyByDirectories(): MutableList<VideoListItem>? {
         if (videos.size == 1) {
             videosMap.setValueAt(index, videos[0])
         } else {
-            val videodir = VideoDaoHelper.getInstance(App.getInstance())
+            val videodir = VideoDaoHelper.getInstance(App.getInstanceUnsafe()!!)
                     .queryVideoDirByPathOrInsert(videosMap.keyAt(index))
             videodir.size = videos.countAllVideoSize()
-            videodir.videos = if (videos.any { it.isTopped }) videos.reorder() else videos
+            videodir.videos =
+                    if (videos.any { it.isTopped }) {
+                        videos.reorder()
+                    } else {
+                        videos.sortByElementName()
+                        videos
+                    }
 
             videosMap.setValueAt(index, videodir)
         }
@@ -165,9 +171,9 @@ fun List<Video>?.classifyByDirectories(): MutableList<VideoListItem>? {
         index++
     }
     if (items != null) {
-        Collections.sort(items, sVideoListItemComparator)
+        items.sortByElementName()
         if (toppedItems != null) {
-            Collections.sort(toppedItems, sVideoListItemComparator)
+            toppedItems.sortByElementName()
             items.addAll(0, toppedItems)
         }
     }

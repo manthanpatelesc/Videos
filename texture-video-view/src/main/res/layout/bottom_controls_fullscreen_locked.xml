@@ -6,6 +6,8 @@
 <SeekBar xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="@dimen/progressbarHeight"
-    android:thumb="@null"
+    android:minHeight="@dimen/progressbarHeight"
+    android:maxHeight="@dimen/progressbarHeight"
     android:paddingStart="0dp"
-    android:paddingEnd="0dp" />
+    android:paddingEnd="0dp"
+    android:thumb="@null" />

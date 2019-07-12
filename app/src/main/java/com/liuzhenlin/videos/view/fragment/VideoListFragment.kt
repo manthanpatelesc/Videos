@@ -167,7 +167,10 @@ class VideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefreshLayo
 
         val videos = allVideos
         for (listener in it.toTypedArray()) {
-            listener.onReloadVideos(videos)
+            @Suppress("UNCHECKED_CAST")
+            val copy = videos?.clone() as? MutableList<Video>
+            copy?.deepCopy(videos)
+            listener.onReloadVideos(copy)
         }
     }
 
@@ -186,10 +189,15 @@ class VideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefreshLayo
         super.onAttach(context)
         mActivity = context as Activity
         mContext = context.applicationContext
-        if (context is InteractionCallback) {
-            mInteractionCallback = context
-        } else {
-            throw RuntimeException("$context must implement VideoListFragment.InteractionCallback")
+
+        val parent = parentFragment
+        mInteractionCallback = when {
+            parent is InteractionCallback -> parent
+            context is InteractionCallback -> context
+            parent != null -> throw RuntimeException("Neither $context nor $parent " +
+                    "has implemented VideoListFragment.InteractionCallback")
+            else -> throw RuntimeException(
+                    "$context must implement VideoListFragment.InteractionCallback")
         }
     }
 
@@ -244,6 +252,11 @@ class VideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefreshLayo
         }
 //        mVideoListItems.clear()
 //        notifyListenersOnReloadVideos()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        App.getInstance(mContext).refWatcher.watch(this)
     }
 
     /**
@@ -868,7 +881,7 @@ class VideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefreshLayo
                     }
 
                     override fun run() = mTitleWindowFrame?.run {
-                        val statusHeight = App.getInstance().statusHeight
+                        val statusHeight = App.getInstance(mContext).statusHeightInPortrait
                         layoutParams.height = height + statusHeight
                         setPadding(paddingLeft, paddingTop + statusHeight, paddingRight, paddingBottom)
                     } ?: Unit
