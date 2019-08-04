@@ -11,7 +11,7 @@ android {
         minSdkVersion 14
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 30 // 30 -> 31
-        versionName "1.7.3-beta01"
+        versionName "1.7.3-beta02"
 
         vectorDrawables.useSupportLibrary = true
 

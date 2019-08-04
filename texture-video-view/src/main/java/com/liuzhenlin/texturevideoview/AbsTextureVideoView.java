@@ -1450,10 +1450,9 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
 
             @Override
             public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
-                closeVideoInternal(false);
+                closeVideo();
                 mSurface.release();
                 mSurface = null;
-                setPlaybackState(PLAYBACK_STATE_IDLE);
                 return true;
             }
 
@@ -2406,17 +2405,19 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
         super.onDetachedFromWindow();
         removeCallbacks(mRefreshVideoProgressRunnable);
         removeCallbacks(mHideControlsRunnable);
+        cancelVideoPhotoCapture();
+        hideClipView(false);
 
         removeCallbacks(mHideBrightnessOrVolumeFrameRunnable);
         mBrightnessOrVolumeFrame.setVisibility(GONE);
-
-        cancelVideoPhotoCapture();
-        hideClipView(false);
 
         if (mTimedOffRunnable != null) {
             removeCallbacks(mTimedOffRunnable);
             mTimedOffRunnable = null;
         }
+
+        // Reset playback state to IDLE when this view detaches from the hierarchy
+        setPlaybackState(PLAYBACK_STATE_IDLE);
     }
 
     /**
