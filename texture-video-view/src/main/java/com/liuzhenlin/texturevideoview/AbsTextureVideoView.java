@@ -2750,7 +2750,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
         if (a != null && a.hasStarted() && !a.hasEnded()) {
             // We call onAnimationEnd() manually to ensure it to be called immediately to restore
             // the playback state when the animation cancels and before the next animation starts
-            // (if any), where the listener of the animation will be removed, so that no second call
+            // (if any), when the listener of the animation will be removed, so that no second call
             // will be introduced by the clearAnimation() method below.
             ((Animation.AnimationListener) mContentView.getTag()).onAnimationEnd(a);
             mContentView.clearAnimation();

@@ -99,7 +99,7 @@ public class VideoClipView extends FrameLayout {
      */
     private int mMinimumUnselectedClipDuration = DEFAULT_MIN_UNSELECTED_CLIP_DURATION;
 
-    private final int[] mSelectionInterval = sNoSelectionInterval.clone();
+    private final int[] mTmpSelectionInterval = sNoSelectionInterval.clone();
     private static final int[] sNoSelectionInterval = {0, 0};
 
     private boolean mFirstLayout = true;
@@ -235,7 +235,7 @@ public class VideoClipView extends FrameLayout {
 
     private void notifyListenersOfSelectionIntervalChange(boolean fromUser) {
         if (hasOnSelectionChangeListener()) {
-            final int[] interval = mSelectionInterval;
+            final int[] interval = mTmpSelectionInterval;
             getSelectionInterval(interval);
             // Since onSelectionIntervalChange() is implemented by the app, it could do anything,
             // including removing itself from {@link mOnSelectionChangeListeners} — and that could
@@ -250,7 +250,7 @@ public class VideoClipView extends FrameLayout {
 
     private void notifyListenersOfSelectionChange(boolean fromUser) {
         if (hasOnSelectionChangeListener()) {
-            final int[] interval = mSelectionInterval;
+            final int[] interval = mTmpSelectionInterval;
             getSelectionInterval(interval);
             final int selection = getSelection();
             // Since onSelectionChange() is implemented by the app, it could do anything,
@@ -404,7 +404,7 @@ public class VideoClipView extends FrameLayout {
     }
 
     private void resolveFrameOffsets() {
-        final int[] oldInterval = mSelectionInterval.clone();
+        final int[] oldInterval = mTmpSelectionInterval.clone();
         // Not to take the selection interval upon the first resolution of the offsets to ensure
         // the OnSelectionChangeListeners to get notified for the interval change.
         if (!Arrays.equals(oldInterval, sNoSelectionInterval)) {
@@ -424,10 +424,10 @@ public class VideoClipView extends FrameLayout {
             mFrameRightOffset = percent;
         }
 
-        getSelectionInterval(mSelectionInterval);
+        getSelectionInterval(mTmpSelectionInterval);
         // Note that exact floating point equality may not be guaranteed for a theoretically
         // idempotent operation; for example, there are many cases where a + b - b != a.
-        if (!Arrays.equals(mSelectionInterval, oldInterval)) {
+        if (!Arrays.equals(mTmpSelectionInterval, oldInterval)) {
             notifyListenersOfSelectionIntervalChange(false);
         }
     }
@@ -493,31 +493,38 @@ public class VideoClipView extends FrameLayout {
     }
 
     private void drawFrame(Canvas canvas) {
+        final boolean rtl = Utils.isLayoutRtl(this);
         final int width = getWidth();
         final int childTop = getPaddingTop();
         final int childBottom = getHeight() - getPaddingBottom();
 
-        final boolean dark;
-        final float frameLeftOffset = mThumbGalleryWidth * mFrameLeftOffset;
-        final float frameRightOffset = mThumbGalleryWidth * mFrameRightOffset;
-        final float framebarLeft = mDrawableWidth + frameLeftOffset;
-        final float framebarRight = width - mDrawableWidth - frameRightOffset;
-        final float framebarWidth = framebarRight - framebarLeft;
-        final int leftDrawableLeft = (int) (frameLeftOffset + 0.5f);
+        final float frameLeftOffsetPixels = mThumbGalleryWidth * mFrameLeftOffset;
+        final float frameRightOffsetPixels = mThumbGalleryWidth * mFrameRightOffset;
+        final float framebarLeft = mDrawableWidth + frameLeftOffsetPixels;
+        final float framebarRight = width - mDrawableWidth - frameRightOffsetPixels;
+//        final float framebarWidth = framebarRight - framebarLeft;
+        final int leftDrawableLeft = (int) (frameLeftOffsetPixels + 0.5f);
         final int leftDrawableRight = (int) (framebarLeft + 0.5f);
         final int rightDrawableLeft = (int) (framebarRight + 0.5f);
-        final int rightDrawableRight = (int) (width - frameRightOffset + 0.5f);
+        final int rightDrawableRight = (int) (width - frameRightOffsetPixels + 0.5f);
 
-        final boolean rtl = Utils.isLayoutRtl(this);
-        Drawable leftDrawable = rtl ? mClipForward : mClipBackwards;
-        Drawable rightDrawable = rtl ? mClipBackwards : mClipForward;
-        if (Utils.areEqualIgnorePrecisionError(framebarWidth, mMinimumClipBackwardsForwardGap)
-                || Utils.areEqualIgnorePrecisionError(framebarWidth, mMaximumClipBackwardsForwardGap)) {
+        final boolean dark;
+        Drawable leftDrawable;
+        Drawable rightDrawable;
+
+//        if (Utils.areEqualIgnorePrecisionError(framebarWidth, mMinimumClipBackwardsForwardGap)
+//                || Utils.areEqualIgnorePrecisionError(framebarWidth, mMaximumClipBackwardsForwardGap)) {
+        final int[] interval = mTmpSelectionInterval;
+        getSelectionInterval(interval);
+        final int duration = interval[1] - interval[0];
+        if (duration == mMinimumClipDuration || duration == mMaximumClipDuration) {
             dark = true;
             leftDrawable = rtl ? mClipForwardDark : mClipBackwardsDark;
             rightDrawable = rtl ? mClipBackwardsDark : mClipForwardDark;
         } else {
             dark = false;
+            leftDrawable = rtl ? mClipForward : mClipBackwards;
+            rightDrawable = rtl ? mClipBackwards : mClipForward;
         }
 
         leftDrawable.setBounds(leftDrawableLeft, childTop, leftDrawableRight, childBottom);
@@ -775,17 +782,40 @@ public class VideoClipView extends FrameLayout {
                         final float frameLeftOffset = mFrameLeftOffset;
                         final float frameRightOffset = mFrameRightOffset;
 
-                        // Order is important here: when touch goes from left to right, if the length
-                        // of the selection frame has reached its maximum, its right can only be moved
-                        // after the left offset increases, and vice versa.
-                        if (deltaX > 0) {
+//                        final float frameLeftOffsetPixels = mThumbGalleryWidth * frameLeftOffset;
+//                        final float frameRightOffsetPixels = mThumbGalleryWidth * frameRightOffset;
+//                        final float framebarLeft = mDrawableWidth + frameLeftOffsetPixels;
+//                        final float framebarRight = getWidth() - mDrawableWidth - frameRightOffsetPixels;
+//                        final float framebarWidth = framebarRight - framebarLeft;
+//                        final boolean framebarShortest =
+//                                Utils.areEqualIgnorePrecisionError(
+//                                        framebarWidth, mMinimumClipBackwardsForwardGap);
+                        final int[] interval = mTmpSelectionInterval;
+                        getSelectionInterval(interval);
+                        final boolean framebarShortest =
+                                interval[1] - interval[0] == mMinimumClipDuration;
+                        if (deltaX > 0 && !framebarShortest || deltaX < 0 && framebarShortest) {
+                            // Order is important here:
+                            // 1) when touch goes from left to right: if the length of
+                            // the selection frame has reached the maximum, its right can only
+                            // be moved after the left offset increases;
+                            // 2) when touch goes from right to left: if the length of
+                            // the selection frame has been the shortest, its right can only
+                            // be moved after the left offset decreases.
                             if ((mTouchFlags & TFLAG_FRAME_LEFT_BEING_DRAGGED) != 0) {
                                 claimFrameLeftOffset(deltaX);
                             }
                             if ((mTouchFlags & TFLAG_FRAME_RIGHT_BEING_DRAGGED) != 0) {
                                 claimFrameRightOffset(-deltaX);
                             }
-                        } else {
+                        } else if (deltaX < 0 && !framebarShortest || deltaX > 0 && framebarShortest) {
+                            // Order is important here:
+                            // 1) when touch goes from right to left: if the length of
+                            // the selection frame has reached the maximum, its left can only
+                            // be moved after the right offset increases;
+                            // 2) when touch goes from left to right: if the length of
+                            // the selection frame has been the shortest, its left can only
+                            // be moved after the right offset decreases.
                             if ((mTouchFlags & TFLAG_FRAME_RIGHT_BEING_DRAGGED) != 0) {
                                 claimFrameRightOffset(-deltaX);
                             }
