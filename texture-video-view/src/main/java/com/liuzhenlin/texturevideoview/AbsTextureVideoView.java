@@ -2262,10 +2262,10 @@ public abstract class AbsTextureVideoView extends DrawerLayout implements VideoP
         final boolean clipBounds = isClipViewBounds();
         final boolean fullscreen = isInFullscreenMode();
 
-        if (!clipBounds) {
-            width -= (getPaddingLeft() + getPaddingRight());
-            height -= (getPaddingTop() + getPaddingBottom());
-        }
+//        if (!clipBounds) {
+//            width -= (getPaddingLeft() + getPaddingRight());
+//            height -= (getPaddingTop() + getPaddingBottom());
+//        }
         final float aspectRatio = (float) width / height;
 
         if (mVideoWidth != 0 && mVideoHeight != 0) {

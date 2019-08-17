@@ -60,6 +60,7 @@ import com.liuzhenlin.videos.dao.VideoDaoHelper;
 import com.liuzhenlin.videos.model.Video;
 import com.liuzhenlin.videos.utils.DisplayCutoutUtils;
 import com.liuzhenlin.videos.utils.OSHelper;
+import com.liuzhenlin.videos.utils.UiUtils;
 import com.liuzhenlin.videos.utils.VideoUtils2;
 import com.liuzhenlin.videos.utils.observer.OnOrientationChangeListener;
 import com.liuzhenlin.videos.utils.observer.RotationObserver;
@@ -861,10 +862,13 @@ public class VideoActivity extends SwipeBackActivity {
                     setVideoViewSize(ViewGroup.LayoutParams.MATCH_PARENT,
                             ViewGroup.LayoutParams.MATCH_PARENT);
                     if ((mPrivateFlags & PFLAG_SCREEN_NOTCH_SUPPORT) != 0) {
-                        mVideoView.setPadding(0,
-                                (mPrivateFlags & PFLAG_SCREEN_NOTCH_HIDDEN) == 0 ?
-                                        mNotchHeight : mStatusHeight,
-                                0, 0);
+                        for (int i = 0, childCount = mVideoView.getChildCount(); i < childCount; i++) {
+                            UiUtils.setViewMargins(mVideoView.getChildAt(i),
+                                    0,
+                                    (mPrivateFlags & PFLAG_SCREEN_NOTCH_HIDDEN) == 0 ?
+                                            mNotchHeight : mStatusHeight,
+                                    0, 0);
+                        }
                     }
                 } else {
                     final int screenWidth = App.getInstance(this).getRealScreenWidthIgnoreOrientation();
@@ -873,7 +877,9 @@ public class VideoActivity extends SwipeBackActivity {
 
                     setVideoViewSize(screenWidth, minLayoutHeight);
                     if ((mPrivateFlags & PFLAG_SCREEN_NOTCH_SUPPORT) != 0) {
-                        mVideoView.setPadding(0, 0, 0, 0);
+                        for (int i = 0, childCount = mVideoView.getChildCount(); i < childCount; i++) {
+                            UiUtils.setViewMargins(mVideoView.getChildAt(i), 0, 0, 0, 0);
+                        }
                     }
                 }
                 break;
@@ -882,10 +888,13 @@ public class VideoActivity extends SwipeBackActivity {
                         ViewGroup.LayoutParams.MATCH_PARENT);
                 if ((mPrivateFlags & PFLAG_SCREEN_NOTCH_SUPPORT_ON_EMUI) != 0
                         && (mPrivateFlags & PFLAG_SCREEN_NOTCH_HIDDEN) != 0) {
-                    mVideoView.setPadding(0, 0, 0, 0);
-
+                    for (int i = 0, childCount = mVideoView.getChildCount(); i < childCount; i++) {
+                        UiUtils.setViewMargins(mVideoView.getChildAt(i), 0, 0, 0, 0);
+                    }
                 } else if ((mPrivateFlags & PFLAG_SCREEN_NOTCH_SUPPORT) != 0) {
-                    mVideoView.setPadding(mNotchHeight, 0, 0, 0);
+                    for (int i = 0, childCount = mVideoView.getChildCount(); i < childCount; i++) {
+                        UiUtils.setViewMargins(mVideoView.getChildAt(i), mNotchHeight, 0, 0, 0);
+                    }
                 }
                 break;
             case SCREEN_ORIENTATION_REVERSE_LANDSCAPE:
@@ -893,10 +902,13 @@ public class VideoActivity extends SwipeBackActivity {
                         ViewGroup.LayoutParams.MATCH_PARENT);
                 if ((mPrivateFlags & PFLAG_SCREEN_NOTCH_SUPPORT_ON_EMUI) != 0
                         && (mPrivateFlags & PFLAG_SCREEN_NOTCH_HIDDEN) != 0) {
-                    mVideoView.setPadding(0, 0, 0, 0);
-
+                    for (int i = 0, childCount = mVideoView.getChildCount(); i < childCount; i++) {
+                        UiUtils.setViewMargins(mVideoView.getChildAt(i), 0, 0, 0, 0);
+                    }
                 } else if ((mPrivateFlags & PFLAG_SCREEN_NOTCH_SUPPORT) != 0) {
-                    mVideoView.setPadding(0, 0, mNotchHeight, 0);
+                    for (int i = 0, childCount = mVideoView.getChildCount(); i < childCount; i++) {
+                        UiUtils.setViewMargins(mVideoView.getChildAt(i), 0, 0, mNotchHeight, 0);
+                    }
                 }
                 break;
         }
