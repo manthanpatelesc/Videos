@@ -790,10 +790,7 @@ public class FeedbackActivity extends SwipeBackActivity implements View.OnClickL
                 }
                 switch (mScreenOrientation) {
                     case SCREEN_ORIENTATION_PORTRAIT:
-                        mGalleryViewPager.setPadding(0,
-                                mIsNotchHidden
-                                        ? App.getInstance(mContext).getStatusHeightInPortrait()
-                                        : mNotchHeight, 0, 0);
+                        mGalleryViewPager.setPadding(0, mNotchHeight, 0, 0);
                         break;
                     case SCREEN_ORIENTATION_LANDSCAPE:
                         mGalleryViewPager.setPadding(

@@ -425,7 +425,7 @@ class VideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefreshLayo
 
         override fun onPreExecute() {
             mRecyclerView.releaseItemView(false)
-            mRecyclerView.isItemScrollingEnabled = false
+            mRecyclerView.isItemDraggable = false
         }
 
         override fun doInBackground(vararg voids: Void): List<VideoListItem>? {
@@ -448,14 +448,14 @@ class VideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefreshLayo
 
         override fun onPostExecute(items: List<VideoListItem>?) {
             onReloadVideoListItems(items, true)
-            mRecyclerView.isItemScrollingEnabled = true
+            mRecyclerView.isItemDraggable = true
             mInteractionCallback.isRefreshLayoutRefreshing = false
             mLoadVideosTask = null
         }
 
         override fun onCancelled(result: List<VideoListItem>?) {
             if (mLoadVideosTask == null) {
-                mRecyclerView.isItemScrollingEnabled = true
+                mRecyclerView.isItemDraggable = true
                 mInteractionCallback.isRefreshLayoutRefreshing = false
             }
         }
@@ -916,7 +916,7 @@ class VideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefreshLayo
                         mInteractionCallback.setLightStatus(true)
                         mInteractionCallback.setSideDrawerEnabled(false)
                         mInteractionCallback.isRefreshLayoutEnabled = false
-                        mRecyclerView.isItemScrollingEnabled = false
+                        mRecyclerView.isItemDraggable = false
                     }
 
                     override fun run() {
@@ -976,7 +976,7 @@ class VideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefreshLayo
                     mInteractionCallback.setLightStatus(false)
                     mInteractionCallback.setSideDrawerEnabled(true)
                     mInteractionCallback.isRefreshLayoutEnabled = true
-                    mRecyclerView.isItemScrollingEnabled = true
+                    mRecyclerView.isItemDraggable = true
                 }
                 return true
             }

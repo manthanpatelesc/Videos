@@ -862,12 +862,13 @@ public class VideoActivity extends SwipeBackActivity {
                     setVideoViewSize(ViewGroup.LayoutParams.MATCH_PARENT,
                             ViewGroup.LayoutParams.MATCH_PARENT);
                     if ((mPrivateFlags & PFLAG_SCREEN_NOTCH_SUPPORT) != 0) {
+                        /*
+                         * setPadding()对DrawerLayout无效，如：
+                         *
+                         * mVideoView.setPadding(0, mNotchHeight, 0, 0);
+                         */
                         for (int i = 0, childCount = mVideoView.getChildCount(); i < childCount; i++) {
-                            UiUtils.setViewMargins(mVideoView.getChildAt(i),
-                                    0,
-                                    (mPrivateFlags & PFLAG_SCREEN_NOTCH_HIDDEN) == 0 ?
-                                            mNotchHeight : mStatusHeight,
-                                    0, 0);
+                            UiUtils.setViewMargins(mVideoView.getChildAt(i), 0, mNotchHeight, 0, 0);
                         }
                     }
                 } else {
@@ -877,6 +878,7 @@ public class VideoActivity extends SwipeBackActivity {
 
                     setVideoViewSize(screenWidth, minLayoutHeight);
                     if ((mPrivateFlags & PFLAG_SCREEN_NOTCH_SUPPORT) != 0) {
+//                        mVideoView.setPadding(0, 0, 0, 0);
                         for (int i = 0, childCount = mVideoView.getChildCount(); i < childCount; i++) {
                             UiUtils.setViewMargins(mVideoView.getChildAt(i), 0, 0, 0, 0);
                         }
@@ -888,10 +890,12 @@ public class VideoActivity extends SwipeBackActivity {
                         ViewGroup.LayoutParams.MATCH_PARENT);
                 if ((mPrivateFlags & PFLAG_SCREEN_NOTCH_SUPPORT_ON_EMUI) != 0
                         && (mPrivateFlags & PFLAG_SCREEN_NOTCH_HIDDEN) != 0) {
+//                        mVideoView.setPadding(0, 0, 0, 0);
                     for (int i = 0, childCount = mVideoView.getChildCount(); i < childCount; i++) {
                         UiUtils.setViewMargins(mVideoView.getChildAt(i), 0, 0, 0, 0);
                     }
                 } else if ((mPrivateFlags & PFLAG_SCREEN_NOTCH_SUPPORT) != 0) {
+//                        mVideoView.setPadding(mNotchHeight, 0, 0, 0);
                     for (int i = 0, childCount = mVideoView.getChildCount(); i < childCount; i++) {
                         UiUtils.setViewMargins(mVideoView.getChildAt(i), mNotchHeight, 0, 0, 0);
                     }
@@ -902,10 +906,12 @@ public class VideoActivity extends SwipeBackActivity {
                         ViewGroup.LayoutParams.MATCH_PARENT);
                 if ((mPrivateFlags & PFLAG_SCREEN_NOTCH_SUPPORT_ON_EMUI) != 0
                         && (mPrivateFlags & PFLAG_SCREEN_NOTCH_HIDDEN) != 0) {
+//                        mVideoView.setPadding(0, 0, 0, 0);
                     for (int i = 0, childCount = mVideoView.getChildCount(); i < childCount; i++) {
                         UiUtils.setViewMargins(mVideoView.getChildAt(i), 0, 0, 0, 0);
                     }
                 } else if ((mPrivateFlags & PFLAG_SCREEN_NOTCH_SUPPORT) != 0) {
+//                        mVideoView.setPadding(0, 0, mNotchHeight, 0);
                     for (int i = 0, childCount = mVideoView.getChildCount(); i < childCount; i++) {
                         UiUtils.setViewMargins(mVideoView.getChildAt(i), 0, 0, mNotchHeight, 0);
                     }

@@ -395,7 +395,7 @@ class FoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, View.OnL
                 mCancelButton.visibility = View.VISIBLE
                 mSelectAllButton.visibility = View.VISIBLE
                 mVideoOptionsFrame.visibility = View.VISIBLE
-                mRecyclerView.isItemScrollingEnabled = false
+                mRecyclerView.isItemDraggable = false
                 mInteractionCallback.isRefreshLayoutEnabled = false
 
                 mRecyclerView.post {
@@ -457,7 +457,7 @@ class FoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, View.OnL
         mCancelButton.visibility = View.GONE
         mSelectAllButton.visibility = View.GONE
         mVideoOptionsFrame.visibility = View.GONE
-        mRecyclerView.isItemScrollingEnabled = true
+        mRecyclerView.isItemDraggable = true
         mInteractionCallback.isRefreshLayoutEnabled = true
 
         for (video in mVideos) {
@@ -543,7 +543,7 @@ class FoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, View.OnL
     @SuppressLint("StaticFieldLeak")
     private inner class LoadDirectoryVideosTask : AsyncTask<Void, Void, List<Video>?>() {
         override fun onPreExecute() {
-            mRecyclerView.isItemScrollingEnabled = false
+            mRecyclerView.isItemDraggable = false
             mRecyclerView.releaseItemView(false)
         }
 
@@ -575,14 +575,14 @@ class FoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, View.OnL
 
         override fun onPostExecute(videos: List<Video>?) {
             onReloadDirectoryVideos(videos)
-            mRecyclerView.isItemScrollingEnabled = true
+            mRecyclerView.isItemDraggable = true
             mInteractionCallback.isRefreshLayoutRefreshing = false
             mLoadDirectoryVideosTask = null
         }
 
         override fun onCancelled(result: List<Video>?) {
             if (mLoadDirectoryVideosTask == null) {
-                mRecyclerView.isItemScrollingEnabled = true
+                mRecyclerView.isItemDraggable = true
                 mInteractionCallback.isRefreshLayoutRefreshing = false
             }
         }
