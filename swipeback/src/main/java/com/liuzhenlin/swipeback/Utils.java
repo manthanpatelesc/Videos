@@ -5,9 +5,9 @@ import android.app.Activity;
 import android.app.ActivityOptions;
 import android.os.Build;
 
-import java.lang.reflect.Method;
-
 import androidx.annotation.RequiresApi;
+
+import java.lang.reflect.Method;
 
 public class Utils {
 
@@ -96,7 +96,7 @@ public class Utils {
             }
         }
         if (translucentConversionListener != null) {
-            @SuppressLint("PrivateApi")
+            @SuppressLint("DiscouragedPrivateApi")
             Method getActivityOptions = Activity.class.getDeclaredMethod("getActivityOptions");
             getActivityOptions.setAccessible(true);
 

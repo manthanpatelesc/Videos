@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  ~ Created on 10/19/19 5:41 PM.
+  ~ Copyright © 2019 刘振林. All rights reserved.
+  -->
+
+<com.liuzhenlin.videos.view.swiperefresh.SwipeRefreshLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <FrameLayout
+        android:id="@+id/container_child_fragments"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+</com.liuzhenlin.videos.view.swiperefresh.SwipeRefreshLayout>

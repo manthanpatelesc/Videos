@@ -10,18 +10,18 @@
     android:gravity="center_vertical">
 
     <androidx.appcompat.widget.SearchView
-        android:id="@+id/search_view"
+        android:id="@+id/searchview"
         android:layout_width="0dp"
         android:layout_height="match_parent"
         android:layout_weight="1"
         android:layout_marginLeft="10dp"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="6dp"
         android:layout_marginRight="10dp"
-        android:layout_marginBottom="8dp"
+        android:layout_marginBottom="6dp"
         app:queryHint="@string/searchVideos" />
 
     <TextView
-        android:id="@+id/button_cancel_search"
+        android:id="@+id/btn_cancelSearch"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:padding="10dp"

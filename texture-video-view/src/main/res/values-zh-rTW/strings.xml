@@ -43,9 +43,12 @@
     <string name="whenThisEpisodeEnds">播完本集</string>
     <string name="_30Minutes">30分钟</string>
     <string name="anHour">1小时</string>
+    <string name="playerEngine">播放引擎：</string>
+    <string name="google_exoplayer_v2_10_6">Google ExoPlayer v2.10.6（推荐）</string>
     <string name="videoIsLoading">载入视频…</string>
     <string name="failedToLoadThisVideo">无法加载此视频！</string>
     <string name="loadTimeout">加载超时！</string>
     <string name="videoInThisFormatIsNotSupported">不支持该格式视频！</string>
     <string name="unknownErrorOccurredWhenVideoIsPlaying">视频播放时发生未知错误！</string>
+    <string name="undo">取消</string>
 </resources>

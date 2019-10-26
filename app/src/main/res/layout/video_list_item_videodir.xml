@@ -55,7 +55,7 @@
                 android:id="@+id/text_videodirSize"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_below="@+id/text_videodirName"
+                android:layout_below="@id/text_videodirName"
                 android:layout_marginTop="5dp"
                 android:text="100.00MB"
                 android:textSize="@dimen/listitem_second_level_text_size"
@@ -76,13 +76,12 @@
         </RelativeLayout>
 
         <androidx.appcompat.widget.AppCompatImageView
-            android:id="@+id/button_unroll"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginLeft="5dp"
             android:layout_marginStart="5dp"
             app:srcCompat="@drawable/ic_chevron_right_lightgray_24dp"
-            android:contentDescription="@string/unroll" />
+            android:contentDescription="@string/unfold" />
     </LinearLayout>
 
     <include layout="@layout/item_menu_video_list" />

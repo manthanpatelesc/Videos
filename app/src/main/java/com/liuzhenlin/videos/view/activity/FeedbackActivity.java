@@ -39,6 +39,7 @@ import androidx.appcompat.app.AppCompatDialog;
 import androidx.core.content.ContextCompat;
 import androidx.core.graphics.drawable.DrawableCompat;
 
+import com.google.android.material.snackbar.Snackbar;
 import com.liuzhenlin.floatingmenu.DensityUtils;
 import com.liuzhenlin.galleryviewer.GalleryViewPager;
 import com.liuzhenlin.slidingdrawerlayout.Utils;
@@ -150,7 +151,7 @@ public class FeedbackActivity extends SwipeBackActivity implements View.OnClickL
             }
         }
 
-        TextView backButton = findViewById(R.id.bt_back);
+        TextView backButton = findViewById(R.id.btn_back);
         Drawable temp = ContextCompat.getDrawable(this, R.drawable.ic_back);
         assert temp != null;
         Drawable backDrawable = DrawableCompat.wrap(temp);
@@ -165,14 +166,14 @@ public class FeedbackActivity extends SwipeBackActivity implements View.OnClickL
         }
         backButton.setOnClickListener(this);
 
-        TextView saveButton = findViewById(R.id.bt_saveFeedback);
+        TextView saveButton = findViewById(R.id.btn_saveFeedback);
         saveButton.setOnClickListener(this);
 
         mEnterProblemsOrAdviceEditor = findViewById(R.id.editor_enterProblemsOrAdvice);
         mWordCountIndicator = findViewById(R.id.text_wordCountIndicator);
         mPictureCountIndicator = findViewById(R.id.text_pictureCountIndicator);
         mEnterContactWayEditor = findViewById(R.id.editor_enterContactWay);
-        mCommitButton = findViewById(R.id.bt_commit);
+        mCommitButton = findViewById(R.id.btn_commit);
 
         mEnterProblemsOrAdviceEditor.addTextChangedListener(new TextWatcher() {
             @Override
@@ -280,7 +281,7 @@ public class FeedbackActivity extends SwipeBackActivity implements View.OnClickL
     }
 
     @Override
-    protected void onSaveInstanceState(Bundle outState) {
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putString(KEY_SAVED_FEEDBACK_TEXT, mSavedFeedbackText);
         outState.putString(KEY_SAVED_CONTACT_WAY, mSavedContactWay);
@@ -305,8 +306,8 @@ public class FeedbackActivity extends SwipeBackActivity implements View.OnClickL
         final String contactWay = mEnterContactWayEditor.getText().toString().trim();
         if (hasDataChanged(text, contactWay)) {
             View view = View.inflate(this, R.layout.dialog_confirm_save, null);
-            view.findViewById(R.id.bt_notSave).setOnClickListener(this);
-            view.findViewById(R.id.bt_save).setOnClickListener(this);
+            view.findViewById(R.id.btn_notSave).setOnClickListener(this);
+            view.findViewById(R.id.btn_save).setOnClickListener(this);
 
             mConfirmSaveDataDialog = new AppCompatDialog(
                     this, R.style.DialogStyle_MinWidth_NoTitle);
@@ -351,21 +352,21 @@ public class FeedbackActivity extends SwipeBackActivity implements View.OnClickL
     @Override
     public void onClick(View v) {
         switch (v.getId()) {
-            case R.id.bt_back:
+            case R.id.btn_back:
                 onBackPressed();
                 break;
-            case R.id.bt_saveFeedback:
+            case R.id.btn_saveFeedback:
                 saveUserFilledData(true);
                 finish();
                 break;
 
-            case R.id.bt_commit:
+            case R.id.btn_commit:
                 sendFeedback();
                 break;
 
-            case R.id.bt_save:
+            case R.id.btn_save:
                 saveUserFilledData(true);
-            case R.id.bt_notSave:
+            case R.id.btn_notSave:
                 mConfirmSaveDataDialog.cancel();
                 finish();
                 break;
@@ -397,7 +398,13 @@ public class FeedbackActivity extends SwipeBackActivity implements View.OnClickL
             mFeedbackSPs.savePicturePaths(mSavedPicturePaths);
 
             if (showResult) {
-                Toast.makeText(this, R.string.saveSuccessful, Toast.LENGTH_SHORT).show();
+                Activity preActivity = getPreviousActivity();
+                if (preActivity == null) {
+                    Toast.makeText(this, R.string.saveSuccessful, Toast.LENGTH_SHORT).show();
+                } else {
+                    UiUtils.showUserCancelableSnackbar(preActivity.getWindow().getDecorView(),
+                            R.string.saveSuccessful, Snackbar.LENGTH_SHORT);
+                }
             }
         }
     }
@@ -584,9 +591,9 @@ public class FeedbackActivity extends SwipeBackActivity implements View.OnClickL
                 View view = View.inflate(mContext,
                         R.layout.dialog_picture_preview,
                         mWindow.getDecorView().findViewById(Window.ID_ANDROID_CONTENT));
-                mDeleteFrame = view.findViewById(R.id.frame_bt_delete);
+                mDeleteFrame = view.findViewById(R.id.frame_btn_delete);
                 mDeleteFrame.setOnClickListener(this);
-                view.findViewById(R.id.bt_delete).setOnClickListener(this);
+                view.findViewById(R.id.btn_delete).setOnClickListener(this);
                 //
                 List<ImageView> images = new ArrayList<>(mPictures.size() - 1);
                 for (int i = 0, count = mPictures.size() - 1; i < count; i++) {
@@ -676,24 +683,24 @@ public class FeedbackActivity extends SwipeBackActivity implements View.OnClickL
                         cancel();
                         break;
 
-                    case R.id.frame_bt_delete:
-                    case R.id.bt_delete:
+                    case R.id.frame_btn_delete:
+                    case R.id.btn_delete:
                         View view = View.inflate(mContext, R.layout.dialog_message, null);
                         view.<TextView>findViewById(R.id.text_message)
                                 .setText(R.string.areYouSureToDeleteThisPicture);
-                        view.findViewById(R.id.bt_cancel).setOnClickListener(this);
-                        view.findViewById(R.id.bt_confirm).setOnClickListener(this);
+                        view.findViewById(R.id.btn_cancel).setOnClickListener(this);
+                        view.findViewById(R.id.btn_ok).setOnClickListener(this);
                         mConfirmDeletePictureDialog = new AppCompatDialog(
                                 mContext, R.style.DialogStyle_MinWidth_NoTitle);
                         mConfirmDeletePictureDialog.setContentView(view);
                         mConfirmDeletePictureDialog.show();
                         break;
 
-                    case R.id.bt_cancel:
+                    case R.id.btn_cancel:
                         mConfirmDeletePictureDialog.cancel();
                         mConfirmDeletePictureDialog = null;
                         break;
-                    case R.id.bt_confirm:
+                    case R.id.btn_ok:
                         mConfirmDeletePictureDialog.cancel();
                         mConfirmDeletePictureDialog = null;
 

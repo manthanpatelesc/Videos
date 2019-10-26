@@ -40,11 +40,13 @@ import com.liuzhenlin.videos.view.swiperefresh.SwipeRefreshLayout
 import java.io.File
 import java.util.*
 import kotlin.collections.ArrayList
+import kotlin.math.abs
+import kotlin.math.min
 
 /**
  * @author 刘振林
  */
-class FoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, View.OnLongClickListener,
+class LocalFoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, View.OnLongClickListener,
         OnReloadVideosListener, SwipeRefreshLayout.OnRefreshListener {
 
     private lateinit var mActivity: Activity
@@ -126,9 +128,9 @@ class FoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, View.OnL
             parent is InteractionCallback -> parent
             context is InteractionCallback -> context
             parent != null -> throw RuntimeException("Neither $parent nor $context " +
-                    "has implemented FoldedVideosFragment.InteractionCallback")
+                    "has implemented LocalFoldedVideosFragment.InteractionCallback")
             else -> throw RuntimeException(
-                    "$context must implement FoldedVideosFragment.InteractionCallback")
+                    "$context must implement LocalFoldedVideosFragment.InteractionCallback")
         }
 
         if (parent is FragmentPartLifecycleCallback) {
@@ -174,14 +176,14 @@ class FoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, View.OnL
         super.onDetach()
         mLifecycleCallback?.onFragmentDetached(this)
 
-        targetFragment?.onActivityResult(targetRequestCode, RESULT_CODE_FOLDED_VIDEOS_FRAGMENT,
+        targetFragment?.onActivityResult(targetRequestCode, RESULT_CODE_LOCAL_FOLDED_VIDEOS_FRAGMENT,
                 Intent().putExtra(KEY_DIRECTORY_PATH, mVideoDir?.path)
                         .putParcelableArrayListExtra(KEY_VIDEOS,
                                 mVideos as? ArrayList<Video> ?: ArrayList(mVideos)))
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        val view = inflater.inflate(R.layout.fragment_folded_videos, container, false)
+        val view = inflater.inflate(R.layout.fragment_local_folded_videos, container, false)
         initViews(view)
         return attachViewToSwipeBackLayout(view)
     }
@@ -199,14 +201,14 @@ class FoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, View.OnL
                 DividerItemDecoration(mActivity, DividerItemDecoration.VERTICAL))
         mRecyclerView.setHasFixedSize(true)
 
-        mBackButton = actionbar.findViewById(R.id.bt_back)
-        mCancelButton = actionbar.findViewById(R.id.bt_cancel)
-        mSelectAllButton = actionbar.findViewById(R.id.bt_selectAll)
+        mBackButton = actionbar.findViewById(R.id.btn_back)
+        mCancelButton = actionbar.findViewById(R.id.btn_cancel)
+        mSelectAllButton = actionbar.findViewById(R.id.btn_selectAll)
         mVideoOptionsFrame = contentView.findViewById(R.id.frame_videoOptions)
-        mDeleteButton = contentView.findViewById(R.id.bt_delete_videoListOptions)
-        mRenameButton = contentView.findViewById(R.id.bt_rename)
-        mShareButton = contentView.findViewById(R.id.bt_share)
-        mDetailsButton = contentView.findViewById(R.id.bt_details)
+        mDeleteButton = contentView.findViewById(R.id.btn_delete_videoListOptions)
+        mRenameButton = contentView.findViewById(R.id.btn_rename)
+        mShareButton = contentView.findViewById(R.id.btn_share)
+        mDetailsButton = contentView.findViewById(R.id.btn_details)
 
         mBackButton.setOnClickListener(this)
         mCancelButton.setOnClickListener(this)
@@ -259,7 +261,7 @@ class FoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, View.OnL
 
     override fun onClick(v: View) {
         when (v.id) {
-            R.id.bt_back -> swipeBackLayout.scrollToFinishActivityOrPopUpFragment()
+            R.id.btn_back -> swipeBackLayout.scrollToFinishActivityOrPopUpFragment()
 
             R.id.itemVisibleFrame -> {
                 val position = v.tag as Int
@@ -281,7 +283,7 @@ class FoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, View.OnL
                 video.isChecked = !video.isChecked
                 onVideoCheckedChange()
             }
-            R.id.bt_top -> {
+            R.id.btn_top -> {
                 val index = v.tag as Int
 
                 val video = mVideos[index]
@@ -297,19 +299,19 @@ class FoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, View.OnL
                     mVideos.add(newIndex, mVideos.removeAt(index))
                     mAdapter.notifyItemRemoved(index)
                     mAdapter.notifyItemInserted(newIndex)
-                    mAdapter.notifyItemRangeChanged(Math.min(index, newIndex),
-                            Math.abs(newIndex - index) + 1)
+                    mAdapter.notifyItemRangeChanged(min(index, newIndex),
+                            abs(newIndex - index) + 1)
                 }
             }
-            R.id.bt_delete -> {
+            R.id.btn_delete -> {
                 val video = mVideos[v.tag as Int]
                 mVideoOpCallback?.showDeleteVideoDialog(video) {
                     onVideoDeleted(video)
                 }
             }
 
-            R.id.bt_cancel -> hideMultiselectVideoControls()
-            R.id.bt_selectAll -> {
+            R.id.btn_cancel -> hideMultiselectVideoControls()
+            R.id.btn_selectAll -> {
                 if (mSelectAllButton.text == SELECT_ALL) {
                     for ((index, video) in mVideos.withIndex())
                         if (!video.isChecked) {
@@ -323,7 +325,7 @@ class FoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, View.OnL
                 }
                 onVideoCheckedChange()
             }
-            R.id.bt_delete_videoListOptions -> {
+            R.id.btn_delete_videoListOptions -> {
                 val videos = checkedVideos ?: return
                 if (videos.size == 1) {
                     mVideoOpCallback?.showDeleteVideosPopupWindow(videos[0]) {
@@ -352,7 +354,7 @@ class FoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, View.OnL
                     }
                 }
             }
-            R.id.bt_rename -> {
+            R.id.btn_rename -> {
                 val video = checkedVideos?.get(0) ?: return
 
                 hideMultiselectVideoControls()
@@ -365,18 +367,18 @@ class FoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, View.OnL
                         mVideos.add(newIndex, mVideos.removeAt(index))
                         mAdapter.notifyItemRemoved(index)
                         mAdapter.notifyItemInserted(newIndex)
-                        mAdapter.notifyItemRangeChanged(Math.min(index, newIndex),
-                                Math.abs(newIndex - index) + 1)
+                        mAdapter.notifyItemRangeChanged(min(index, newIndex),
+                                abs(newIndex - index) + 1)
                     }
                 }
             }
-            R.id.bt_share -> {
+            R.id.btn_share -> {
                 val video = checkedVideos?.get(0) ?: return
 
                 hideMultiselectVideoControls()
                 shareVideo(video)
             }
-            R.id.bt_details -> {
+            R.id.btn_details -> {
                 val video = checkedVideos?.get(0) ?: return
 
                 hideMultiselectVideoControls()
@@ -672,19 +674,19 @@ class FoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, View.OnL
             val videoNameText: TextView = itemView.findViewById(R.id.text_videoName)
             val videoSizeText: TextView = itemView.findViewById(R.id.text_videoSize)
             val videoProgressAndDurationText: TextView = itemView.findViewById(R.id.text_videoProgressAndDuration)
-            val topButton: TextView = itemView.findViewById(R.id.bt_top)
-            val deleteButton: TextView = itemView.findViewById(R.id.bt_delete)
+            val topButton: TextView = itemView.findViewById(R.id.btn_top)
+            val deleteButton: TextView = itemView.findViewById(R.id.btn_delete)
 
             init {
-                itemVisibleFrame.setOnClickListener(this@FoldedVideosFragment)
-                checkBox.setOnClickListener(this@FoldedVideosFragment)
-                topButton.setOnClickListener(this@FoldedVideosFragment)
-                deleteButton.setOnClickListener(this@FoldedVideosFragment)
+                itemVisibleFrame.setOnClickListener(this@LocalFoldedVideosFragment)
+                checkBox.setOnClickListener(this@LocalFoldedVideosFragment)
+                topButton.setOnClickListener(this@LocalFoldedVideosFragment)
+                deleteButton.setOnClickListener(this@LocalFoldedVideosFragment)
 
-                itemVisibleFrame.setOnLongClickListener(this@FoldedVideosFragment)
+                itemVisibleFrame.setOnLongClickListener(this@LocalFoldedVideosFragment)
             }
         }
     }
 
-    interface InteractionCallback : RefreshLayoutCallback, ActionBarCallback
+    interface InteractionCallback : ActionBarCallback, RefreshLayoutCallback
 }

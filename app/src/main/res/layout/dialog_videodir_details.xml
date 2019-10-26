@@ -66,12 +66,12 @@
         android:layout_marginTop="10dp">
 
         <TextView
-            android:id="@+id/bt_confirm_videoListItemDetailsDialog"
+            android:id="@+id/btn_ok_videoListItemDetailsDialog"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="end"
             android:background="@drawable/selector_dialog_button"
-            android:text="@string/confirm"
+            android:text="@string/ok"
             android:textSize="@dimen/dialog_button_text_size"
             android:textColor="@color/colorAccent" />
     </FrameLayout>

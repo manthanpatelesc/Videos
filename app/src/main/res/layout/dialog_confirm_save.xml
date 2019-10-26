@@ -36,18 +36,18 @@
         android:layout_margin="15dp">
 
         <TextView
-            android:id="@+id/bt_notSave"
+            android:id="@+id/btn_notSave"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_toLeftOf="@+id/bt_save"
-            android:layout_toStartOf="@+id/bt_save"
+            android:layout_toLeftOf="@+id/btn_save"
+            android:layout_toStartOf="@+id/btn_save"
             android:background="@drawable/selector_dialog_button"
             android:text="@string/notSave"
             android:textSize="@dimen/dialog_button_text_size"
             android:textColor="@color/gray" />
 
         <TextView
-            android:id="@id/bt_save"
+            android:id="@id/btn_save"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_alignParentRight="true"

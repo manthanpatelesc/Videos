@@ -13,14 +13,18 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
+import androidx.annotation.StringRes;
 import androidx.core.view.GravityCompat;
 import androidx.core.view.ViewCompat;
 
-import com.liuzhenlin.texturevideoview.VideoPlayerControl;
+import com.google.android.material.snackbar.Snackbar;
+import com.liuzhenlin.texturevideoview.IVideoPlayer;
+import com.liuzhenlin.texturevideoview.R;
 
 /**
  * @author 刘振林
@@ -48,34 +52,34 @@ public class Utils {
     }
 
     /**
-     * Converts a playback state constant defined for {@link VideoPlayerControl.PlaybackState} to a
+     * Converts a playback state constant defined for {@link IVideoPlayer.PlaybackState} to a
      * specified string
      *
-     * @param playbackState one of the constant defined for {@link VideoPlayerControl.PlaybackState}
+     * @param playbackState one of the constant defined for {@link IVideoPlayer.PlaybackState}
      * @return the string representation of the playback state
      */
     @NonNull
-    public static String playbackStateIntToString(@VideoPlayerControl.PlaybackState int playbackState) {
+    public static String playbackStateIntToString(@IVideoPlayer.PlaybackState int playbackState) {
         switch (playbackState) {
-            case VideoPlayerControl.PLAYBACK_STATE_UNDEFINED:
+            case IVideoPlayer.PLAYBACK_STATE_UNDEFINED:
                 return "UNDEFINED";
-            case VideoPlayerControl.PLAYBACK_STATE_ERROR:
+            case IVideoPlayer.PLAYBACK_STATE_ERROR:
                 return "ERROR";
-            case VideoPlayerControl.PLAYBACK_STATE_IDLE:
+            case IVideoPlayer.PLAYBACK_STATE_IDLE:
                 return "IDLE";
-            case VideoPlayerControl.PLAYBACK_STATE_PREPARING:
+            case IVideoPlayer.PLAYBACK_STATE_PREPARING:
                 return "PREPARING";
-            case VideoPlayerControl.PLAYBACK_STATE_PREPARED:
+            case IVideoPlayer.PLAYBACK_STATE_PREPARED:
                 return "PREPARED";
-            case VideoPlayerControl.PLAYBACK_STATE_PLAYING:
+            case IVideoPlayer.PLAYBACK_STATE_PLAYING:
                 return "PLAYING";
-            case VideoPlayerControl.PLAYBACK_STATE_PAUSED:
+            case IVideoPlayer.PLAYBACK_STATE_PAUSED:
                 return "PAUSED";
-            case VideoPlayerControl.PLAYBACK_STATE_COMPLETED:
+            case IVideoPlayer.PLAYBACK_STATE_COMPLETED:
                 return "COMPLETED";
             default:
                 throw new IllegalArgumentException("the `playbackState` must be one of the constant"
-                        + " defined for VideoPlayerControl.PlaybackState");
+                        + " defined for IVideoPlayer.PlaybackState");
         }
     }
 
@@ -144,5 +148,34 @@ public class Utils {
      */
     public static boolean areEqualIgnorePrecisionError(double value1, double value2) {
         return Math.abs(value1 - value2) < 0.0001d;
+    }
+
+    public static void showUserCancelableSnackbar(@NonNull View view, @StringRes int resId,
+                                                  @Snackbar.Duration int duration) {
+        showUserCancelableSnackbar(view, resId, false, duration);
+    }
+
+    public static void showUserCancelableSnackbar(@NonNull View view, @StringRes int resId,
+                                                  boolean shownTextSelectable,
+                                                  @Snackbar.Duration int duration) {
+        showUserCancelableSnackbar(view, view.getResources().getText(resId), shownTextSelectable, duration);
+    }
+
+    public static void showUserCancelableSnackbar(@NonNull View view, @NonNull CharSequence text,
+                                                  @Snackbar.Duration int duration) {
+        showUserCancelableSnackbar(view, text, false, duration);
+    }
+
+    public static void showUserCancelableSnackbar(@NonNull View view, @NonNull CharSequence text,
+                                                  boolean shownTextSelectable,
+                                                  @Snackbar.Duration int duration) {
+        Snackbar snackbar = Snackbar.make(view, text, duration);
+
+        TextView snackbarText = snackbar.getView().findViewById(R.id.snackbar_text);
+        snackbarText.setMaxLines(Integer.MAX_VALUE);
+        snackbarText.setTextIsSelectable(shownTextSelectable);
+
+        snackbar.setAction(R.string.undo, v -> snackbar.dismiss());
+        snackbar.show();
     }
 }

@@ -9,14 +9,13 @@
     tools:context=".view.activity.FeedbackActivity">
 
     <LinearLayout
-        android:id="@+id/title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:padding="10dp"
         android:orientation="horizontal">
 
         <TextView
-            android:id="@+id/bt_back"
+            android:id="@+id/btn_back"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
             android:drawablePadding="5dp"
@@ -37,7 +36,7 @@
             android:gravity="center" />
 
         <TextView
-            android:id="@+id/bt_saveFeedback"
+            android:id="@+id/btn_saveFeedback"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
             android:text="@string/save"
@@ -75,8 +74,7 @@
                     android:maxLength="500"
                     android:maxLines="3"
                     android:inputType="textMultiLine"
-                    android:textAlignment="viewStart"
-                    android:gravity="start|top" />
+                    android:gravity="top" />
 
                 <TextView
                     android:id="@+id/text_wordCountIndicator"
@@ -169,12 +167,11 @@
                     android:textColor="@android:color/black"
                     android:inputType="text"
                     android:singleLine="true"
-                    android:textAlignment="viewStart"
-                    android:gravity="start|center_vertical" />
+                    android:gravity="center_vertical" />
             </LinearLayout>
 
             <Button
-                android:id="@+id/bt_commit"
+                android:id="@+id/btn_commit"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginLeft="10dp"

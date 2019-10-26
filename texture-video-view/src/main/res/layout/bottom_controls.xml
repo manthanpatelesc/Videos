@@ -13,12 +13,12 @@
     android:gravity="center_vertical">
 
     <androidx.appcompat.widget.AppCompatImageView
-        android:id="@+id/bt_toggle"
+        android:id="@+id/btn_toggle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginLeft="10dp"
         android:layout_marginRight="10dp"
-        app:srcCompat="@drawable/bt_play_32dp"
+        app:srcCompat="@drawable/btn_play_32dp"
         android:contentDescription="@string/play" />
 
     <TextView
@@ -48,20 +48,20 @@
         tools:ignore="HardcodedText" />
 
     <androidx.appcompat.widget.AppCompatImageView
-        android:id="@+id/bt_minimize"
+        android:id="@+id/btn_minimize"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:srcCompat="@drawable/bt_minimize_24dp"
+        app:srcCompat="@drawable/btn_minimize_24dp"
         android:contentDescription="@string/minimize" />
 
     <androidx.appcompat.widget.AppCompatImageView
-        android:id="@+id/bt_fullscreen"
+        android:id="@+id/btn_fullscreen"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginLeft="15dp"
         android:layout_marginRight="10dp"
         android:layout_marginStart="15dp"
         android:layout_marginEnd="10dp"
-        app:srcCompat="@drawable/bt_fullscreen_33dp"
+        app:srcCompat="@drawable/btn_fullscreen_33dp"
         android:contentDescription="@string/fullscreen" />
 </LinearLayout>

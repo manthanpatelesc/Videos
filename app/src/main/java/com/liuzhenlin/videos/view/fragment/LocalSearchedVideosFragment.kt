@@ -45,11 +45,14 @@ import com.liuzhenlin.videos.view.fragment.PackageConsts.PAYLOAD_REFRESH_ITEM_NA
 import com.liuzhenlin.videos.view.fragment.PackageConsts.PAYLOAD_REFRESH_VIDEO_PROGRESS_DURATION
 import com.liuzhenlin.videos.view.swiperefresh.SwipeRefreshLayout
 import java.util.*
+import kotlin.math.abs
+import kotlin.math.min
+import kotlin.math.roundToInt
 
 /**
  * @author 刘振林
  */
-class SearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLongClickListener,
+class LocalSearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLongClickListener,
         View.OnTouchListener, OnReloadVideosListener, SwipeRefreshLayout.OnRefreshListener {
 
     private lateinit var mActivity: Activity
@@ -65,7 +68,6 @@ class SearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLongClic
     private val mAdapterWrapper = HeaderAndFooterWrapper(SearchedVideoListAdapter())
     private val mSearchedVideos = mutableListOf<Video>()
     private var mSelectedItemIndex = NO_POSITION
-    private val PAYLOAD_HIGHLIGHT_SELECTED_ITEM_IF_EXISTS = PAYLOAD_REFRESH_VIDEO_PROGRESS_DURATION shl 1
 
     private var mLoadVideosTask: LoadVideosTask? = null
     private var _mVideos: ArrayList<Video>? = null
@@ -96,9 +98,9 @@ class SearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLongClic
             parent is InteractionCallback -> parent
             context is InteractionCallback -> context
             parent != null -> throw RuntimeException("Neither $parent nor $context " +
-                    "has implemented SearchedVideosFragment.InteractionCallback")
+                    "has implemented LocalSearchedVideosFragment.InteractionCallback")
             else -> throw RuntimeException(
-                    "$context must implement SearchedVideosFragment.InteractionCallback")
+                    "$context must implement LocalSearchedVideosFragment.InteractionCallback")
         }
 
         if (parent is FragmentPartLifecycleCallback) {
@@ -110,7 +112,7 @@ class SearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLongClic
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        val view = inflater.inflate(R.layout.fragment_searched_videos, container, false)
+        val view = inflater.inflate(R.layout.fragment_local_searched_videos, container, false)
         initViews(view)
         return view
     }
@@ -119,7 +121,7 @@ class SearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLongClic
         contentView.setOnTouchListener(this)
 
         val actionbar = mInteractionCallback.getActionBar(this)
-        actionbar.findViewById<SearchView>(R.id.search_view).run {
+        actionbar.findViewById<SearchView>(R.id.searchview).run {
             UiUtils.setViewMargins(findViewById(R.id.search_edit_frame), 0, 0, 0, 0)
 
             findViewById<View>(R.id.search_plate).setBackgroundResource(R.drawable.bg_search_view_plate)
@@ -143,7 +145,7 @@ class SearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLongClic
                 }
             })
         }
-        actionbar.findViewById<View>(R.id.button_cancel_search).setOnClickListener {
+        actionbar.findViewById<View>(R.id.btn_cancelSearch).setOnClickListener {
             UiUtils.hideSoftInput(mActivity.window)
             requireFragmentManager().popBackStackImmediate()
         }
@@ -227,8 +229,8 @@ class SearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLongClic
                             val newPosition = headersCount + newIndex
                             mAdapterWrapper.notifyItemRemoved(position)
                             mAdapterWrapper.notifyItemInserted(newPosition)
-                            mAdapterWrapper.notifyItemRangeChanged(Math.min(position, newPosition),
-                                    Math.abs(newPosition - position) + 1)
+                            mAdapterWrapper.notifyItemRangeChanged(min(position, newPosition),
+                                    abs(newPosition - position) + 1)
                         }
                     } else {
                         mSearchedVideos.removeAt(index)
@@ -288,7 +290,7 @@ class SearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLongClic
         mLifecycleCallback?.onFragmentDetached(this)
 
         targetFragment?.onActivityResult(targetRequestCode,
-                RESULT_CODE_SEARCHED_VIDEOS_FRAGMENT,
+                RESULT_CODE_LOCAL_SEARCHED_VIDEOS_FRAGMENT,
                 Intent().putParcelableArrayListExtra(KEY_VIDEOS, mVideos))
     }
 
@@ -373,7 +375,7 @@ class SearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLongClic
             mRecyclerView.visibility = View.GONE
         } else {
             mRecyclerView.visibility = View.VISIBLE
-            mSearchResultText.text = getString(R.string.findSomeVideos, size)
+            mSearchResultText.text = resources.getQuantityString(R.plurals.findSomeVideos, size, size)
         }
     }
 
@@ -490,9 +492,9 @@ class SearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLongClic
             val videoProgressAndDurationText: TextView = itemView.findViewById(R.id.text_videoProgressAndDuration)
 
             init {
-                itemView.setOnTouchListener(this@SearchedVideosFragment)
-                itemView.setOnClickListener(this@SearchedVideosFragment)
-                itemView.setOnLongClickListener(this@SearchedVideosFragment)
+                itemView.setOnTouchListener(this@LocalSearchedVideosFragment)
+                itemView.setOnClickListener(this@LocalSearchedVideosFragment)
+                itemView.setOnLongClickListener(this@LocalSearchedVideosFragment)
             }
         }
     }
@@ -535,7 +537,7 @@ class SearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLongClic
                 val child = parent[i]
                 if (parent.getChildAdapterPosition(child) >= HEADER_COUNT) {
                     parent.getDecoratedBoundsWithMargins(child, mBounds)
-                    val bottom = mBounds.bottom + Math.round(child.translationY)
+                    val bottom = mBounds.bottom + child.translationY.roundToInt()
                     val top = bottom - divider.intrinsicHeight
                     divider.setBounds(left, top, right, bottom)
                     divider.draw(canvas)
@@ -557,12 +559,16 @@ class SearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLongClic
             outRect.set(0, 0, 0,
                     if (parent.getChildAdapterPosition(view) >= HEADER_COUNT) dividerHeight else 0)
         }
+    }
 
-        companion object {
-            private const val HEADER_COUNT = 1
-            private const val TAG = "SearchedVideosFragment.DividerItemDecoration"
-            private val ATTRS = intArrayOf(android.R.attr.listDivider)
-        }
+    companion object {
+        private const val PAYLOAD_HIGHLIGHT_SELECTED_ITEM_IF_EXISTS =
+                PAYLOAD_REFRESH_VIDEO_PROGRESS_DURATION shl 1
+
+        private const val HEADER_COUNT = 1
+        private const val TAG = "LocalSearchedVideosFragment.DividerItemDecoration"
+        @JvmStatic
+        private val ATTRS = intArrayOf(android.R.attr.listDivider)
     }
 
     interface InteractionCallback : ActionBarCallback, RefreshLayoutCallback

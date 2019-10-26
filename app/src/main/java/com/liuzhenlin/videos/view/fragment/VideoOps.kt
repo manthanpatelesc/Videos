@@ -9,12 +9,15 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.os.AsyncTask
+import android.view.View
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import com.google.android.material.snackbar.Snackbar
 import com.liuzhenlin.texturevideoview.utils.FileUtils
 import com.liuzhenlin.videos.*
 import com.liuzhenlin.videos.dao.VideoDaoHelper
 import com.liuzhenlin.videos.model.Video
+import com.liuzhenlin.videos.utils.UiUtils
 import com.liuzhenlin.videos.view.activity.VideoActivity
 import java.io.File
 import java.util.*
@@ -62,41 +65,70 @@ interface VideoOpCallback {
 
     fun deleteVideos(vararg videos: Video) = deleteVideosInternal(*videos)
 
-    fun renameVideo(video: Video, newName: String): Boolean {
+    fun renameVideo(video: Video, newName: String, view: View? = null): Boolean {
         // 如果名称没有变化
         if (newName == video.name) return false
 
-        val context: Context = App.getInstanceUnsafe()!!
+        val context: Context = view?.context ?: App.getInstanceUnsafe()!!
 
         // 如果不存在该视频文件
         val file = File(video.path)
         if (!file.exists()) {
-            Toast.makeText(context, R.string.renameFailedForThisVideoDoesNotExist,
-                    Toast.LENGTH_SHORT).show()
+            if (view == null) {
+                Toast.makeText(context, R.string.renameFailedForThisVideoDoesNotExist,
+                        Toast.LENGTH_SHORT).show()
+            } else {
+                UiUtils.showUserCancelableSnackbar(view,
+                        R.string.renameFailedForThisVideoDoesNotExist, Snackbar.LENGTH_SHORT)
+            }
             return false
         }
 
         val newFile = File(file.parent + File.separator + newName)
         // 该路径下存在相同名称的视频文件
         if (!newName.equals(video.name, ignoreCase = true) && newFile.exists()) {
-            Toast.makeText(context, R.string.renameFailedForThatDirectoryHasSomeFileWithTheSameName,
-                    Toast.LENGTH_SHORT).show()
+            if (view == null) {
+                Toast.makeText(context, R.string.renameFailedForThatDirectoryHasSomeFileWithTheSameName,
+                        Toast.LENGTH_SHORT).show()
+            } else {
+                UiUtils.showUserCancelableSnackbar(view,
+                        R.string.renameFailedForThatDirectoryHasSomeFileWithTheSameName,
+                        Snackbar.LENGTH_SHORT)
+            }
             return false
         }
 
         // 如果重命名失败
         if (!file.renameTo(newFile)) {
-            Toast.makeText(context, R.string.renameFailed, Toast.LENGTH_SHORT).show()
+            if (view == null) {
+                Toast.makeText(context, R.string.renameFailed,
+                        Toast.LENGTH_SHORT).show()
+            } else {
+                UiUtils.showUserCancelableSnackbar(view,
+                        R.string.renameFailed, Snackbar.LENGTH_SHORT)
+            }
             return false
         }
 
         video.name = newName
         video.path = newFile.absolutePath
         return if (VideoDaoHelper.getInstance(context).updateVideo(video)) {
-            Toast.makeText(context, R.string.renameSuccessful, Toast.LENGTH_SHORT).show()
+            if (view == null) {
+                Toast.makeText(context, R.string.renameSuccessful,
+                        Toast.LENGTH_SHORT).show()
+            } else {
+                UiUtils.showUserCancelableSnackbar(view,
+                        R.string.renameSuccessful, Snackbar.LENGTH_SHORT)
+            }
             true
         } else {
-            Toast.makeText(context, R.string.renameFailed, Toast.LENGTH_SHORT).show()
+            if (view == null) {
+                Toast.makeText(context, R.string.renameFailed,
+                        Toast.LENGTH_SHORT).show()
+            } else {
+                UiUtils.showUserCancelableSnackbar(view,
+                        R.string.renameFailed, Snackbar.LENGTH_SHORT)
+            }
             false
         }
     }

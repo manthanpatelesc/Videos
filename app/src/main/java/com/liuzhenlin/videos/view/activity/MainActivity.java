@@ -35,7 +35,6 @@ import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.ColorInt;
 import androidx.annotation.NonNull;
@@ -49,8 +48,11 @@ import androidx.core.content.FileProvider;
 import androidx.core.graphics.drawable.DrawableCompat;
 import androidx.core.view.MarginLayoutParamsCompat;
 import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentPagerAdapter;
+import androidx.viewpager.widget.ViewPager;
 
+import com.google.android.material.snackbar.Snackbar;
+import com.google.android.material.tabs.TabLayout;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.liuzhenlin.floatingmenu.DensityUtils;
@@ -71,11 +73,10 @@ import com.liuzhenlin.videos.utils.OSHelper;
 import com.liuzhenlin.videos.utils.TextViewUtils;
 import com.liuzhenlin.videos.utils.UiUtils;
 import com.liuzhenlin.videos.view.ScrollDisableListView;
+import com.liuzhenlin.videos.view.ScrollDisableViewPager;
 import com.liuzhenlin.videos.view.adapter.BaseAdapter2;
-import com.liuzhenlin.videos.view.fragment.FoldedVideosFragment;
-import com.liuzhenlin.videos.view.fragment.FragmentPartLifecycleCallback;
-import com.liuzhenlin.videos.view.fragment.SearchedVideosFragment;
-import com.liuzhenlin.videos.view.fragment.VideoListFragment;
+import com.liuzhenlin.videos.view.fragment.LocalVideosFragment;
+import com.liuzhenlin.videos.view.fragment.OnlineVideoFragment;
 import com.liuzhenlin.videos.view.swiperefresh.SwipeRefreshLayout;
 
 import org.apache.http.conn.ConnectTimeoutException;
@@ -99,16 +100,12 @@ import java.util.Map;
  */
 public class MainActivity extends AppCompatActivity implements View.OnClickListener,
         AdapterView.OnItemClickListener, AdapterView.OnItemLongClickListener,
-        SlidingDrawerLayout.OnDrawerScrollListener, SwipeBackLayout.SwipeListener,
-        FragmentPartLifecycleCallback, VideoListFragment.InteractionCallback,
-        SearchedVideosFragment.InteractionCallback, FoldedVideosFragment.InteractionCallback {
+        SlidingDrawerLayout.OnDrawerScrollListener, LocalVideosFragment.InteractionCallback {
 
-    private static final String TAG_VIDEO_LIST_FRAGMENT = "VideoListFragment";
-    private static final String TAG_SEARCHED_VIDEOS_FRAGMENT = "SearchedVideosFragment";
-    private static final String TAG_FOLDED_VIDEOS_FRAGMENT = "FoldedVideosFragment";
-    private VideoListFragment mVideoListFragment;
-    private SearchedVideosFragment mSearchedVideosFragment;
-    private FoldedVideosFragment mFoldedVideosFragment;
+    private static final int POSITION_LOCAL_VIDEOS_FRAGMENT = 0;
+    private static final int POSITION_ONLINE_VIDEO_FRAGMENT = 1;
+    private LocalVideosFragment mLocalVideosFragment;
+    private OnlineVideoFragment mOnlineVideoFragment;
 
     private SlidingDrawerLayout mSlidingDrawerLayout;
     private ScrollDisableListView mDrawerList;
@@ -121,16 +118,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private static final int REQUEST_CODE_CHOSE_DRAWER_BACKGROUND_PICTURE = 2;
 
     private ViewGroup mActionBarContainer;
-    private SwipeRefreshLayout mSwipeRefreshLayout;
+    private ScrollDisableViewPager mFragmentViewPager;
+    private TabLayout mFragmentTabLayout;
 
-    // VideoListFragment的ActionBar
+    // LocalVideosFragment和OnlineVideoFragment的共用ActionBar
     private ViewGroup mActionBar;
     private ImageButton mHomeAsUpIndicator;
     private DrawerArrowDrawable mDrawerArrowDrawable;
     private TextView mTitleText;
     private ImageButton mSearchButton;
 
-    // 临时缓存SearchedVideosFragment或FoldedVideosFragment的ActionBar
+    // 临时缓存LocalSearchedVideosFragment或LocalFoldedVideosFragment的ActionBar
     private ViewGroup mTmpActionBar;
 
     private float mSwipeBackScrollPercent;
@@ -164,33 +162,20 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         }
 
-        initViews();
-
         if (savedInstanceState == null) {
-            mVideoListFragment = new VideoListFragment();
-            getSupportFragmentManager().beginTransaction()
-                    .add(R.id.container_fragment, mVideoListFragment, TAG_VIDEO_LIST_FRAGMENT)
-                    .commit();
+            mLocalVideosFragment = new LocalVideosFragment();
+            mOnlineVideoFragment = new OnlineVideoFragment();
         } else {
-            FragmentManager fm = getSupportFragmentManager();
-
-            mVideoListFragment = (VideoListFragment) fm
-                    .findFragmentByTag(TAG_VIDEO_LIST_FRAGMENT);
-            assert mVideoListFragment != null;
-            onAttachFragment(mVideoListFragment);
-
-            mSearchedVideosFragment = (SearchedVideosFragment) fm
-                    .findFragmentByTag(TAG_SEARCHED_VIDEOS_FRAGMENT);
-            if (mSearchedVideosFragment != null) {
-                onAttachFragment(mSearchedVideosFragment);
-            }
-
-            mFoldedVideosFragment = (FoldedVideosFragment) fm
-                    .findFragmentByTag(TAG_FOLDED_VIDEOS_FRAGMENT);
-            if (mFoldedVideosFragment != null) {
-                onAttachFragment(mFoldedVideosFragment);
+            for (Fragment fragment : getSupportFragmentManager().getFragments()) {
+                if (fragment instanceof LocalVideosFragment) {
+                    mLocalVideosFragment = (LocalVideosFragment) fragment;
+                } else if (fragment instanceof OnlineVideoFragment) {
+                    mOnlineVideoFragment = (OnlineVideoFragment) fragment;
+                }
             }
         }
+
+        initViews();
     }
 
     private void initViews() {
@@ -237,15 +222,51 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         });
         mSlidingDrawerLayout.addOnDrawerScrollListener(this);
 
-        mSwipeRefreshLayout = findViewById(R.id.swipeRefreshLayout);
-        mSwipeRefreshLayout.setColorSchemeResources(R.color.pink, R.color.lightBlue, R.color.purple);
-        mSwipeRefreshLayout.setOnRequestDisallowInterceptTouchEventCallback(
-                new SwipeRefreshLayout.OnRequestDisallowInterceptTouchEventCallback() {
+        mFragmentViewPager = findViewById(R.id.viewpager_fragments);
+        mFragmentViewPager.setScrollEnabled(false);
+        mFragmentViewPager.setAdapter(
+                new FragmentPagerAdapter(getSupportFragmentManager(),
+                        FragmentPagerAdapter.BEHAVIOR_RESUME_ONLY_CURRENT_FRAGMENT) {
+                    final Fragment[] fragments = {
+                            mLocalVideosFragment, mOnlineVideoFragment
+                    };
+                    final String[] fragmentTittles = {
+                            getString(R.string.localVideos), getString(R.string.onlineVideo)
+                    };
+
+                    @NonNull
                     @Override
-                    public boolean shouldPassUpToRequestDisallowInterceptTouchEvent() {
-                        return true;
+                    public Fragment getItem(int position) {
+                        return fragments[position];
+                    }
+
+                    @Nullable
+                    @Override
+                    public CharSequence getPageTitle(int position) {
+                        return fragmentTittles[position];
+                    }
+
+                    @Override
+                    public int getCount() {
+                        return fragments.length;
                     }
                 });
+        mFragmentViewPager.addOnPageChangeListener(new ViewPager.SimpleOnPageChangeListener() {
+            @Override
+            public void onPageSelected(int position) {
+                switch (position) {
+                    case POSITION_LOCAL_VIDEOS_FRAGMENT:
+                        mSearchButton.setVisibility(View.VISIBLE);
+                        break;
+                    case POSITION_ONLINE_VIDEO_FRAGMENT:
+                        mSearchButton.setVisibility(View.GONE);
+                        break;
+                }
+            }
+        });
+
+        mFragmentTabLayout = findViewById(R.id.tablayout_fragments);
+        mFragmentTabLayout.setupWithViewPager(mFragmentViewPager);
 
         mActionBarContainer = findViewById(R.id.container_actionbar);
         mActionBar = findViewById(R.id.actionbar);
@@ -255,7 +276,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mDrawerArrowDrawable.setGapSize(12.5f);
         mDrawerArrowDrawable.setColor(Color.WHITE);
 
-        mHomeAsUpIndicator = mActionBar.findViewById(R.id.bt_homeAsUpIndicator);
+        mHomeAsUpIndicator = mActionBar.findViewById(R.id.btn_homeAsUpIndicator);
         mHomeAsUpIndicator.setImageDrawable(mDrawerArrowDrawable);
         mHomeAsUpIndicator.setOnClickListener(this);
 
@@ -273,7 +294,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         });
 
-        mSearchButton = mActionBar.findViewById(R.id.bt_search);
+        mSearchButton = mActionBar.findViewById(R.id.btn_search);
         mSearchButton.setOnClickListener(this);
     }
 
@@ -355,22 +376,19 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     public void onScrollStateChange(@NonNull SlidingDrawerLayout parent,
                                     @NonNull View drawer, int state) {
-        View view = mVideoListFragment.getView();
         switch (state) {
             case SlidingDrawerLayout.SCROLL_STATE_TOUCH_SCROLL:
             case SlidingDrawerLayout.SCROLL_STATE_AUTO_SCROLL:
                 mTitleText.setLayerType(View.LAYER_TYPE_HARDWARE, null);
                 mSearchButton.setLayerType(View.LAYER_TYPE_HARDWARE, null);
-                if (view != null) {
-                    view.setLayerType(View.LAYER_TYPE_HARDWARE, null);
-                }
+                mFragmentViewPager.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+                mFragmentTabLayout.setLayerType(View.LAYER_TYPE_HARDWARE, null);
                 break;
             case SlidingDrawerLayout.SCROLL_STATE_IDLE:
                 mTitleText.setLayerType(View.LAYER_TYPE_NONE, null);
                 mSearchButton.setLayerType(View.LAYER_TYPE_NONE, null);
-                if (view != null) {
-                    view.setLayerType(View.LAYER_TYPE_NONE, null);
-                }
+                mFragmentViewPager.setLayerType(View.LAYER_TYPE_NONE, null);
+                mFragmentTabLayout.setLayerType(View.LAYER_TYPE_NONE, null);
                 break;
         }
     }
@@ -383,33 +401,26 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     @Override
     public void onBackPressed() {
-        if (mFoldedVideosFragment != null) {
-            if (!mFoldedVideosFragment.onBackPressed()) {
-//                super.onBackPressed();
-                mFoldedVideosFragment.getSwipeBackLayout().scrollToFinishActivityOrPopUpFragment();
-            }
-        } else if (mSearchedVideosFragment != null) {
+        //noinspection StatementWithEmptyBody
+        if (mLocalVideosFragment.onBackPressed()) {
+
+        } else if (mSlidingDrawerLayout.hasOpenedDrawer()) {
+            mSlidingDrawerLayout.closeDrawer(true);
+
+        } else if (!mIsBackPressed) {
+            mIsBackPressed = true;
+            mSlidingDrawerLayout.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    mIsBackPressed = false;
+                }
+            }, 3000);
+            UiUtils.showUserCancelableSnackbar(mSlidingDrawerLayout,
+                    R.string.pressAgainToExitApp, Snackbar.LENGTH_SHORT);
+
+        } else {
             super.onBackPressed();
-
-        } else //noinspection StatementWithEmptyBody
-            if (mVideoListFragment.onBackPressed()) {
-
-            } else if (mSlidingDrawerLayout.hasOpenedDrawer()) {
-                mSlidingDrawerLayout.closeDrawer(true);
-
-            } else if (!mIsBackPressed) {
-                mIsBackPressed = true;
-                mSlidingDrawerLayout.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        mIsBackPressed = false;
-                    }
-                }, 3000);
-                Toast.makeText(this, R.string.pressAgainToExitApp, Toast.LENGTH_SHORT).show();
-
-            } else {
-                super.onBackPressed();
-            }
+        }
     }
 
     @Override
@@ -435,30 +446,19 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     public void onClick(View v) {
         switch (v.getId()) {
-            case R.id.bt_homeAsUpIndicator:
+            case R.id.btn_homeAsUpIndicator:
                 if (mSlidingDrawerLayout.hasOpenedDrawer()) {
                     mSlidingDrawerLayout.closeDrawer(true);
                 } else {
                     mSlidingDrawerLayout.openDrawer(Gravity.START, true);
                 }
                 break;
-            case R.id.bt_search:
-                Bundle bundle = new Bundle();
-                bundle.putParcelableArrayList(Consts.KEY_VIDEOS, mVideoListFragment.getAllVideos());
-
-                mSearchedVideosFragment = new SearchedVideosFragment();
-                mSearchedVideosFragment.setArguments(bundle);
-                mSearchedVideosFragment.setTargetFragment(mVideoListFragment,
-                        Consts.REQUEST_CODE_SEARCHED_VIDEOS_FRAGMENT);
-
-                getSupportFragmentManager().beginTransaction()
-                        .add(R.id.container_fragment, mSearchedVideosFragment, TAG_SEARCHED_VIDEOS_FRAGMENT)
-                        .addToBackStack(TAG_SEARCHED_VIDEOS_FRAGMENT)
-                        .commit();
+            case R.id.btn_search:
+                mLocalVideosFragment.goToLocalSearchedVideosFragment();
                 break;
 
-            case R.id.bt_confirm_aboutAppDialog:
-            case R.id.bt_confirm_updateLogsDialog:
+            case R.id.btn_ok_aboutAppDialog:
+            case R.id.btn_ok_updateLogsDialog:
                 ((Dialog) v.getTag()).cancel();
                 break;
         }
@@ -647,7 +647,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private void showAboutAppDialog() {
         View view = View.inflate(this, R.layout.dialog_about_app, null);
-        TextView button = view.findViewById(R.id.bt_confirm_aboutAppDialog);
+        TextView button = view.findViewById(R.id.btn_ok_aboutAppDialog);
 
         Dialog dialog = new AppCompatDialog(this);
         dialog.setContentView(view);
@@ -716,7 +716,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         dialog.setContentView(view);
         dialog.show();
 
-        TextView button = view.findViewById(R.id.bt_confirm_updateLogsDialog);
+        TextView button = view.findViewById(R.id.btn_ok_updateLogsDialog);
         button.setOnClickListener(this);
         button.setTag(dialog);
     }
@@ -728,7 +728,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 mUpdateChecker.checkUpdate();
 
             } else if (!mIsAutoCheckUpdate) {
-                Toast.makeText(this, R.string.noNetworkConnection, Toast.LENGTH_SHORT).show();
+                UiUtils.showUserCancelableSnackbar(mSlidingDrawerLayout,
+                        R.string.noNetworkConnection, Snackbar.LENGTH_SHORT);
             }
         }
     }
@@ -844,22 +845,22 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                 mDrawerListAdapter.notifyItemChanged(0);
                             }
                             if (!mIsAutoCheckUpdate) {
-                                Toast.makeText(MainActivity.this, mCheckUpdateResultText,
-                                        Toast.LENGTH_SHORT).show();
+                                UiUtils.showUserCancelableSnackbar(mSlidingDrawerLayout,
+                                        mCheckUpdateResultText, Snackbar.LENGTH_SHORT);
                             }
                             reset();
                             break;
                         case RESULT_CONNECTION_TIMEOUT:
                             if (!mIsAutoCheckUpdate) {
-                                Toast.makeText(MainActivity.this, R.string.connectionTimeout,
-                                        Toast.LENGTH_SHORT).show();
+                                UiUtils.showUserCancelableSnackbar(mSlidingDrawerLayout,
+                                        R.string.connectionTimeout, Snackbar.LENGTH_SHORT);
                             }
                             reset();
                             break;
                         case RESULT_READ_TIMEOUT:
                             if (!mIsAutoCheckUpdate) {
-                                Toast.makeText(MainActivity.this, R.string.readTimeout,
-                                        Toast.LENGTH_SHORT).show();
+                                UiUtils.showUserCancelableSnackbar(mSlidingDrawerLayout,
+                                        R.string.readTimeout, Snackbar.LENGTH_SHORT);
                             }
                         default:
                             reset();
@@ -884,8 +885,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     TextViewUtils.setHangingIndents(tv, 4);
                 }
             });
-            view.findViewById(R.id.bt_cancel).setOnClickListener(this);
-            view.findViewById(R.id.bt_confirm).setOnClickListener(this);
+            view.findViewById(R.id.btn_cancel).setOnClickListener(this);
+            view.findViewById(R.id.btn_confirm).setOnClickListener(this);
 
             mUpdateDialog = new AppCompatDialog(
                     context, R.style.DialogStyle_MinWidth_NoTitle);
@@ -899,7 +900,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         public void onClick(View v) {
             switch (v.getId()) {
                 // 当点确定按钮时从服务器上下载新的apk，然后安装
-                case R.id.bt_confirm:
+                case R.id.btn_confirm:
                     mUpdateDialog.cancel();
                     mUpdateDialog = null;
                     if (FileUtils2.isExternalStorageMounted()) {
@@ -907,18 +908,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         mUpdateAppTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
                     } else {
                         reset();
-                        Toast.makeText(MainActivity.this,
-                                R.string.pleaseInsertSdCardOnYourDeviceFirst,
-                                Toast.LENGTH_SHORT).show();
+                        UiUtils.showUserCancelableSnackbar(mSlidingDrawerLayout,
+                                R.string.pleaseInsertSdCardOnYourDeviceFirst, Snackbar.LENGTH_SHORT);
                     }
                     break;
                 // 当点取消按钮时不做任何举动
-                case R.id.bt_cancel:
+                case R.id.btn_cancel:
                     mUpdateDialog.cancel();
                     reset();
                     break;
 
-                case R.id.bt_cancel_uapd:
+                case R.id.btn_cancel_uapd:
                     mUpdateAppTask.cancel();
                     break;
             }
@@ -950,7 +950,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             protected void onPreExecute() {
                 View view = View.inflate(MainActivity.this, R.layout.progress_dialog_update_app, null);
                 view.<TextView>findViewById(R.id.text_title).setText(R.string.downloadingUpdates);
-                view.findViewById(R.id.bt_cancel_uapd).setOnClickListener(UpdateChecker.this);
+                view.findViewById(R.id.btn_cancel_uapd).setOnClickListener(UpdateChecker.this);
                 mProgressBar = view.findViewById(R.id.progress);
                 mPercentText = view.findViewById(R.id.text_progressPercent);
                 mProgressNumberText = view.findViewById(R.id.text_progressNumber);
@@ -982,8 +982,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             @Override
                             public void run() {
                                 cancel();
-                                Toast.makeText(MainActivity.this,
-                                        R.string.notHaveEnoughStorage, Toast.LENGTH_SHORT).show();
+                                UiUtils.showUserCancelableSnackbar(mSlidingDrawerLayout,
+                                        R.string.notHaveEnoughStorage, Snackbar.LENGTH_SHORT);
                             }
                         });
                     }
@@ -1051,8 +1051,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         @Override
                         public void run() {
                             cancel();
-                            Toast.makeText(MainActivity.this,
-                                    R.string.connectionTimeout, Toast.LENGTH_SHORT).show();
+                            UiUtils.showUserCancelableSnackbar(mSlidingDrawerLayout,
+                                    R.string.connectionTimeout, Snackbar.LENGTH_SHORT);
                         }
                     });
                 }
@@ -1064,8 +1064,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         @Override
                         public void run() {
                             cancel();
-                            Toast.makeText(MainActivity.this,
-                                    R.string.readTimeout, Toast.LENGTH_SHORT).show();
+                            UiUtils.showUserCancelableSnackbar(mSlidingDrawerLayout,
+                                    R.string.readTimeout, Snackbar.LENGTH_SHORT);
                         }
                     });
                 }
@@ -1077,8 +1077,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         @Override
                         public void run() {
                             cancel();
-                            Toast.makeText(MainActivity.this,
-                                    R.string.downloadError, Toast.LENGTH_SHORT).show();
+                            UiUtils.showUserCancelableSnackbar(mSlidingDrawerLayout,
+                                    R.string.downloadError, Snackbar.LENGTH_SHORT);
                         }
                     });
                 }
@@ -1170,8 +1170,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
             void installApk(Context context, File apk) {
                 if (apk == null || !apk.exists() || apk.length() != mApkLength) {
-                    Toast.makeText(context, R.string.theInstallationPackageHasBeenDestroyed,
-                            Toast.LENGTH_SHORT).show();
+                    UiUtils.showUserCancelableSnackbar(mSlidingDrawerLayout,
+                            R.string.theInstallationPackageHasBeenDestroyed, Snackbar.LENGTH_SHORT);
                     return;
                 }
 
@@ -1193,32 +1193,108 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @NonNull
     @Override
     public ViewGroup getActionBar(@NonNull Fragment fragment) {
-        return fragment == mVideoListFragment ? mActionBar : mTmpActionBar;
+        return fragment == mLocalVideosFragment || fragment == mOnlineVideoFragment
+                ? mActionBar : mTmpActionBar;
     }
 
     @Override
     public boolean isRefreshLayoutEnabled() {
-        return mSwipeRefreshLayout.isEnabled();
+        return mLocalVideosFragment.isRefreshLayoutEnabled();
     }
 
     @Override
     public void setRefreshLayoutEnabled(boolean enabled) {
-        mSwipeRefreshLayout.setEnabled(enabled);
+        mLocalVideosFragment.setRefreshLayoutEnabled(enabled);
     }
 
     @Override
     public boolean isRefreshLayoutRefreshing() {
-        return mSwipeRefreshLayout.isRefreshing();
+        return mLocalVideosFragment.isRefreshLayoutRefreshing();
     }
 
     @Override
     public void setRefreshLayoutRefreshing(boolean refreshing) {
-        mSwipeRefreshLayout.setRefreshing(refreshing);
+        mLocalVideosFragment.setRefreshLayoutRefreshing(refreshing);
     }
 
     @Override
     public void setOnRefreshLayoutChildScrollUpCallback(@Nullable SwipeRefreshLayout.OnChildScrollUpCallback callback) {
-        mSwipeRefreshLayout.setOnChildScrollUpCallback(callback);
+        mLocalVideosFragment.setOnRefreshLayoutChildScrollUpCallback(callback);
+    }
+
+    @Override
+    public void onLocalSearchedVideosFragmentAttached() {
+        mSlidingDrawerLayout.setDrawerEnabledInTouch(Gravity.START, false);
+
+        mTmpActionBar = (ViewGroup) LayoutInflater.from(this).inflate(
+                R.layout.actionbar_local_searched_videos_fragment, mActionBarContainer, false);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            UiUtils.setViewMargins(mTmpActionBar,
+                    0, App.getInstance(this).getStatusHeightInPortrait(), 0, 0);
+        }
+        mActionBarContainer.addView(mTmpActionBar, 1);
+
+        mFragmentTabLayout.setVisibility(View.GONE);
+    }
+
+    @Override
+    public void onLocalSearchedVideosFragmentDetached() {
+        mSlidingDrawerLayout.setDrawerEnabledInTouch(Gravity.START, true);
+
+        mActionBarContainer.removeView(mTmpActionBar);
+        mTmpActionBar = null;
+
+        mFragmentTabLayout.setVisibility(View.VISIBLE);
+    }
+
+    @Override
+    public void onLocalFoldedVideosFragmentAttached() {
+        mSlidingDrawerLayout.setDrawerEnabledInTouch(Gravity.START, false);
+
+        mActionBar.setVisibility(View.GONE);
+        mTmpActionBar = (ViewGroup) LayoutInflater.from(this).inflate(
+                R.layout.actionbar_local_folded_videos_fragment, mActionBarContainer, false);
+        mActionBarContainer.addView(mTmpActionBar, 1);
+        insertTopPaddingToActionBarIfNeeded(mTmpActionBar);
+
+        mFragmentTabLayout.setVisibility(View.GONE);
+        UiUtils.setTabItemsClickable(mFragmentTabLayout, false);
+    }
+
+    @Override
+    public void onLocalFoldedVideosFragmentDetached() {
+        mSlidingDrawerLayout.setDrawerEnabledInTouch(Gravity.START, true);
+
+//        mActionBar.setVisibility(View.VISIBLE);
+        mActionBarContainer.removeView(mTmpActionBar);
+        mTmpActionBar = null;
+
+        UiUtils.setTabItemsClickable(mFragmentTabLayout, true);
+//        mFragmentTabLayout.setVisibility(View.VISIBLE);
+    }
+
+    @Override
+    public void onScrollStateChange(int edge, int state) {
+        switch (state) {
+            case SwipeBackLayout.STATE_DRAGGING:
+            case SwipeBackLayout.STATE_SETTLING:
+                mActionBar.setVisibility(View.VISIBLE);
+                mFragmentTabLayout.setVisibility(View.VISIBLE);
+                break;
+            case SwipeBackLayout.STATE_IDLE:
+                if (mSwipeBackScrollPercent == 0) {
+                    mActionBar.setVisibility(View.GONE);
+                    mFragmentTabLayout.setVisibility(View.GONE);
+                }
+                break;
+        }
+    }
+
+    @Override
+    public void onScrollPercentChange(int edge, float percent) {
+        mSwipeBackScrollPercent = percent;
+        mActionBar.setAlpha(percent);
+        mTmpActionBar.setAlpha(1 - percent);
     }
 
     @Override
@@ -1243,116 +1319,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mSlidingDrawerLayout.setDrawerEnabledInTouch(Gravity.START, enabled);
     }
 
-    @NonNull
     @Override
-    public Fragment goToFoldedVideosFragment(@NonNull Bundle args) {
-        mFoldedVideosFragment = new FoldedVideosFragment();
-        mFoldedVideosFragment.setArguments(args);
-
-        getSupportFragmentManager().beginTransaction()
-                .setCustomAnimations(
-                        R.anim.anim_open_enter, R.anim.anim_open_exit,
-                        R.anim.anim_close_enter, R.anim.anim_close_exit)
-                .hide(mVideoListFragment)
-                .add(R.id.container_fragment, mFoldedVideosFragment, TAG_FOLDED_VIDEOS_FRAGMENT)
-                .addToBackStack(TAG_FOLDED_VIDEOS_FRAGMENT)
-                .commit();
-
-        return mFoldedVideosFragment;
-    }
-
-    @Override
-    public void onAttachFragment(Fragment fragment) {
-        if (fragment == mVideoListFragment) {
-            mSwipeRefreshLayout.setOnRefreshListener(mVideoListFragment);
-
-        } else if (fragment == mSearchedVideosFragment) {
-            mSearchedVideosFragment.setVideoOpCallback(mVideoListFragment);
-            mVideoListFragment.addOnReloadVideosListener(mSearchedVideosFragment);
-            mSwipeRefreshLayout.setOnRefreshListener(mSearchedVideosFragment);
-
-            mSlidingDrawerLayout.setDrawerEnabledInTouch(Gravity.START, false);
-
-            mTmpActionBar = (ViewGroup) LayoutInflater.from(this).inflate(
-                    R.layout.actionbar_searched_videos_fragment, mActionBarContainer, false);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-                UiUtils.setViewMargins(mTmpActionBar,
-                        0, App.getInstance(this).getStatusHeightInPortrait(), 0, 0);
-            }
-            mActionBarContainer.addView(mTmpActionBar, 1);
-        } else if (fragment == mFoldedVideosFragment) {
-            mFoldedVideosFragment.setVideoOpCallback(mVideoListFragment);
-            mVideoListFragment.addOnReloadVideosListener(mFoldedVideosFragment);
-            mSwipeRefreshLayout.setOnRefreshListener(mFoldedVideosFragment);
-
-            mSlidingDrawerLayout.setDrawerEnabledInTouch(Gravity.START, false);
-
-            mActionBar.setVisibility(View.INVISIBLE);
-            mTmpActionBar = (ViewGroup) LayoutInflater.from(this).inflate(
-                    R.layout.actionbar_folded_videos_fragment, mActionBarContainer, false);
-            mActionBarContainer.addView(mTmpActionBar, 1);
-            insertTopPaddingToActionBarIfNeeded(mTmpActionBar);
-        }
-    }
-
-    @Override
-    public void onFragmentAttached(@NonNull Fragment fragment) {
-    }
-
-    @Override
-    public void onFragmentViewCreated(@NonNull Fragment fragment) {
-        if (fragment == mFoldedVideosFragment) {
-            mFoldedVideosFragment.getSwipeBackLayout().addSwipeListener(this);
-        }
-    }
-
-    @Override
-    public void onFragmentViewDestroyed(@NonNull Fragment fragment) {
-    }
-
-    @Override
-    public void onFragmentDetached(@NonNull Fragment fragment) {
-        if (fragment == mSearchedVideosFragment) {
-            mVideoListFragment.removeOnReloadVideosListener(mSearchedVideosFragment);
-            mSearchedVideosFragment = null;
-            mSwipeRefreshLayout.setOnRefreshListener(mVideoListFragment);
-
-            mSlidingDrawerLayout.setDrawerEnabledInTouch(Gravity.START, true);
-
-            mActionBarContainer.removeView(mTmpActionBar);
-            mTmpActionBar = null;
-
-        } else if (fragment == mFoldedVideosFragment) {
-            mVideoListFragment.removeOnReloadVideosListener(mFoldedVideosFragment);
-            mFoldedVideosFragment = null;
-            mSwipeRefreshLayout.setOnRefreshListener(mVideoListFragment);
-
-            mSlidingDrawerLayout.setDrawerEnabledInTouch(Gravity.START, true);
-
-            mActionBarContainer.removeView(mTmpActionBar);
-            mTmpActionBar = null;
-        }
-    }
-
-    @Override
-    public void onScrollStateChange(int edge, int state) {
-        switch (state) {
-            case SwipeBackLayout.STATE_DRAGGING:
-            case SwipeBackLayout.STATE_SETTLING:
-                mActionBar.setVisibility(View.VISIBLE);
-                break;
-            case SwipeBackLayout.STATE_IDLE:
-                if (mSwipeBackScrollPercent == 0) {
-                    mActionBar.setVisibility(View.INVISIBLE);
-                }
-                break;
-        }
-    }
-
-    @Override
-    public void onScrollPercentChange(int edge, float percent) {
-        mSwipeBackScrollPercent = percent;
-        mActionBar.setAlpha(percent);
-        mTmpActionBar.setAlpha(1 - percent);
+    public void goToLocalFoldedVideosFragment(@NonNull Bundle args) {
+        mLocalVideosFragment.goToLocalFoldedVideosFragment(args);
     }
 }

@@ -9,7 +9,6 @@ import android.net.Uri;
 import android.text.TextUtils;
 
 import androidx.annotation.IntDef;
-import androidx.annotation.IntRange;
 import androidx.annotation.Nullable;
 import androidx.annotation.RawRes;
 
@@ -17,44 +16,96 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 
 /**
- * An interface that can be implemented by {@linkplain android.view.View View} subclasses that wish
- * to support basic audio/video playback operations exposable to external clients.
+ * An interface that can be implemented by classes that wish to support a group of basic audio/video
+ * playback operations exposable to external clients.
  *
  * @author 刘振林
  */
-public interface VideoPlayerControl {
-
-    /** Indicating that the brightness value of a window should follow the system's. */
-    int BRIGHTNESS_FOLLOWS_SYSTEM = -1;
-    /** Lowest value for the brightness of a window */
-    int MIN_BRIGHTNESS = 0;
-    /** Highest value for the brightness of a window */
-    int MAX_BRIGHTNESS = 255;
+public interface IVideoPlayer {
 
     int INVALID_DURATION = -1;
 
     float DEFAULT_PLAYBACK_SPEED = 1.0f;
 
     /**
-     * @return the brightness of the window this view is attached to
+     * Represents an undefined playback state of the video, usually set when the video is closing
+     * but another op is requested, in which case the player cannot perform that action immediately.
      */
-    @IntRange(from = BRIGHTNESS_FOLLOWS_SYSTEM, to = MAX_BRIGHTNESS)
-    int getBrightness();
+    int PLAYBACK_STATE_UNDEFINED = Integer.MIN_VALUE;
+
+    /** A fatal player error occurred that paused the playback. */
+    int PLAYBACK_STATE_ERROR = -1;
+
+    /** The player does not have any video to play. */
+    int PLAYBACK_STATE_IDLE = 0;
+
+    /** The player is currently preparing for the video playback asynchronously. */
+    int PLAYBACK_STATE_PREPARING = 1;
+
+    /** The video is prepared to be started. */
+    int PLAYBACK_STATE_PREPARED = 2;
+
+    /** The video is currently playing. */
+    int PLAYBACK_STATE_PLAYING = 3;
+
+    /** The video is temporarily paused. */
+    int PLAYBACK_STATE_PAUSED = 4;
+
+    /** The playback of the video is ended. */
+    int PLAYBACK_STATE_COMPLETED = 5;
+
+    @IntDef({
+            PLAYBACK_STATE_UNDEFINED,
+            PLAYBACK_STATE_ERROR,
+            PLAYBACK_STATE_IDLE,
+            PLAYBACK_STATE_PREPARING, PLAYBACK_STATE_PREPARED,
+            PLAYBACK_STATE_PLAYING, PLAYBACK_STATE_PAUSED, PLAYBACK_STATE_COMPLETED
+    })
+    @Retention(RetentionPolicy.SOURCE)
+    @interface PlaybackState {
+    }
 
     /**
-     * Sets the brightness for the window to which this view is attached
+     * A listener to monitor all state changes to the player or the playback of the video.
      */
-    void setBrightness(@IntRange(from = BRIGHTNESS_FOLLOWS_SYSTEM, to = MAX_BRIGHTNESS) int brightness);
+    interface OnPlaybackStateChangeListener {
+        /**
+         * Called when the state of the player or the playback state of the video changes.
+         *
+         * @param oldState the old state of the player or the playback of the video
+         * @param newState the new state of the player or the playback of the video
+         * @see PlaybackState
+         */
+        void onPlaybackStateChange(@PlaybackState int oldState, @PlaybackState int newState);
+    }
 
     /**
-     * @return the current volume of the media, maybe 0 if the ringer mode is silent or vibration
+     * Monitors all events related to the video playback.
      */
-    int getVolume();
+    interface VideoListener {
 
-    /**
-     * Sets the media volume of the system used in the player
-     */
-    void setVolume(int volume);
+        /** Called when the video is started or resumed. */
+        default void onVideoStarted() {
+        }
+
+        /** Called when the video is paused or finished. */
+        default void onVideoStopped() {
+        }
+
+        /**
+         * Called to indicate the video size (width and height), which could be 0 if there was
+         * no video set or the value was not determined yet.
+         * <p>
+         * This is useful for deciding whether to perform some layout changes.
+         *
+         * @param oldWidth  the previous width of the video
+         * @param oldHeight the previous height of the video
+         * @param width     the new width of the video
+         * @param height    the new height of the video
+         */
+        default void onVideoSizeChanged(int oldWidth, int oldHeight, int width, int height) {
+        }
+    }
 
     /**
      * Sets the raw resource ID of the video to play.
@@ -62,14 +113,14 @@ public interface VideoPlayerControl {
     void setVideoResourceId(@RawRes int resId);
 
     /**
-     * Sets the file path of the video to play
+     * Sets the file path of the video to play.
      */
     default void setVideoPath(@Nullable String path) {
         setVideoUri(TextUtils.isEmpty(path) ? null : Uri.parse(path));
     }
 
     /**
-     * Sets the Uri for the video to play
+     * Sets the Uri for the video to play.
      */
     void setVideoUri(@Nullable Uri uri);
 
@@ -100,6 +151,12 @@ public interface VideoPlayerControl {
     void restartVideo();
 
     /**
+     * @return the current state of the player or the playback of the video.
+     */
+    @PlaybackState
+    int getPlaybackState();
+
+    /**
      * Checks whether the video is playing.
      *
      * @return {@code true} if currently playing, {@code false} otherwise
@@ -127,7 +184,7 @@ public interface VideoPlayerControl {
     void pause(boolean fromUser);
 
     /**
-     * Switches the playback state between playing and non-playing
+     * Switches the playback state between playing and non-playing.
      */
     default void toggle(boolean fromUser) {
         if (isPlaying()) {
@@ -172,8 +229,9 @@ public interface VideoPlayerControl {
     /**
      * Gets the duration of the video.
      *
-     * @return the duration in milliseconds, if no duration is available (the duration is
-     * not determined yet), then {@value INVALID_DURATION} is returned.
+     * @return the duration in milliseconds, if no duration is available (for example,
+     * if streaming live content or the duration is not determined yet),
+     * then {@value INVALID_DURATION} is returned.
      */
     int getVideoDuration();
 
@@ -190,7 +248,7 @@ public interface VideoPlayerControl {
     int getVideoHeight();
 
     /**
-     * @return true if the player is currently in audio-only playback (no video displayed)
+     * @return true if the player is currently in audio-only playback (no video displayed).
      */
     boolean isPureAudioPlayback();
 
@@ -211,98 +269,12 @@ public interface VideoPlayerControl {
     void setSingleVideoLoopPlayback(boolean looping);
 
     /**
-     * @return the current playback speed of the video
+     * @return the current playback speed of the video.
      */
-    default float getPlaybackSpeed() {
-        return 0;
-    }
+    float getPlaybackSpeed();
 
     /**
-     * Sets the playback speed for the video player
+     * Sets the playback speed for the video player.
      */
-    default void setPlaybackSpeed(float speed) {
-    }
-
-    /**
-     * @return the current state of the player or the playback of the video
-     */
-    @PlaybackState
-    int getPlaybackState();
-
-    /**
-     * Adds a {@link OnPlaybackStateChangeListener} to get notified when the state of the player
-     * or the playback state of the video changes
-     */
-    void addOnPlaybackStateChangeListener(@Nullable OnPlaybackStateChangeListener listener);
-
-    /**
-     * Removes a {@link OnPlaybackStateChangeListener} from the set of listeners previously added.
-     */
-    void removeOnPlaybackStateChangeListener(@Nullable OnPlaybackStateChangeListener listener);
-
-    /**
-     * Represents an undefined playback state of the video, usually set when the video is closing
-     * but another op is requested, in which case the player cannot perform that action immediately.
-     */
-    int PLAYBACK_STATE_UNDEFINED = Integer.MIN_VALUE;
-
-    /**
-     * A fatal player error occurred that paused the playback
-     */
-    int PLAYBACK_STATE_ERROR = -1;
-
-    /**
-     * The player does not have any video to play.
-     */
-    int PLAYBACK_STATE_IDLE = 0;
-
-    /**
-     * The player is currently preparing for the video playback asynchronously.
-     */
-    int PLAYBACK_STATE_PREPARING = 1;
-
-    /**
-     * The video is prepared to be started
-     */
-    int PLAYBACK_STATE_PREPARED = 2;
-
-    /**
-     * The video is currently playing
-     */
-    int PLAYBACK_STATE_PLAYING = 3;
-
-    /**
-     * The video is temporarily paused
-     */
-    int PLAYBACK_STATE_PAUSED = 4;
-
-    /**
-     * The playback of the video is ended
-     */
-    int PLAYBACK_STATE_COMPLETED = 5;
-
-    @IntDef({
-            PLAYBACK_STATE_UNDEFINED,
-            PLAYBACK_STATE_ERROR,
-            PLAYBACK_STATE_IDLE,
-            PLAYBACK_STATE_PREPARING, PLAYBACK_STATE_PREPARED,
-            PLAYBACK_STATE_PLAYING, PLAYBACK_STATE_PAUSED, PLAYBACK_STATE_COMPLETED
-    })
-    @Retention(RetentionPolicy.SOURCE)
-    @interface PlaybackState {
-    }
-
-    /**
-     * A listener to monitor all state changes to the player or the playback of the video
-     */
-    interface OnPlaybackStateChangeListener {
-        /**
-         * Called when the state of the player or the playback state of the video changes
-         *
-         * @param oldState the old state of the player or the playback of the video
-         * @param newState the new state of the player or the playback of the video
-         * @see PlaybackState
-         */
-        void onPlaybackStateChange(@PlaybackState int oldState, @PlaybackState int newState);
-    }
+    void setPlaybackSpeed(float speed);
 }

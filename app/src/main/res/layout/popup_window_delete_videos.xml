@@ -18,7 +18,7 @@
     <include layout="@layout/divider_horizontal_opaque" />
 
     <TextView
-        android:id="@+id/bt_confirm_deleteVideosWindow"
+        android:id="@+id/btn_confirm_deleteVideosWindow"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:padding="10dp"
@@ -32,7 +32,7 @@
     <include layout="@layout/divider_horizontal_opaque" />
 
     <TextView
-        android:id="@+id/bt_cancel_deleteVideosWindow"
+        android:id="@+id/btn_cancel_deleteVideosWindow"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:padding="10dp"

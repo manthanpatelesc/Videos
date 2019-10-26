@@ -34,24 +34,24 @@
         android:layout_margin="15dp">
 
         <TextView
-            android:id="@+id/bt_cancel"
+            android:id="@+id/btn_cancel"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_toLeftOf="@+id/bt_confirm"
-            android:layout_toStartOf="@+id/bt_confirm"
+            android:layout_toLeftOf="@+id/btn_ok"
+            android:layout_toStartOf="@+id/btn_ok"
             android:background="@drawable/selector_dialog_button"
             android:text="@string/cancel"
             android:textSize="@dimen/dialog_button_text_size"
             android:textColor="@color/gray" />
 
         <TextView
-            android:id="@id/bt_confirm"
+            android:id="@id/btn_ok"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_alignParentRight="true"
             android:layout_alignParentEnd="true"
             android:background="@drawable/selector_dialog_button"
-            android:text="@string/confirm"
+            android:text="@string/ok"
             android:textSize="@dimen/dialog_button_text_size"
             android:textColor="@color/colorAccent" />
     </RelativeLayout>

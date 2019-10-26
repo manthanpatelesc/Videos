@@ -35,13 +35,13 @@ public class RequireExternalStoragePermissionActivity extends AppCompatActivity
 
     // Read-only Fields
     public String cancel;
-    public String confirm;
+    public String ok;
 
     @Override
     protected void attachBaseContext(Context newBase) {
         super.attachBaseContext(newBase);
         cancel = getString(R.string.cancel);
-        confirm = getString(R.string.confirm);
+        ok = getString(R.string.ok);
     }
 
     @Override
@@ -70,7 +70,7 @@ public class RequireExternalStoragePermissionActivity extends AppCompatActivity
                             .setTheme(R.style.DialogStyle_MinWidth_NoTitle)
                             .setRationale(R.string.rationale_askExternalStorage)
                             .setNegativeButtonText(cancel)
-                            .setPositiveButtonText(confirm)
+                            .setPositiveButtonText(ok)
                             .build());
         }
     }
@@ -131,7 +131,7 @@ public class RequireExternalStoragePermissionActivity extends AppCompatActivity
                     .setTitle(R.string.permissionsRequired)
                     .setRationale(R.string.rationale_askExternalStorageAgain)
                     .setNegativeButton(cancel)
-                    .setPositiveButton(confirm)
+                    .setPositiveButton(ok)
                     .build().show();
         } else {
             onPermissionDenied();

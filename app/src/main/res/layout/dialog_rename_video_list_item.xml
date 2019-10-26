@@ -7,14 +7,13 @@
     android:padding="10dp">
 
     <LinearLayout
-        android:id="@+id/title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="10dp"
         android:orientation="horizontal">
 
         <TextView
-            android:id="@+id/bt_cancel_renameVideoListItemDialog"
+            android:id="@+id/btn_cancel_renameVideoListItemDialog"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
             android:text="@string/cancel"
@@ -36,7 +35,7 @@
             android:includeFontPadding="false" />
 
         <TextView
-            android:id="@+id/bt_complete_renameVideoListItemDialog"
+            android:id="@+id/btn_complete_renameVideoListItemDialog"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
             android:text="@string/complete"

@@ -185,8 +185,14 @@ public class SlidingItemMenuRecyclerView extends RecyclerView {
 
         final TypedArray ta = context.obtainStyledAttributes(attrs,
                 R.styleable.SlidingItemMenuRecyclerView, defStyle, 0);
-        setItemDraggable(ta.getBoolean(R.styleable
-                .SlidingItemMenuRecyclerView_itemScrollingEnabled, true));
+        if (ta.hasValue(R.styleable.SlidingItemMenuRecyclerView_itemDraggable)) {
+            setItemDraggable(ta.getBoolean(R.styleable
+                    .SlidingItemMenuRecyclerView_itemDraggable, true));
+        } else {
+            // Libraries with version code prior to 6 use the itemScrollingEnabled attr only.
+            setItemDraggable(ta.getBoolean(R.styleable
+                    .SlidingItemMenuRecyclerView_itemScrollingEnabled /* deprecated */, true));
+        }
         setItemScrollDuration(ta.getInteger(R.styleable
                 .SlidingItemMenuRecyclerView_itemScrollDuration, DEFAULT_ITEM_SCROLL_DURATION));
         ta.recycle();
@@ -250,7 +256,7 @@ public class SlidingItemMenuRecyclerView extends RecyclerView {
         mVelocityTracker.addMovement(e);
 
         boolean intercept = false;
-        switch (e.getAction()) {
+        switch (action) {
             case MotionEvent.ACTION_DOWN:
                 mDownX = (int) e.getX();
                 mDownY = (int) e.getY();

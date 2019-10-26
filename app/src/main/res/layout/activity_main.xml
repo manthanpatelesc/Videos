@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <com.liuzhenlin.slidingdrawerlayout.SlidingDrawerLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/slidingDrawerLayout"
     android:layout_width="match_parent"
@@ -21,22 +22,38 @@
             android:id="@+id/container_actionbar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_weight="0"
             android:background="?android:attr/windowBackground"
             android:elevation="@dimen/actionbarElevationHeight"
             tools:ignore="UnusedAttribute">
 
-            <include layout="@layout/actionbar_video_list_fragment" />
+            <include layout="@layout/actionbar" />
         </FrameLayout>
 
-        <com.liuzhenlin.videos.view.swiperefresh.SwipeRefreshLayout
-            android:id="@+id/swipeRefreshLayout"
+        <com.liuzhenlin.videos.view.ScrollDisableViewPager
+            android:id="@+id/viewpager_fragments"
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
+            android:layout_height="match_parent"
+            android:layout_weight="1" />
 
-            <FrameLayout
-                android:id="@+id/container_fragment"
+        <com.google.android.material.tabs.TabLayout
+            android:id="@+id/tablayout_fragments"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/tabHeight"
+            android:layout_weight="0"
+            app:tabIndicatorColor="@color/pink"
+            app:tabIndicatorGravity="top"
+            app:tabTextAppearance="@style/TextAppearance_TabItem">
+
+            <com.google.android.material.tabs.TabItem
                 android:layout_width="match_parent"
-                android:layout_height="match_parent" />
-        </com.liuzhenlin.videos.view.swiperefresh.SwipeRefreshLayout>
+                android:layout_height="wrap_content"
+                android:text="@string/localVideos" />
+
+            <com.google.android.material.tabs.TabItem
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/onlineVideo" />
+        </com.google.android.material.tabs.TabLayout>
     </LinearLayout>
 </com.liuzhenlin.slidingdrawerlayout.SlidingDrawerLayout>

@@ -15,14 +15,14 @@
         android:background="@drawable/bg_actionbar"
         android:visibility="gone" />
 
-    <com.liuzhenlin.texturevideoview.TextureVideoView2
-        android:id="@+id/video_view"
+    <com.liuzhenlin.texturevideoview.TextureVideoView
+        android:id="@+id/videoview"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_below="@id/view_statusBar" />
 
     <ImageView
-        android:id="@+id/bt_lockUnlockOrientation"
+        android:id="@+id/btn_lockUnlockOrientation"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_centerInParent="true"

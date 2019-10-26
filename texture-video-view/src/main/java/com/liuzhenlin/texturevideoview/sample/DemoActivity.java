@@ -12,8 +12,9 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.liuzhenlin.texturevideoview.AbsTextureVideoView;
+import com.liuzhenlin.texturevideoview.IVideoPlayer;
 import com.liuzhenlin.texturevideoview.R;
+import com.liuzhenlin.texturevideoview.TextureVideoView;
 import com.liuzhenlin.texturevideoview.utils.FileUtils;
 
 import java.io.File;
@@ -22,20 +23,26 @@ import java.io.File;
  * @author 刘振林
  */
 public class DemoActivity extends AppCompatActivity {
-    private AbsTextureVideoView mVideoView;
+    private TextureVideoView mVideoView;
+    private TextureVideoView.VideoPlayer mVideoPlayer;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_demo);
-        mVideoView = findViewById(R.id.video_view);
-        mVideoView.setTitle("Simplest Playback Demo for AbsTextureVideoView");
-        mVideoView.setVideoUri(getIntent().getData());
+
+        // First, interrelates TextureVideoView with TextureVideoView.VideoPlayer
+        mVideoView = findViewById(R.id.videoview);
+        mVideoPlayer = new TextureVideoView.MediaPlayer(mVideoView);
+        mVideoView.setVideoPlayer(mVideoPlayer);
+
+        mVideoView.setTitle("Simplest Playback Demo for TextureVideoView");
+        mVideoPlayer.setVideoUri(getIntent().getData());
         // Sets fullscreenMode to true only for demonstration purpose, which, however, should normally
-        // not be set unless the onChangeViewMode() method is called for the EventListener to perform
+        // not be set unless the onViewModeChange() method is called for the EventListener to perform
         // some changes in the layout of our Activity as we see fit.
         mVideoView.setFullscreenMode(true, 0);
-        mVideoView.setVideoListener(new AbsTextureVideoView.VideoListener() {
+        mVideoPlayer.addVideoListener(new IVideoPlayer.VideoListener() {
             @Override
             public void onVideoStarted() {
                 // no-op
@@ -51,7 +58,12 @@ public class DemoActivity extends AppCompatActivity {
                 // no-op
             }
         });
-        mVideoView.setEventListener(new AbsTextureVideoView.EventListener() {
+        mVideoView.setEventListener(new TextureVideoView.EventListener() {
+            @Override
+            public void onPlayerChange(@Nullable TextureVideoView.VideoPlayer videoPlayer) {
+                mVideoPlayer = videoPlayer;
+            }
+
             @Override
             public void onSkipToPrevious() {
                 // no-op
@@ -83,7 +95,7 @@ public class DemoActivity extends AppCompatActivity {
                         getPackageName() + ".provider", photo, "image/*");
             }
         });
-        mVideoView.setOpCallback(new AbsTextureVideoView.OpCallback() {
+        mVideoView.setOpCallback(new TextureVideoView.OpCallback() {
             @NonNull
             @Override
             public Window getWindow() {
@@ -103,13 +115,13 @@ public class DemoActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        mVideoView.openVideo();
+        mVideoPlayer.openVideo();
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        mVideoView.closeVideo();
+        mVideoPlayer.closeVideo();
     }
 
     @Override

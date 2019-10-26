@@ -12,10 +12,11 @@
     android:paddingBottom="25dp"
     android:background="@color/bg_popup_dark"
     android:clickable="true"
+    android:focusable="false"
     tools:ignore="KeyboardInaccessibleWidget">
 
     <TextView
-        android:id="@+id/bt_cancel"
+        android:id="@+id/btn_cancel"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         app:layout_constraintStart_toStartOf="parent"
@@ -32,11 +33,11 @@
         android:textColor="@color/color_selector_white_color_accent" />
 
     <TextView
-        android:id="@+id/bt_cutoutShortVideo"
+        android:id="@+id/btn_cutoutShortVideo"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:layout_constraintStart_toEndOf="@id/bt_cancel"
-        app:layout_constraintEnd_toStartOf="@id/bt_cutoutGif"
+        app:layout_constraintStart_toEndOf="@id/btn_cancel"
+        app:layout_constraintEnd_toStartOf="@id/btn_cutoutGif"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toTopOf="@id/surfaceView"
         app:layout_constraintHorizontal_chainStyle="packed"
@@ -52,13 +53,13 @@
         android:textColor="@android:color/white" />
 
     <TextView
-        android:id="@+id/bt_cutoutGif"
+        android:id="@+id/btn_cutoutGif"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:layout_constraintStart_toEndOf="@id/bt_cutoutShortVideo"
-        app:layout_constraintEnd_toStartOf="@id/bt_ok"
-        app:layout_constraintTop_toTopOf="@id/bt_cutoutShortVideo"
-        app:layout_constraintBottom_toBottomOf="@id/bt_cutoutShortVideo"
+        app:layout_constraintStart_toEndOf="@id/btn_cutoutShortVideo"
+        app:layout_constraintEnd_toStartOf="@id/btn_ok"
+        app:layout_constraintTop_toTopOf="@id/btn_cutoutShortVideo"
+        app:layout_constraintBottom_toBottomOf="@id/btn_cutoutShortVideo"
         android:background="@drawable/selector_cutout_gif_btn"
         android:paddingLeft="20dp"
         android:paddingTop="5dp"
@@ -70,7 +71,7 @@
         android:textColor="@android:color/white" />
 
     <TextView
-        android:id="@+id/bt_ok"
+        android:id="@+id/btn_ok"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         app:layout_constraintStart_toStartOf="parent"
@@ -93,7 +94,7 @@
         app:layout_constraintVertical_weight="1"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/bt_cutoutShortVideo"
+        app:layout_constraintTop_toBottomOf="@id/btn_cutoutShortVideo"
         app:layout_constraintBottom_toTopOf="@id/text_videoclipDescription"
         android:layout_marginTop="20dp"
         android:layout_marginBottom="10dp" />

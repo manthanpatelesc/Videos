@@ -89,7 +89,7 @@ import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
         if (mExoPlayer == null) {
             mExoPlayer = ExoPlayerFactory.newSimpleInstance(mContext);
             mExoPlayer.setVideoSurface(mSurface);
-            mExoPlayer.setAudioAttributes(AbsTextureVideoView.sDefaultAudioAttrs, true);
+            mExoPlayer.setAudioAttributes(AbsTextureVideoView.VideoPlayer.sDefaultAudioAttrs, true);
             mExoPlayer.setRepeatMode(Player.REPEAT_MODE_ONE);
             mExoPlayer.prepare(mMediaSource);
         }

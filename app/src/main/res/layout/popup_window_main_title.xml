@@ -11,7 +11,7 @@
         tools:ignore="UselessParent">
 
         <TextView
-            android:id="@+id/button_cancel_vow"
+            android:id="@+id/btn_cancel_vlow"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerVertical="true"
@@ -35,7 +35,7 @@
             android:textColor="@android:color/black" />
 
         <TextView
-            android:id="@+id/bt_selectAll"
+            android:id="@+id/btn_selectAll"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_alignParentRight="true"

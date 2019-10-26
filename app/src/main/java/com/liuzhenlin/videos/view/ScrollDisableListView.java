@@ -19,7 +19,7 @@ import androidx.annotation.RequiresApi;
  */
 public class ScrollDisableListView extends ListView {
     private int mPressPosition;
-    private boolean mScrollEnabled;
+    private boolean mScrollEnabled = true;
     private boolean mScrollEnabledOnTouchMoveAfterDisabled;
 
     public ScrollDisableListView(Context context) {

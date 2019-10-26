@@ -13,13 +13,19 @@ import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.DrawableRes;
 import androidx.annotation.FloatRange;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.StringRes;
 import androidx.core.view.ViewCompat;
+
+import com.google.android.material.snackbar.Snackbar;
+import com.google.android.material.tabs.TabLayout;
+import com.liuzhenlin.texturevideoview.utils.Utils;
 
 import java.lang.reflect.Field;
 
@@ -63,18 +69,19 @@ public class UiUtils {
     }
 
     public static void showSoftInput(@NonNull View view) {
-        InputMethodManager inputManager = (InputMethodManager)
+        InputMethodManager imm = (InputMethodManager)
                 view.getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
-        if (inputManager != null)
-            inputManager.showSoftInput(view, 0);
+        if (imm != null && (view.hasFocus() || view.requestFocus())) {
+            imm.showSoftInput(view, 0);
+        }
     }
 
     public static void hideSoftInput(@NonNull Window window) {
         InputMethodManager imm = (InputMethodManager)
                 window.getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
         View focus = window.getCurrentFocus();
-        if (imm != null && focus != null) {
-            imm.hideSoftInputFromWindow(focus.getWindowToken(), 0);
+        if (imm != null && focus != null
+                && imm.hideSoftInputFromWindow(focus.getWindowToken(), 0)) {
             focus.clearFocus();
         }
     }
@@ -93,8 +100,31 @@ public class UiUtils {
         rootView.getWindowVisibleDisplayFrame(r);
 
         final int heightDiff = rootView.getBottom() - r.bottom;
-        final float assumedkeyboardHeiht = 50f * rootView.getResources().getDisplayMetrics().density;
-        return heightDiff >= assumedkeyboardHeiht;
+        final float assumedKeyboardHeight = 50f * rootView.getResources().getDisplayMetrics().density;
+        return heightDiff >= assumedKeyboardHeight;
+    }
+
+    public static void setTabItemsClickable(@NonNull TabLayout tabLayout, boolean clickable) {
+        LinearLayout tabStrip = (LinearLayout) tabLayout.getChildAt(0);
+        final int selection = tabLayout.getSelectedTabPosition();
+        for (int i = tabStrip.getChildCount() - 1; i >= 0; i--) {
+            if (i != selection) {
+                View tabView = tabStrip.getChildAt(i);
+                if (tabView != null) {
+                    tabView.setClickable(clickable);
+                }
+            }
+        }
+    }
+
+    public static void showUserCancelableSnackbar(@NonNull View view, @StringRes int resId,
+                                                  @Snackbar.Duration int duration) {
+        Utils.showUserCancelableSnackbar(view, resId, duration);
+    }
+
+    public static void showUserCancelableSnackbar(@NonNull View view, @NonNull String text,
+                                                  @Snackbar.Duration int duration) {
+        Utils.showUserCancelableSnackbar(view, text, duration);
     }
 
     @Nullable

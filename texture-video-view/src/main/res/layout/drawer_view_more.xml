@@ -12,82 +12,82 @@
     android:clickable="true"
     tools:ignore="KeyboardInaccessibleWidget">
 
-    <LinearLayout
+    <androidx.gridlayout.widget.GridLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:padding="20dp"
+        app:rowCount="5"
+        app:columnCount="2"
+        app:orientation="horizontal">
 
+        <!-- row 1 -->
         <androidx.appcompat.widget.SwitchCompat
-            android:id="@+id/bt_stretchVideo"
+            android:id="@+id/btn_stretchVideo"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingLeft="20dp"
-            android:paddingRight="20dp"
-            android:layout_marginTop="20dp"
             android:text="@string/stretchVideoToFitFullscreen"
             android:textColor="@android:color/white"
             android:textSize="@dimen/widget_small_text_size"
             android:textAlignment="viewStart"
             android:gravity="start"
             android:thumb="@drawable/selector_switch_thumb"
-            app:track="@drawable/selector_switch_track" />
+            app:track="@drawable/selector_switch_track"
+            app:layout_columnSpan="2" />
 
+        <!-- row 2 -->
         <androidx.appcompat.widget.SwitchCompat
-            android:id="@+id/bt_loopSingleVideo"
+            android:id="@+id/btn_loopSingleVideo"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingLeft="20dp"
-            android:paddingRight="20dp"
-            android:layout_marginTop="10dp"
+            android:layout_marginTop="15dp"
             android:text="@string/singleVideoLoopPlayback"
             android:textColor="@android:color/white"
             android:textSize="@dimen/widget_small_text_size"
             android:textAlignment="viewStart"
             android:gravity="start"
             android:thumb="@drawable/selector_switch_thumb"
-            app:track="@drawable/selector_switch_track" />
+            app:track="@drawable/selector_switch_track"
+            app:layout_columnSpan="2" />
 
+        <!-- row 3 -->
         <androidx.appcompat.widget.SwitchCompat
-            android:id="@+id/bt_pureAudioPlayback"
+            android:id="@+id/btn_pureAudioPlayback"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingLeft="20dp"
-            android:paddingRight="20dp"
-            android:layout_marginTop="10dp"
+            android:layout_marginTop="15dp"
             android:text="@string/pureAudioPlayback"
             android:textColor="@android:color/white"
             android:textSize="@dimen/widget_small_text_size"
             android:textAlignment="viewStart"
             android:gravity="start"
             android:thumb="@drawable/selector_switch_thumb"
-            app:track="@drawable/selector_switch_track" />
+            app:track="@drawable/selector_switch_track"
+            app:layout_columnSpan="2" />
 
-        <RelativeLayout
-            android:layout_width="match_parent"
+        <!-- row 4 column 1 -->
+        <TextView
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:paddingLeft="20dp"
-            android:paddingRight="20dp"
-            android:paddingStart="20dp"
-            android:paddingEnd="20dp"
             android:layout_marginTop="15dp"
-            android:layout_marginBottom="20dp">
+            android:text="@string/timedOff"
+            android:textColor="@android:color/white"
+            android:textSize="@dimen/widget_small_text_size"
+            android:textAlignment="viewStart"
+            android:gravity="start"
+            app:layout_columnWeight="3" />
 
-            <TextView
-                android:id="@+id/text_timedOff"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginRight="15dp"
-                android:layout_marginEnd="15dp"
-                android:text="@string/timedOff"
-                android:textColor="@android:color/white"
-                android:textSize="@dimen/widget_small_text_size" />
+        <!-- row 4 column 2 -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="15dp"
+            android:orientation="vertical"
+            app:layout_columnWeight="5">
 
             <TextView
                 android:id="@+id/text_whenThisEpisodeEnds"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_toRightOf="@id/text_timedOff"
-                android:layout_toEndOf="@id/text_timedOff"
                 android:text="@string/whenThisEpisodeEnds"
                 android:textColor="@color/color_selector_white_color_accent"
                 android:textSize="@dimen/widget_small_text_size" />
@@ -96,10 +96,7 @@
                 android:id="@+id/text_30Minutes"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_toRightOf="@id/text_timedOff"
-                android:layout_toEndOf="@id/text_timedOff"
-                android:layout_below="@id/text_whenThisEpisodeEnds"
-                android:layout_marginTop="5dp"
+                android:layout_marginTop="8dp"
                 android:text="@string/_30Minutes"
                 android:textColor="@color/color_selector_white_color_accent"
                 android:textSize="@dimen/widget_small_text_size" />
@@ -108,13 +105,48 @@
                 android:id="@+id/text_anHour"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_toRightOf="@id/text_timedOff"
-                android:layout_toEndOf="@id/text_timedOff"
-                android:layout_below="@id/text_30Minutes"
-                android:layout_marginTop="5dp"
+                android:layout_marginTop="8dp"
                 android:text="@string/anHour"
                 android:textColor="@color/color_selector_white_color_accent"
                 android:textSize="@dimen/widget_small_text_size" />
-        </RelativeLayout>
-    </LinearLayout>
+        </LinearLayout>
+
+        <!-- row 5 column 1 -->
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="@string/playerEngine"
+            android:textColor="@android:color/white"
+            android:textSize="@dimen/widget_small_text_size"
+            android:textAlignment="viewStart"
+            android:gravity="start"
+            app:layout_columnWeight="3" />
+
+        <!-- row 5 column 2 -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:orientation="vertical"
+            app:layout_columnWeight="5">
+
+            <TextView
+                android:id="@+id/text_mediaplayer"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/android_system_mediaplayer"
+                android:textColor="@color/color_selector_white_color_accent"
+                android:textSize="@dimen/widget_small_text_size" />
+
+            <TextView
+                android:id="@+id/text_exoplayer"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/google_exoplayer_v2_10_6"
+                android:textColor="@color/color_selector_white_color_accent"
+                android:textSize="@dimen/widget_small_text_size" />
+        </LinearLayout>
+    </androidx.gridlayout.widget.GridLayout>
 </ScrollView>

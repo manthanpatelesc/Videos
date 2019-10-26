@@ -24,21 +24,21 @@
         android:gravity="center_vertical">
 
         <androidx.appcompat.widget.AppCompatImageView
-            android:id="@+id/bt_toggle"
+            android:id="@+id/btn_toggle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginLeft="10dp"
             android:layout_marginStart="10dp"
-            app:srcCompat="@drawable/bt_play_32dp"
+            app:srcCompat="@drawable/btn_play_32dp"
             android:contentDescription="@string/play" />
 
         <androidx.appcompat.widget.AppCompatImageView
-            android:id="@+id/bt_skipNext"
+            android:id="@+id/btn_skipNext"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginLeft="10dp"
             android:layout_marginStart="10dp"
-            app:srcCompat="@drawable/bt_skip_next_36dp"
+            app:srcCompat="@drawable/btn_skip_next_36dp"
             android:contentDescription="@string/skipNext" />
 
         <TextView
@@ -65,7 +65,7 @@
             android:background="@null" />
 
         <TextView
-            android:id="@+id/bt_chooseEpisode"
+            android:id="@+id/btn_chooseEpisode"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginRight="15dp"

@@ -5,554 +5,4229 @@
 
 package com.liuzhenlin.texturevideoview;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.ValueAnimator;
+import android.annotation.SuppressLint;
+import android.annotation.TargetApi;
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.SurfaceTexture;
+import android.graphics.Typeface;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.media.AudioFocusRequest;
 import android.media.AudioManager;
-import android.media.MediaPlayer;
+import android.media.MediaMetadataRetriever;
 import android.media.PlaybackParams;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Build;
+import android.os.Environment;
+import android.os.Parcel;
+import android.os.Parcelable;
+import android.provider.MediaStore;
 import android.support.v4.media.session.MediaSessionCompat;
+import android.text.ParcelableSpan;
+import android.text.SpannableString;
+import android.text.Spanned;
+import android.text.style.ForegroundColorSpan;
+import android.transition.ChangeBounds;
+import android.transition.Fade;
+import android.transition.Transition;
+import android.transition.TransitionManager;
+import android.transition.TransitionSet;
 import android.util.AttributeSet;
 import android.util.Log;
-import android.widget.Toast;
+import android.view.GestureDetector;
+import android.view.Gravity;
+import android.view.LayoutInflater;
+import android.view.MotionEvent;
+import android.view.Surface;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
+import android.view.TextureView;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.Window;
+import android.view.animation.AlphaAnimation;
+import android.view.animation.Animation;
+import android.view.animation.Interpolator;
+import android.view.animation.OvershootInterpolator;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.Checkable;
+import android.widget.ImageView;
+import android.widget.PopupWindow;
+import android.widget.ProgressBar;
+import android.widget.SeekBar;
+import android.widget.TextView;
 
+import androidx.annotation.CallSuper;
+import androidx.annotation.IntDef;
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RawRes;
+import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
+import androidx.annotation.VisibleForTesting;
+import androidx.appcompat.widget.AppCompatSpinner;
+import androidx.appcompat.widget.ListPopupWindow;
+import androidx.appcompat.widget.SwitchCompat;
+import androidx.core.os.ParcelableCompat;
+import androidx.core.os.ParcelableCompatCreatorCallbacks;
 import androidx.core.util.ObjectsCompat;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.ViewPropertyAnimatorCompat;
+import androidx.customview.view.AbsSavedState;
+import androidx.customview.widget.ViewDragHelper;
+import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.recyclerview.widget.DividerItemDecoration;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.exoplayer2.ExoPlaybackException;
+import com.google.android.exoplayer2.ExoPlayerFactory;
+import com.google.android.exoplayer2.PlaybackParameters;
+import com.google.android.exoplayer2.Player;
+import com.google.android.exoplayer2.SimpleExoPlayer;
+import com.google.android.exoplayer2.source.ProgressiveMediaSource;
+import com.google.android.exoplayer2.source.ads.AdsMediaSource;
+import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
+import com.google.android.exoplayer2.util.Util;
+import com.google.android.material.snackbar.Snackbar;
+import com.liuzhenlin.texturevideoview.drawable.CircularProgressDrawable;
 import com.liuzhenlin.texturevideoview.receiver.HeadsetEventsReceiver;
+import com.liuzhenlin.texturevideoview.utils.BitmapUtils;
+import com.liuzhenlin.texturevideoview.utils.FileUtils;
+import com.liuzhenlin.texturevideoview.utils.ScreenUtils;
 import com.liuzhenlin.texturevideoview.utils.TimeUtil;
+import com.liuzhenlin.texturevideoview.utils.TransitionListenerAdapter;
+import com.liuzhenlin.texturevideoview.utils.Utils;
+import com.liuzhenlin.texturevideoview.utils.VideoUtils;
 
+import java.io.File;
 import java.io.IOException;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.reflect.Field;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * A sub implementation class of {@link AbsTextureVideoView} to deal with the audio/video playback
- * logic related to the media player component through a {@link MediaPlayer} object.
+ * A View used to display video contents onto {@link TextureView}, which takes care of computing
+ * the measurements of the child widgets from the video and synchronizing them with the state of
+ * the {@link VideoPlayer}.
  *
- * @author 刘振林
+ * <p>This class requires the permission(s):
+ * <ul>
+ *   <li>{@link android.Manifest.permission#READ_EXTERNAL_STORAGE} for a local audio/video file</li>
+ *   <li>{@link android.Manifest.permission#WRITE_EXTERNAL_STORAGE} for saving captured video photos
+ *       or cutout short-videos/GIFs into disk</li>
+ *   <li>{@link android.Manifest.permission#INTERNET} to network based streaming content</li>
+ * </ul>
+ *
+ * <p>When accessing this class on platform versions prior to LOLLIPOP, you ought to enable
+ * vector drawables created during this view inflating the subview tree to be used within
+ * {@link android.graphics.drawable.DrawableContainer} resources in your application through the
+ * following code:
+ * <pre>
+ *     static {
+ *         AppCompatDelegate.setCompatVectorFromResourcesEnabled(true);
+ *     }
+ * </pre>
+ * Also see {@link androidx.appcompat.app.AppCompatDelegate#setCompatVectorFromResourcesEnabled(boolean)}
+ * for more detailed info.
+ *
+ * <p>This is similar to {@link android.widget.VideoView}, but it comes with a custom control
+ * containing buttons like "Play/Pause", "Skip Next", "Choose Episode", progress sliders for
+ * adjusting screen brightness, volume and video progress, etc.
+ *
+ * <p>By default, when this view is in fullscreen mode, all of the "Skip Next" and "Choose Episode"
+ * buttons are invisible to the user and even not kept in the view hierarchy for any layout purpose
+ * regardless of whether or not a {@link PlayListAdapter} is set for the view displaying the playlist
+ * as the data-associated logic code related to the videos should normally be maintained in some
+ * specific class of you; but, if reasonable and necessary, for the former button, you can set
+ * `canSkipToNext` to `true` through the code like {@code mVideoView.setCanSkipToNext(true)}, and
+ * to the latter one, simply pass `true` into one of the {@link #setCanSkipToPrevious(boolean)} and
+ * {@link #setCanSkipToNext(boolean)} methods to break the limit so that after clicked the button,
+ * the user can have a look at the playlist and choose a preferred video from it to play.
+ *
+ * <P>An {@link OpCallback} usually is required for this class, which allows us to adjust the
+ * brightness of the window this view is attached to, or this feature will not be enabled at all.
+ *
+ * <p>{@link IVideoPlayer.OnPlaybackStateChangeListener} can be used to monitor the state of
+ * the player or the current video playback.
+ * {@link IVideoPlayer.VideoListener} offers default/no-op implementations of each callback method,
+ * through which we're able to get notified by all the events related to video playbacks we publish.<br>
+ * <strong>NOTE:</strong> If possible, do avoid invoking one/some of the methods in
+ * {@link IVideoPlayer} that may cause the current playback state to change at the call site
+ * of some method of the listeners above, in case unexpected result occurs though we have performed
+ * some state checks before and after some of the call sites to those methods.
+ *
+ * <p>Using a TextureVideoView is simple enough.
+ * The following example demonstrates how to play a video through the class:
+ * <pre>
+ * public class DemoActivity extends AppCompatActivity {
+ *     private TextureVideoView mVideoView;
+ *     private TextureVideoView.VideoPlayer mVideoPlayer;
+ *
+ *     {@literal @}Override
+ *     public void onCreate(@Nullable Bundle savedInstanceState) {
+ *         super.onCreate(savedInstanceState);
+ *         setContentView(R.layout.activity_demo);
+ *
+ *         // First, interrelates TextureVideoView with TextureVideoView.VideoPlayer
+ *         mVideoView = findViewById(R.id.videoview);
+ *         mVideoPlayer = new TextureVideoView.MediaPlayer(mVideoView);
+ *         mVideoView.setVideoPlayer(mVideoPlayer);
+ *
+ *         mVideoView.setTitle("Simplest Playback Demo for TextureVideoView");
+ *         mVideoPlayer.setVideoUri(getIntent().getData());
+ *         // Sets fullscreenMode to true only for demonstration purpose, which, however, should normally
+ *         // not be set unless the onViewModeChange() method is called for the EventListener to perform
+ *         // some changes in the layout of our Activity as we see fit.
+ *         mVideoView.setFullscreenMode(true, 0);
+ *         mVideoPlayer.addVideoListener(new IVideoPlayer.VideoListener() {
+ *             &#064;Override
+ *             public void onVideoStarted() {
+ *                 // no-op
+ *             }
+ *
+ *             &#064;Override
+ *             public void onVideoStopped() {
+ *                 // no-op
+ *             }
+ *
+ *             &#064;Override
+ *             public void onVideoSizeChanged(int oldWidth, int oldHeight, int width, int height) {
+ *                 // no-op
+ *             }
+ *         });
+ *         mVideoView.setEventListener(new TextureVideoView.EventListener() {
+ *             &#064;Override
+ *             public void onPlayerChange(@Nullable TextureVideoView.VideoPlayer videoPlayer) {
+ *                 mVideoPlayer = videoPlayer;
+ *             }
+ *
+ *             &#064;Override
+ *             public void onSkipToPrevious() {
+ *                 // no-op
+ *             }
+ *
+ *             &#064;Override
+ *             public void onSkipToNext() {
+ *                 // no-op
+ *             }
+ *
+ *             &#064;Override
+ *             public void onReturnClicked() {
+ *                 finish();
+ *             }
+ *
+ *             &#064;Override
+ *             public void onViewModeChange(int oldMode, int newMode, boolean layoutMatches) {
+ *                 // no-op
+ *             }
+ *
+ *             &#064;Override
+ *             public void onShareVideo() {
+ *                 // Place the code describing how to share the video here
+ *             }
+ *
+ *             &#064;Override
+ *             public void onShareCapturedVideoPhoto(@NonNull File photo) {
+ *                 FileUtils.shareFile(DemoActivity.this,
+ *                         getPackageName() + ".provider", photo, "image/*");
+ *             }
+ *         });
+ *         mVideoView.setOpCallback(new TextureVideoView.OpCallback() {
+ *             &#064;NonNull
+ *             &#064;Override
+ *             public Window getWindow() {
+ *                 return DemoActivity.this.getWindow();
+ *             }
+ *
+ *             // Optional, just returns null to use the default output directory
+ *             // (the primary external storage directory concatenating with this application name).
+ *             &#064;Nullable
+ *             &#064;Override
+ *             public String getFileOutputDirectory() {
+ *                 return null;
+ *             }
+ *         });
+ *     }
+ *
+ *     {@literal @}Override
+ *     protected void onStart() {
+ *         super.onStart();
+ *         mVideoPlayer.openVideo();
+ *     }
+ *
+ *     {@literal @}Override
+ *     protected void onStop() {
+ *         super.onStop();
+ *         mVideoPlayer.closeVideo();
+ *     }
+ *
+ *     {@literal @}Override
+ *     public void onBackPressed() {
+ *         if (!mVideoView.onBackPressed()) {
+ *             super.onBackPressed();
+ *         }
+ *     }
+ * }
+ * </pre>
+ *
+ * @author <a href="mailto:2233788867@qq.com">刘振林</a>
  */
-public class TextureVideoView extends AbsTextureVideoView {
+public class TextureVideoView extends AbsTextureVideoView implements ViewHostEventCallback {
+
+    /** Monitors all events related to (some of the widgets of) this view. */
+    public interface EventListener {
+
+        /** Called when the {@link VideoPlayer} for this view changes. */
+        void onPlayerChange(@Nullable VideoPlayer videoPlayer);
+
+        /** Called when a 'skip to previous' action is requested by the user. */
+        void onSkipToPrevious();
+
+        /** Called when a 'skip to next' action is requested by the user. */
+        void onSkipToNext();
+
+        /**
+         * Called when the activity this view is attached to should be destroyed
+         * or dialog that should be dismissed, etc.
+         */
+        void onReturnClicked();
+
+        /**
+         * Called when the mode of this view changes.
+         *
+         * @param oldMode       the old view mode, one of the constants defined with the `VIEW_MODE_` prefix
+         * @param newMode       the new view mode, one of the constants defined with the `VIEW_MODE_` prefix
+         * @param layoutMatches true if the layout has been adjusted to match the corresponding mode
+         */
+        void onViewModeChange(@ViewMode int oldMode, @ViewMode int newMode, boolean layoutMatches);
+
+        /** Called when the video being played is about to be shared with another application. */
+        void onShareVideo();
+
+        /**
+         * Called when a photo is captured for the user to share it to another app.
+         *
+         * @param photo the captured image file of the current playing video
+         */
+        void onShareCapturedVideoPhoto(@NonNull File photo);
+    }
+
+    public interface OpCallback {
+        /**
+         * @return the window this view is currently attached to
+         */
+        @NonNull
+        Window getWindow();
+
+        /**
+         * Returns the base directory used to store the captured video photos or cutout short-videos/GIFs.
+         * <p>
+         * If the returned value is nonnull, the final storage directory will be the directory
+         * with `/screenshots` appended or the primary external storage directory concatenating with
+         * your application name will be created (if it does not exist) as the basis.
+         */
+        @Nullable
+        default String getFileOutputDirectory() {
+            return null;
+        }
+    }
+
+    public static abstract class PlayListAdapter<VH extends RecyclerView.ViewHolder> extends RecyclerView.Adapter<VH> {
+        TextureVideoView videoView;
+        ViewGroup drawerView;
+        RecyclerView playlist;
+
+        final OnClickListener onClickListener = new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                onItemClick(v, playlist.getChildAdapterPosition(v));
+                videoView.closeDrawer(drawerView);
+            }
+        };
+        final OnLongClickListener onLongClickListener = new OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v) {
+                return onItemLongClick(v, playlist.getChildAdapterPosition(v));
+            }
+        };
+
+        @CallSuper
+        @Override
+        public void onAttachedToRecyclerView(@NonNull RecyclerView recyclerView) {
+            playlist = recyclerView;
+            drawerView = (ViewGroup) recyclerView.getParent();
+            videoView = (TextureVideoView) drawerView.getParent();
+        }
+
+        @CallSuper
+        @Override
+        public void onViewAttachedToWindow(@NonNull VH holder) {
+            holder.itemView.setOnClickListener(onClickListener);
+            holder.itemView.setOnLongClickListener(onLongClickListener);
+        }
+
+        @CallSuper
+        @Override
+        public void onViewDetachedFromWindow(@NonNull VH holder) {
+            holder.itemView.setOnClickListener(null);
+            holder.itemView.setOnLongClickListener(null);
+        }
+
+        /**
+         * Callback method to be invoked when an item in the RecyclerView has been clicked.
+         *
+         * @param view     The itemView that was clicked.
+         * @param position The position of the view in the adapter.
+         */
+        public void onItemClick(@NonNull View view, int position) {
+        }
+
+        /**
+         * Callback method to be invoked when an item in the RecyclerView has been clicked and held.
+         *
+         * @param view     The itemView that was clicked and held.
+         * @param position The position of the view in the list.
+         * @return true if the callback consumed the long click, false otherwise.
+         */
+        public boolean onItemLongClick(@NonNull View view, int position) {
+            return false;
+        }
+    }
 
     private static final String TAG = "TextureVideoView";
 
-    /**
-     * Flag used to indicate that the volume of the video is auto-turned down by the system
-     * when the player temporarily loses the audio focus.
-     */
-    private static final int PFLAG_VIDEO_VOLUME_TURNED_DOWN_AUTOMATICALLY = PFLAG_VIDEO_IS_CLOSING << 1;
+    private int mPrivateFlags;
+
+    /** If the controls are showing, this is marked into {@link #mPrivateFlags}. */
+    private static final int PFLAG_CONTROLS_SHOWING = 1;
 
     /**
-     * Flag indicates that a position seek request happens when the video is not playing.
+     * Once set, the controls will stay showing even if you call {@link #showControls(boolean)}
+     * with a `false` passed into (in this case, it does nothing), and the internal will
+     * manage them logically. This usually happens when user is interacting with some basic widget
+     * (e.g., dragging the video progress bar or choosing a proper speed for the current player).
      */
-    private static final int PFLAG_SEEK_POSITION_WHILE_VIDEO_PAUSED = PFLAG_VIDEO_IS_CLOSING << 2;
+    private static final int PFLAG_CONTROLS_SHOW_STICKILY = 1 << 1;
+
+    /** Set by {@link #setLocked(boolean, boolean)} */
+    private static final int PFLAG_LOCKED = 1 << 2;
+
+    /** Set by {@link #setClipViewBounds(boolean)} */
+    private static final int PFLAG_CLIP_VIEW_BOUNDS = 1 << 3;
+
+    /** Set by {@link #setFullscreenMode(boolean, int)} */
+    private static final int PFLAG_IN_FULLSCREEN_MODE = 1 << 4;
+
+    /** Set by {@link #setVideoStretchedToFitFullscreenLayout(boolean)} */
+    private static final int PFLAG_VIDEO_STRETCHED_TO_FIT_FULLSCREEN_LAYOUT = 1 << 5;
 
     /**
-     * If true, MediaPlayer is moving the media to some specified time position
+     * When set, we will turn off the video playback and release the player object and
+     * some other resources associated with it when the currently playing video ends.
      */
-    private static final int PFLAG_SEEKING = PFLAG_VIDEO_IS_CLOSING << 3;
+    private static final int PFLAG_TURN_OFF_WHEN_THIS_EPISODE_ENDS = 1 << 6;
+
+    /** Set via {@link #setCanSkipToPrevious(boolean)} */
+    private static final int PFLAG_CAN_SKIP_TO_PREVIOUS = 1 << 7;
+
+    /** Set via {@link #setCanSkipToNext(boolean)} */
+    private static final int PFLAG_CAN_SKIP_TO_NEXT = 1 << 8;
+
+    @ViewMode
+    private int mViewMode = VIEW_MODE_DEFAULT;
+
+    @IntDef({
+            VIEW_MODE_DEFAULT,
+            VIEW_MODE_MINIMUM,
+            VIEW_MODE_FULLSCREEN,
+            VIEW_MODE_LOCKED_FULLSCREEN,
+            VIEW_MODE_VIDEO_STRETCHED_FULLSCREEN,
+            VIEW_MODE_VIDEO_STRETCHED_LOCKED_FULLSCREEN
+    })
+    @Retention(RetentionPolicy.SOURCE)
+    private @interface ViewMode {
+    }
+
+    /** Default mode for this view (unlocked, non-fullscreen and non-minimized). */
+    public static final int VIEW_MODE_DEFAULT = 1;
+
+    /** This view is minimized now, typically in picture-in-picture mode. */
+    public static final int VIEW_MODE_MINIMUM = 2;
+
+    /** This view is currently in fullscreen mode. */
+    public static final int VIEW_MODE_FULLSCREEN = 3;
+
+    /** This view is currently in fullscreen and locked mode. */
+    public static final int VIEW_MODE_LOCKED_FULLSCREEN = 4;
 
     /**
-     * If true, MediaPlayer is temporarily pausing playback internally in order to buffer more data.
+     * This view is currently in fullscreen mode and the video is stretched to fit
+     * the fullscreen layout.
      */
-    private static final int PFLAG_BUFFERING = PFLAG_VIDEO_IS_CLOSING << 4;
-
-    private MediaPlayer mMediaPlayer;
+    public static final int VIEW_MODE_VIDEO_STRETCHED_FULLSCREEN = 5;
 
     /**
-     * How much of the network-based video has been buffered from the media stream received
-     * through progressive HTTP download.
+     * This view is currently in fullscreen and locked mode and the video is stretched to fit
+     * the fullscreen layout.
      */
-    private int mBuffering;
+    public static final int VIEW_MODE_VIDEO_STRETCHED_LOCKED_FULLSCREEN = 6;
 
-    private final AudioManager.OnAudioFocusChangeListener mOnAudioFocusChangeListener
-            = new AudioManager.OnAudioFocusChangeListener() {
+    /** The amount of time till we fade out the controls. */
+    private static final int TIMEOUT_SHOW_CONTROLS = 5000; // ms
+    /** The amount of time till we fade out the brightness or volume frame. */
+    private static final int TIMEOUT_SHOW_BRIGHTNESS_OR_VOLUME = 1000; // ms
+    /** The amount of time till we fade out the view displaying the captured photo of the video. */
+    private static final int TIMEOUT_SHOW_CAPTURED_PHOTO = 3000; // ms
+
+    @Nullable
+    private VideoPlayer mVideoPlayer;
+
+    /** The listener for all the events related to this view we publish. */
+    @Nullable
+    private EventListener mEventListener;
+
+    @Nullable
+    private OpCallback mOpCallback;
+
+    private final ConstraintLayout mContentView;
+    private final ViewGroup mDrawerView;
+
+    private final RecyclerView mPlayList;
+    private View mMoreView;
+
+    /** Shows the video playback. */
+    private final TextureView mTextureView;
+    private Surface mSurface;
+
+    private final ViewGroup mTopControlsFrame;
+    private final TextView mTitleText;
+    private final View mShareButton;
+    private final View mMoreButton;
+
+    private final ImageView mLockUnlockButton;
+    private final View mCameraButton;
+    private final View mVideoCameraButton;
+
+    private final ViewGroup mBrightnessOrVolumeFrame;
+    private final TextView mBrightnessOrVolumeText;
+    private final ProgressBar mBrightnessOrVolumeProgress;
+
+    private final ViewGroup mBottomControlsFrame;
+    private ImageView mToggleButton;
+    private SeekBar mVideoSeekBar;
+    // Bottom controls only in non-fullscreen mode
+    private TextView mVideoProgressText;
+    private TextView mVideoDurationText;
+    private View mMinimizeButton;
+    private View mFullscreenButton;
+    // Bottom controls only in fullscreen mode
+    private View mSkipNextButton;
+    private TextView mVideoProgressDurationText;
+    private AppCompatSpinner mSpeedSpinner;
+    private View mChooseEpisodeButton;
+
+    /**
+     * Scrim view with a 33.3% black background shows on our TextureView to obscure primary
+     * video frames while the video thumb text is visible to the user.
+     */
+    private final View mScrimView;
+    private final TextView mSeekingVideoThumbText;
+
+    private final ViewGroup mSeekingTextProgressFrame;
+    private final TextView mSeekingProgressDurationText;
+    private final ProgressBar mSeekingProgress;
+
+    private final ImageView mLoadingImage;
+    private final CircularProgressDrawable mLoadingDrawable;
+
+    private View mCapturedPhotoView;
+    private Bitmap mCapturedBitmap;
+    private File mSavedPhoto;
+    private AsyncTask<Void, Void, File> mSaveCapturedPhotoTask;
+
+    private View mClipView;
+    private AsyncTask<Void, Bitmap, Void> mLoadClipThumbsTask;
+
+    private ListPopupWindow mSpinnerListPopup;
+    private PopupWindow mSpinnerPopup;
+
+    /** The minimum height of the drawer views (the playlist and the 'more' view) */
+    private int mDrawerViewMinimumHeight;
+
+    /** Caches the initial `paddingTop` of the top controls frame */
+    private final int mNavInitialPaddingTop;
+
+    /** Title of the video */
+    private String mTitle;
+
+    private final String mStringPlay;
+    private final String mStringPause;
+    private final String mStringLock;
+    private final String mStringUnlock;
+    private final String mStringBrightnessFollowsSystem;
+    private final String[] mSpeedsStringArray;
+    private final float mSeekingViewHorizontalOffset;
+    private final float mSeekingVideoThumbCornerRadius;
+
+    /**
+     * Time interpolator used for the animator of stretching or shrinking the texture view that
+     * displays the video content.
+     */
+    private static final Interpolator sStretchShrinkVideoInterpolator =
+            new OvershootInterpolator(6.66f);
+
+    private final OnChildTouchListener mOnChildTouchListener = new OnChildTouchListener();
+    private final OnClickListener mOnClickListener = new OnClickListener() {
         @Override
-        public void onAudioFocusChange(int focusChange) {
-            switch (focusChange) {
-                // Audio focus gained
-                case AudioManager.AUDIOFOCUS_GAIN:
-                    play(false);
-                    break;
+        public void onClick(View v) {
+            if (mTitleText == v) {
+                if (mEventListener != null) {
+                    mEventListener.onReturnClicked();
+                }
+            } else if (mShareButton == v) {
+                if (mEventListener != null) {
+                    showControls(false, false);
+                    mEventListener.onShareVideo();
+                }
+            } else if (mMoreButton == v) {
+                View view = LayoutInflater.from(mContext).inflate(
+                        R.layout.drawer_view_more, mDrawerView, false);
+                view.setMinimumHeight(mDrawerViewMinimumHeight);
 
-                // Loss of audio focus of unknown duration.
-                // This usually happens when the user switches to another audio/video application
-                // that causes our view to stop playing, so the video can be thought of as
-                // being paused/closed by the user.
-                case AudioManager.AUDIOFOCUS_LOSS:
-                    if (isInForeground()) {
-                        // If this view is still in the foreground, pauses the video only.
-                        pause(true);
-                    } else {
-                        // But if this occurs during background playback, we must close the video
-                        // to release the resources associated with it.
-                        closeVideoInternal(true);
+                SwitchCompat svb = view.findViewById(R.id.btn_stretchVideo);
+                SwitchCompat lsvb = view.findViewById(R.id.btn_loopSingleVideo);
+                SwitchCompat papb = view.findViewById(R.id.btn_pureAudioPlayback);
+                TextView whenThisEpisodeEndsText = view.findViewById(R.id.text_whenThisEpisodeEnds);
+                TextView _30MinutesText = view.findViewById(R.id.text_30Minutes);
+                TextView anHourText = view.findViewById(R.id.text_anHour);
+                TextView mediaplayerText = view.findViewById(R.id.text_mediaplayer);
+                TextView exoplayerText = view.findViewById(R.id.text_exoplayer);
+
+                IVideoPlayer videoPlayer = mVideoPlayer;
+                TimedOffRunnable tor = mTimedOffRunnable;
+                svb.setChecked(isVideoStretchedToFitFullscreenLayout());
+                lsvb.setChecked(videoPlayer != null && videoPlayer.isSingleVideoLoopPlayback());
+                papb.setChecked(videoPlayer != null && videoPlayer.isPureAudioPlayback());
+                whenThisEpisodeEndsText.setSelected((mPrivateFlags & PFLAG_TURN_OFF_WHEN_THIS_EPISODE_ENDS) != 0);
+                _30MinutesText.setSelected(tor != null && tor.offTime == TimedOffRunnable.OFF_TIME_30_MINUTES);
+                anHourText.setSelected(tor != null && tor.offTime == TimedOffRunnable.OFF_TIME_AN_HOUR);
+                mediaplayerText.setSelected(videoPlayer instanceof MediaPlayer);
+                exoplayerText.setSelected(videoPlayer instanceof ExoPlayer);
+
+                svb.setOnClickListener(this);
+                lsvb.setOnClickListener(this);
+                papb.setOnClickListener(this);
+                whenThisEpisodeEndsText.setOnClickListener(this);
+                _30MinutesText.setOnClickListener(this);
+                anHourText.setOnClickListener(this);
+                mediaplayerText.setOnClickListener(this);
+                exoplayerText.setOnClickListener(this);
+
+                mMoreView = view;
+                mDrawerView.addView(view);
+                openDrawer(mDrawerView);
+
+            } else if (mLockUnlockButton == v) {
+                setLocked(mStringUnlock.contentEquals(v.getContentDescription()));
+
+            } else if (mCameraButton == v) {
+                showControls(true, false);
+                captureVideoPhoto();
+
+            } else if (mVideoCameraButton == v) {
+                showClipView();
+
+            } else if (mToggleButton == v) {
+                if (mVideoPlayer != null) {
+                    mVideoPlayer.toggle(true);
+                }
+            } else if (mSkipNextButton == v) {
+                if (mVideoPlayer != null) {
+                    mVideoPlayer.skipToNextIfPossible();
+                }
+            } else if (mFullscreenButton == v) {
+                final int mode = isVideoStretchedToFitFullscreenLayout() ?
+                        VIEW_MODE_VIDEO_STRETCHED_FULLSCREEN : VIEW_MODE_FULLSCREEN;
+                setViewMode(mode, false);
+
+            } else if (mMinimizeButton == v) {
+                setViewMode(VIEW_MODE_MINIMUM, false);
+
+            } else if (mChooseEpisodeButton == v) {
+                if (ViewCompat.getMinimumHeight(mPlayList) != mDrawerViewMinimumHeight) {
+                    mPlayList.setMinimumHeight(mDrawerViewMinimumHeight);
+                }
+                mPlayList.setVisibility(VISIBLE);
+                openDrawer(mDrawerView);
+
+            } else {
+                final int id = v.getId();
+                if (id == R.id.btn_sharePhoto) {
+                    removeCallbacks(mHideCapturedPhotoViewRunnable);
+                    hideCapturedPhotoView(true);
+
+                } else if (id == R.id.btn_stretchVideo) {
+                    setVideoStretchedToFitFullscreenLayoutInternal(((Checkable) v).isChecked(), false);
+
+                } else if (id == R.id.btn_loopSingleVideo) {
+                    if (mVideoPlayer != null) {
+                        mVideoPlayer.setSingleVideoLoopPlayback(((Checkable) v).isChecked());
+                    }
+                } else if (id == R.id.btn_pureAudioPlayback) {
+                    if (mVideoPlayer != null) {
+                        mVideoPlayer.setPureAudioPlayback(((Checkable) v).isChecked());
+                    }
+                } else if (id == R.id.text_whenThisEpisodeEnds) {
+                    if (mVideoPlayer != null) {
+                        final boolean selected = !v.isSelected();
+                        v.setSelected(selected);
+                        mMoreView.findViewById(R.id.text_30Minutes).setSelected(false);
+                        mMoreView.findViewById(R.id.text_anHour).setSelected(false);
+
+                        updateTimedOffSchedule(selected, -1);
+                    }
+                } else if (id == R.id.text_30Minutes) {
+                    if (mVideoPlayer != null) {
+                        final boolean selected = !v.isSelected();
+                        v.setSelected(selected);
+                        mMoreView.findViewById(R.id.text_whenThisEpisodeEnds).setSelected(false);
+                        mMoreView.findViewById(R.id.text_anHour).setSelected(false);
+
+                        updateTimedOffSchedule(selected, TimedOffRunnable.OFF_TIME_30_MINUTES);
+                    }
+                } else if (id == R.id.text_anHour) {
+                    if (mVideoPlayer != null) {
+                        final boolean selected = !v.isSelected();
+                        v.setSelected(selected);
+                        mMoreView.findViewById(R.id.text_whenThisEpisodeEnds).setSelected(false);
+                        mMoreView.findViewById(R.id.text_30Minutes).setSelected(false);
+
+                        updateTimedOffSchedule(selected, TimedOffRunnable.OFF_TIME_AN_HOUR);
+                    }
+                } else if (id == R.id.text_mediaplayer) {
+                    if (!v.isSelected()) {
+                        VideoPlayer videoPlayer = VideoPlayer.Factory.newInstance(
+                                MediaPlayer.class, TextureVideoView.this);
+                        if (videoPlayer != null) {
+                            v.setSelected(true);
+                            mMoreView.findViewById(R.id.text_exoplayer).setSelected(false);
+
+                            setVideoPlayer(videoPlayer);
+                        }
+                    }
+                } else if (id == R.id.text_exoplayer) {
+                    if (!v.isSelected()) {
+                        VideoPlayer videoPlayer = VideoPlayer.Factory.newInstance(
+                                ExoPlayer.class, TextureVideoView.this);
+                        if (videoPlayer != null) {
+                            v.setSelected(true);
+                            mMoreView.findViewById(R.id.text_mediaplayer).setSelected(false);
+
+                            setVideoPlayer(videoPlayer);
+                        }
+                    }
+                }
+            }
+        }
+
+        void updateTimedOffSchedule(boolean selected, int offTime) {
+            switch (offTime) {
+                case -1:
+                    mPrivateFlags = mPrivateFlags & ~PFLAG_TURN_OFF_WHEN_THIS_EPISODE_ENDS
+                            | (selected ? PFLAG_TURN_OFF_WHEN_THIS_EPISODE_ENDS : 0);
+                    if (mTimedOffRunnable != null) {
+                        removeCallbacks(mTimedOffRunnable);
+                        mTimedOffRunnable = null;
                     }
                     break;
-
-                // Temporarily lose the audio focus and will probably gain it again soon.
-                // Must stop the video playback but no need for releasing the MediaPlayer here.
-                case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT:
-                    pause(false);
-                    break;
-
-                // Temporarily lose the audio focus but the playback can continue.
-                // The volume of the playback needs to be turned down.
-                case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK:
-                    if (mMediaPlayer != null) {
-                        mPrivateFlags |= PFLAG_VIDEO_VOLUME_TURNED_DOWN_AUTOMATICALLY;
-                        mMediaPlayer.setVolume(0.5f, 0.5f);
+                case TimedOffRunnable.OFF_TIME_30_MINUTES:
+                case TimedOffRunnable.OFF_TIME_AN_HOUR:
+                    mPrivateFlags &= ~PFLAG_TURN_OFF_WHEN_THIS_EPISODE_ENDS;
+                    if (selected) {
+                        if (mTimedOffRunnable == null) {
+                            mTimedOffRunnable = new TimedOffRunnable();
+                        } else {
+                            removeCallbacks(mTimedOffRunnable);
+                        }
+                        mTimedOffRunnable.offTime = offTime;
+                        postDelayed(mTimedOffRunnable, offTime);
+                    } else {
+                        if (mTimedOffRunnable != null) {
+                            removeCallbacks(mTimedOffRunnable);
+                            mTimedOffRunnable = null;
+                        }
                     }
                     break;
             }
         }
     };
-    private final AudioFocusRequest mAudioFocusRequest =
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ?
-                    new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
-                            .setAudioAttributes(sDefaultAudioAttrs.getAudioAttributesV21())
-                            .setOnAudioFocusChangeListener(mOnAudioFocusChangeListener)
-                            .setAcceptsDelayedFocusGain(true)
-                            .build()
-                    : null;
+    private final AdapterView.OnItemSelectedListener mOnItemSelectedListener = new AdapterView.OnItemSelectedListener() {
+        @Override
+        public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+            if (mSpeedSpinner == parent
+                    && view instanceof TextView /* This may be null during state restore */) {
+                TextView tv = (TextView) view;
 
-    public TextureVideoView(Context context) {
-        super(context);
-    }
+                ViewGroup.LayoutParams lp = tv.getLayoutParams();
+                lp.width = parent.getWidth();
+                lp.height = parent.getHeight();
+                tv.setLayoutParams(lp);
 
-    public TextureVideoView(Context context, AttributeSet attrs) {
-        super(context, attrs);
-    }
+                final String speed = tv.getText().toString();
+                if (mVideoPlayer != null) {
+                    mVideoPlayer.setPlaybackSpeed(
+                            Float.parseFloat(speed.substring(0, speed.lastIndexOf('x'))));
+                }
+                // Filter the non-user-triggered selection changes, so that the visibility of the
+                // controls stay unchanged.
+                if ((mPrivateFlags & PFLAG_CONTROLS_SHOW_STICKILY) != 0) {
+                    mPrivateFlags &= ~PFLAG_CONTROLS_SHOW_STICKILY;
+                    showControls(true, false);
+                    checkCameraButtonsVisibilities();
+                }
+            }
+        }
 
-    public TextureVideoView(Context context, AttributeSet attrs, int defStyleAttr) {
-        super(context, attrs, defStyleAttr);
-    }
+        @Override
+        public void onNothingSelected(AdapterView<?> parent) {
+        }
+    };
 
-    @Override
-    public void setVideoResourceId(@RawRes int resId) {
-        setVideoPath(resId == 0 ?
-                null : "android.resource://" + mContext.getPackageName() + "/" + resId);
-    }
+    private final SeekBar.OnSeekBarChangeListener mOnSeekBarChangeListener
+            = new SeekBar.OnSeekBarChangeListener() {
+        int start;
+        volatile int current;
+        MediaMetadataRetriever mmr;
+        AsyncTask<Void, Object, Void> task;
+        ParcelableSpan progressTextSpan;
+        ValueAnimator fadeAnimator;
+        ValueAnimator translateAnimator;
+        Animator.AnimatorListener animatorListener;
+        static final int DURATION = 800; // ms
 
-    @Override
-    public void setVideoUri(@Nullable Uri uri) {
-        if (!ObjectsCompat.equals(uri, mVideoUri)) {
-            super.setVideoUri(uri);
-            mVideoDuration = 0;
-            mVideoDurationString = DEFAULT_STRING_VIDEO_DURATION;
-            mPrivateFlags &= ~PFLAG_VIDEO_INFO_RESOLVED;
-            if (mMediaPlayer == null) {
-                // Removes the PFLAG_VIDEO_PAUSED_BY_USER flag and resets mSeekOnPlay to 0 in case
-                // the MediaPlayer was previously released and has not been initialized yet.
-                mPrivateFlags &= ~PFLAG_VIDEO_PAUSED_BY_USER;
-                mSeekOnPlay = 0;
-                if (uri == null) {
-                    // Sets the playback state to idle directly when the player is not created
-                    // and no video is set
-                    setPlaybackState(PLAYBACK_STATE_IDLE);
+        @Override
+        public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+            if (fromUser) {
+                current = progress;
+                if (mmr == null) {
+                    mSeekingProgressDurationText.setText(getProgressDurationText(progress));
+                    mSeekingProgress.setProgress(progress);
+                }
+                refreshVideoProgress(progress, false);
+
+                if (translateAnimator == null) {
+                    final View target = mmr == null ? mSeekingTextProgressFrame : mSeekingVideoThumbText;
+                    final boolean rtl = Utils.isLayoutRtl(mContentView);
+                    final float end = !rtl && progress > start || rtl && progress < start ?
+                            mSeekingViewHorizontalOffset : -mSeekingViewHorizontalOffset;
+                    ValueAnimator ta;
+                    translateAnimator = ta = ValueAnimator.ofFloat(0, end);
+                    ta.addListener(animatorListener);
+                    ta.addUpdateListener(
+                            animation -> target.setTranslationX((float) animation.getAnimatedValue()));
+                    ta.setDuration(DURATION);
+                    ta.setRepeatMode(ValueAnimator.RESTART);
+                    ta.start();
+                }
+            }
+        }
+
+        @Override
+        public void onStartTrackingTouch(SeekBar seekBar) {
+            current = start = seekBar.getProgress();
+
+            mPrivateFlags |= PFLAG_CONTROLS_SHOW_STICKILY;
+            showControls(-1, true);
+            // Do not refresh the video progress bar with the current playback position
+            // while the user is dragging it.
+            removeCallbacks(mRefreshVideoProgressRunnable);
+
+            Animator.AnimatorListener listener = animatorListener;
+            ValueAnimator fa = fadeAnimator;
+            if (fa != null) {
+                // hide the currently showing view (mSeekingVideoThumbText/mSeekingTextProgressFrame)
+                fa.end();
+            }
+            if (translateAnimator != null) {
+                // Reset horizontal translation to 0 for the just hidden view
+                translateAnimator.end();
+            }
+            animatorListener = listener; // Reuse the animator listener if it is not recycled
+            // Decide which view to show
+            if (mVideoPlayer != null && mVideoPlayer.mVideoUri != null && isInFullscreenMode()
+                    && !mVideoPlayer.isPureAudioPlayback()) {
+                mmr = new MediaMetadataRetriever();
+                try {
+                    mmr.setDataSource(mContext, mVideoPlayer.mVideoUri);
+                } catch (IllegalArgumentException e) {
+                    e.printStackTrace();
+                    mmr.release();
+                    mmr = null;
+                    showSeekingTextProgress(true);
+                }
+                if (mmr != null) {
+                    // The media contains no video content
+                    if (mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_HAS_VIDEO) == null) {
+                        mmr.release();
+                        mmr = null;
+                        showSeekingTextProgress(true);
+                    } else {
+                        task = new UpdateVideoThumbTask();
+                        task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                        showSeekingVideoThumb(true);
+                    }
+                }
+            } else {
+                showSeekingTextProgress(true);
+            }
+            // Start the fade in animation
+            if (fa == null) {
+                if (animatorListener == null) {
+                    animatorListener = new AnimatorListenerAdapter() {
+                        // Override for compatibility with APIs below 26.
+                        // This will not get called on platforms O and higher.
+                        @Override
+                        public void onAnimationStart(Animator animation) {
+                            onAnimationStart(animation, isReverse(animation));
+                        }
+
+                        // Override for compatibility with APIs below 26.
+                        // This will not get called on platforms O and higher.
+                        @Override
+                        public void onAnimationEnd(Animator animation) {
+                            onAnimationEnd(animation, isReverse(animation));
+                        }
+
+                        boolean isReverse(Animator animation) {
+                            // When reversing, the animation's repeat mode was set to REVERSE
+                            // before it started.
+                            return ((ValueAnimator) animation).getRepeatMode() == ValueAnimator.REVERSE;
+                        }
+
+                        @TargetApi(Build.VERSION_CODES.O)
+                        @Override
+                        public void onAnimationStart(Animator animation, boolean isReverse) {
+                            final boolean isThumbVisible = mSeekingVideoThumbText.getVisibility() == VISIBLE;
+                            final boolean isFadeAnimation = animation == fadeAnimator;
+
+                            Animator other = isFadeAnimation ? translateAnimator : fadeAnimator;
+                            if (other == null || !other.isRunning()) {
+                                updateLayer(LAYER_TYPE_HARDWARE, isThumbVisible);
+                            }
+
+                            if (isFadeAnimation) {
+                                animation.setDuration(isReverse || isThumbVisible ?
+                                        DURATION : (long) (DURATION * 2f / 3f + 0.5f));
+                            }
+                        }
+
+                        @TargetApi(Build.VERSION_CODES.O)
+                        @Override
+                        public void onAnimationEnd(Animator animation, boolean isReverse) {
+                            final boolean isThumbVisible = mSeekingVideoThumbText.getVisibility() == VISIBLE;
+                            final boolean isFadeAnimation = animation == fadeAnimator;
+
+                            Animator other = isFadeAnimation ? translateAnimator : fadeAnimator;
+                            if (other == null || !other.isRunning()) {
+                                updateLayer(LAYER_TYPE_NONE, isThumbVisible);
+                            }
+
+                            if (isReverse) {
+                                if (isFadeAnimation) {
+                                    fadeAnimator = null;
+                                } else {
+                                    translateAnimator = null;
+                                }
+                                if (fadeAnimator == null && translateAnimator == null) {
+                                    animatorListener = null;
+                                    if (isThumbVisible) {
+                                        recycleVideoThumb();
+                                        // Clear the text to make sure it doesn't show anything the next time
+                                        // it appears, otherwise a separate text would be displayed on it,
+                                        // which we do not want.
+                                        mSeekingVideoThumbText.setText("");
+                                        showSeekingVideoThumb(false);
+                                    } else {
+                                        showSeekingTextProgress(false);
+                                    }
+                                }
+                            }
+                        }
+
+                        void updateLayer(int layerType, boolean isThumbVisible) {
+                            if (isThumbVisible) {
+                                mSeekingVideoThumbText.setLayerType(layerType, null);
+                                if (ViewCompat.isAttachedToWindow(mSeekingVideoThumbText)) {
+                                    mSeekingVideoThumbText.buildLayer();
+                                }
+                                mScrimView.setLayerType(layerType, null);
+                                if (ViewCompat.isAttachedToWindow(mScrimView)) {
+                                    mScrimView.buildLayer();
+                                }
+                            } else {
+//                                mSeekingTextProgressFrame.setLayerType(layerType, null);
+//                                if (ViewCompat.isAttachedToWindow(mSeekingTextProgressFrame)) {
+//                                    mSeekingTextProgressFrame.buildLayer();
+//                                }
+                            }
+                        }
+                    };
+                }
+                fadeAnimator = fa = ValueAnimator.ofFloat(0.0f, 1.0f);
+                fa.addListener(animatorListener);
+                fa.addUpdateListener(animation -> {
+                    final float alpha = (float) animation.getAnimatedValue();
+                    if (mSeekingVideoThumbText.getVisibility() == VISIBLE) {
+                        mScrimView.setAlpha(alpha);
+                        mSeekingVideoThumbText.setAlpha(alpha);
+                    } else {
+                        mSeekingTextProgressFrame.setAlpha(alpha);
+                    }
+                });
+            } else {
+                // If the fade in/out animator has not been released before we need one again,
+                // reuse it to avoid unnecessary memory re-allocations.
+                fadeAnimator = fa;
+            }
+            fa.setRepeatMode(ValueAnimator.RESTART);
+            fa.start();
+        }
+
+        @Override
+        public void onStopTrackingTouch(SeekBar seekBar) {
+            if (mVideoPlayer != null) {
+                final int progress = current;
+                if (progress != start)
+                    mVideoPlayer.seekTo(progress, true);
+            }
+
+            mPrivateFlags &= ~PFLAG_CONTROLS_SHOW_STICKILY;
+            showControls(true, false);
+
+            if (mmr != null) {
+                task.cancel(false);
+                task = null;
+                mmr.release();
+                mmr = null;
+            }
+            if (translateAnimator != null) {
+                translateAnimator.setRepeatMode(ValueAnimator.REVERSE);
+                translateAnimator.reverse();
+            }
+            fadeAnimator.setRepeatMode(ValueAnimator.REVERSE);
+            fadeAnimator.reverse();
+        }
+
+        void showSeekingVideoThumb(boolean show) {
+            if (show) {
+                mScrimView.setVisibility(VISIBLE);
+                mSeekingVideoThumbText.setVisibility(VISIBLE);
+            } else {
+                mScrimView.setVisibility(GONE);
+                mSeekingVideoThumbText.setVisibility(GONE);
+            }
+        }
+
+        void showSeekingTextProgress(boolean show) {
+            if (show) {
+                final int progress, duration;
+                if (mVideoPlayer == null) {
+                    duration = progress = 0;
                 } else {
-                    openVideoInternal();
+                    progress = current;
+                    duration = mVideoPlayer.getVideoDuration();
                 }
+                mSeekingProgressDurationText.setText(getProgressDurationText(progress));
+                mSeekingProgress.setMax(duration);
+                mSeekingProgress.setProgress(progress);
+                mSeekingTextProgressFrame.setVisibility(VISIBLE);
             } else {
-                restartVideo();
+                mSeekingTextProgressFrame.setVisibility(GONE);
             }
         }
-    }
 
-    @Override
-    protected void openVideoInternal() {
-        if (mMediaPlayer == null && mSurface != null && mVideoUri != null
-                && (mPrivateFlags & PFLAG_VIDEO_PAUSED_BY_USER) == 0) {
-            mMediaPlayer = new MediaPlayer();
-            mMediaPlayer.setSurface(isPureAudioPlayback() ? null : mSurface);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                mMediaPlayer.setAudioAttributes(sDefaultAudioAttrs.getAudioAttributesV21());
+        CharSequence getProgressDurationText(int progress) {
+            if (progressTextSpan == null) {
+                progressTextSpan = new ForegroundColorSpan(mColorAccent);
+            }
+            final String vds;
+            if (mVideoPlayer == null) {
+                progress = 0;
+                vds = VideoPlayer.DEFAULT_STRING_VIDEO_DURATION;
             } else {
-                mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+                vds = mVideoPlayer.mVideoDurationString;
             }
-            mMediaPlayer.setOnPreparedListener(mp -> {
-                showLoadingView(false);
-                if ((mPrivateFlags & PFLAG_VIDEO_INFO_RESOLVED) == 0) {
-                    mVideoDuration = mp.getDuration();
-                    mVideoDurationString = TimeUtil.formatTimeByColon(mVideoDuration);
-                    mPrivateFlags |= PFLAG_VIDEO_INFO_RESOLVED;
-                }
-                setPlaybackState(PLAYBACK_STATE_PREPARED);
-                play(false);
-            });
-            mMediaPlayer.setOnSeekCompleteListener(mp -> {
-                if ((mPrivateFlags & PFLAG_BUFFERING) == 0) {
-                    showLoadingView(false);
-                }
-                mPrivateFlags &= ~PFLAG_SEEKING;
-            });
-            mMediaPlayer.setOnInfoListener((mp, what, extra) -> {
-                switch (what) {
-                    case MediaPlayer.MEDIA_INFO_BUFFERING_START:
-                        mPrivateFlags |= PFLAG_BUFFERING;
-                        if ((mPrivateFlags & PFLAG_SEEKING) == 0) {
-                            showLoadingView(true);
-                        }
-                        break;
-                    case MediaPlayer.MEDIA_INFO_BUFFERING_END:
-                        mPrivateFlags &= ~PFLAG_BUFFERING;
-                        if ((mPrivateFlags & PFLAG_SEEKING) == 0) {
-                            showLoadingView(false);
-                        }
-                        break;
-                }
-                return false;
-            });
-            mMediaPlayer.setOnBufferingUpdateListener((mp, percent)
-                    -> mBuffering = (int) (mVideoDuration * percent / 100f + 0.5f));
-            mMediaPlayer.setOnErrorListener((mp, what, extra) -> {
-                if (BuildConfig.DEBUG) {
-                    Log.e(TAG, "Error occurred while playing video:" +
-                            " what= " + what + "; extra= " + extra);
-                }
-                showVideoErrorMsg(extra);
+            final String ps = TimeUtil.formatTimeByColon(progress);
+            final SpannableString ss = new SpannableString(
+                    mResources.getString(R.string.progress_duration, ps, vds));
+            ss.setSpan(progressTextSpan, 0, ps.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            return ss;
+        }
 
-                showLoadingView(false);
-                final boolean playing = isPlaying();
-                setPlaybackState(PLAYBACK_STATE_ERROR);
-                if (playing) {
-                    pauseInternal(false);
-                }
-                return true;
-            });
-            mMediaPlayer.setOnCompletionListener(mp -> onPlaybackCompleted());
-            mMediaPlayer.setOnVideoSizeChangedListener((mp, width, height)
-                    -> onVideoSizeChanged(width, height));
-            startVideo();
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                mSession = new MediaSessionCompat(mContext, TAG);
-                mSession.setCallback(new SessionCallback());
-                mSession.setActive(true);
+        void recycleVideoThumb() {
+            Drawable thumb = mSeekingVideoThumbText.getCompoundDrawables()[3];
+            // Removes the drawable that holds a reference to the bitmap to be recycled,
+            // in case we still use the recycled bitmap on the next drawing of the TextView.
+            mSeekingVideoThumbText.setCompoundDrawables(null, null, null, null);
+            if (thumb instanceof BitmapDrawable) {
+                ((BitmapDrawable) thumb).getBitmap().recycle();
             }
-            mHeadsetEventsReceiver = new HeadsetEventsReceiver(mContext) {
-                @Override
-                public void onHeadsetPluggedOutOrBluetoothDisconnected() {
-                    pause(true);
+        }
+
+        @SuppressLint("StaticFieldLeak")
+        final class UpdateVideoThumbTask extends AsyncTask<Void, Object, Void> {
+            static final boolean RETRIEVE_SCALED_FRAME_FROM_MMR = false;
+            static final float RATIO = 0.25f;
+            int last = -1;
+
+            @Override
+            public Void doInBackground(Void... voids) {
+                while (!isCancelled()) {
+                    int now = current;
+                    if (now == last) continue;
+                    last = now;
+
+                    View tv = mTextureView;
+                    final int width = (int) (tv.getWidth() * tv.getScaleX() * RATIO + 0.5f);
+                    final int height = (int) (tv.getHeight() * tv.getScaleY() * RATIO + 0.5f);
+
+                    Bitmap thumb = null;
+                    if (RETRIEVE_SCALED_FRAME_FROM_MMR
+                            && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+                        thumb = mmr.getScaledFrameAtTime(now * 1000L,
+                                MediaMetadataRetriever.OPTION_CLOSEST_SYNC, width, height);
+                    } else {
+                        Bitmap tmp = mmr.getFrameAtTime(now * 1000L,
+                                MediaMetadataRetriever.OPTION_CLOSEST_SYNC);
+                        if (tmp != null) {
+                            thumb = BitmapUtils.createScaledBitmap(tmp, width, height, true);
+                        }
+                    }
+                    if (thumb == null) continue;
+                    thumb = BitmapUtils.createRoundCornerBitmap(
+                            thumb, mSeekingVideoThumbCornerRadius, true);
+
+                    publishProgress(getProgressDurationText(now), new BitmapDrawable(mResources, thumb));
                 }
-            };
-            mHeadsetEventsReceiver.register(AudioManager.ACTION_AUDIO_BECOMING_NOISY);
-        }
-    }
+                return null;
+            }
 
-    private void showVideoErrorMsg(int errorType) {
-        final int stringRes;
-        switch (errorType) {
-            case MediaPlayer.MEDIA_ERROR_IO:
-                stringRes = R.string.failedToLoadThisVideo;
-                break;
-            case MediaPlayer.MEDIA_ERROR_UNSUPPORTED:
-            case MediaPlayer.MEDIA_ERROR_MALFORMED:
-                stringRes = R.string.videoInThisFormatIsNotSupported;
-                break;
-            case MediaPlayer.MEDIA_ERROR_TIMED_OUT:
-                stringRes = R.string.loadTimeout;
-                break;
-            default:
-                stringRes = R.string.unknownErrorOccurredWhenVideoIsPlaying;
-                break;
+            @Override
+            public void onProgressUpdate(Object... objs) {
+                recycleVideoThumb();
+                mSeekingVideoThumbText.setText((CharSequence) objs[0]);
+                mSeekingVideoThumbText.setCompoundDrawablesWithIntrinsicBounds(
+                        null, null, null, (Drawable) objs[1]);
+            }
         }
-        Toast.makeText(mContext, stringRes, Toast.LENGTH_SHORT).show();
-    }
+    };
 
-    private void startVideo() {
-        if (mVideoUri != null) {
+    private final Runnable mHideControlsRunnable = () -> showControls(false);
+    private final Runnable mHideBrightnessOrVolumeFrameRunnable = new Runnable() {
+        @Override
+        public void run() {
+            mBrightnessOrVolumeFrame.setVisibility(GONE);
+        }
+    };
+    private final Runnable mHideCapturedPhotoViewRunnable = () -> hideCapturedPhotoView(false);
+    private final Runnable mCheckCameraButtonsVisibilitiesRunnable = this::checkCameraButtonsVisibilities;
+
+    private final Runnable mRefreshVideoProgressRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (mVideoPlayer == null) {
+                refreshVideoProgress(0);
+                return;
+            }
+
+            final int progress = mVideoPlayer.getVideoProgress();
+            if (isControlsShowing() && mVideoPlayer.isPlaying()) {
+                // Dynamic delay to keep pace with the actual progress of the video most accurately.
+                postDelayed(this, 1000 - progress % 1000);
+            }
+            refreshVideoProgress(progress);
+        }
+    };
+
+    /**
+     * Runnable used to turn off the video playback when a scheduled time point is arrived.
+     */
+    private TimedOffRunnable mTimedOffRunnable;
+
+    /** Indicating that the brightness value of a window should follow the system's */
+    public static final int BRIGHTNESS_FOLLOWS_SYSTEM = -1;
+    /** Lowest value for the brightness of a window */
+    public static final int MIN_BRIGHTNESS = 0;
+    /** Highest value for the brightness of a window */
+    public static final int MAX_BRIGHTNESS = 255;
+
+    /**
+     * The ratio of the progress of the volume seek bar to the current media stream volume,
+     * used to improve the smoothness of the volume progress slider, esp. when the user changes
+     * its progress through horizontal screen track touches.
+     */
+    private static final int RATIO_VOLUME_PROGRESS_TO_VOLUME = 20;
+
+    /** Maximum volume of the system media audio stream ({@link AudioManager#STREAM_MUSIC}). */
+    private final int mMaxVolume;
+
+    private ViewDragHelper mDragHelper;
+    private static final int FLAG_IS_OPENING = 0x2; // DrawerLayout.LayoutParams#FLAG_IS_OPENING
+    private static final int FLAG_IS_CLOSING = 0x4; // DrawerLayout.LayoutParams#FLAG_IS_CLOSING
+
+    private static Field sLeftDraggerField;
+    private static Field sRightDraggerField;
+    private static Field sOpenStateField;
+
+    private static Field sListPopupField;
+    private static Field sPopupField;
+    private static Field sPopupDecorViewField;
+    private static Field sForceIgnoreOutsideTouchField;
+    private static Field sPopupOnDismissListenerField;
+
+    static {
+        try {
+            sListPopupField = AppCompatSpinner.class.getDeclaredField("mPopup");
+            sListPopupField.setAccessible(true);
+
+            Class<?> listPopupClass = ListPopupWindow.class;
+            sPopupField = listPopupClass.getDeclaredField("mPopup");
+            sPopupField.setAccessible(true);
+/*
             try {
-                mMediaPlayer.setDataSource(mContext, mVideoUri);
-                showLoadingView(true);
-                setPlaybackState(PLAYBACK_STATE_PREPARING);
-                mMediaPlayer.prepareAsync();
-                mMediaPlayer.setLooping(isSingleVideoLoopPlayback());
-            } catch (IOException e) {
+                // On platforms after O MR1, we can not use reflections to access the internal hidden
+                // fields and methods, so use the slower processing logic that set a touch listener
+                // for the popup's decorView and consume the 'down' and 'outside' events according to
+                // the same conditions to its original onTouchEvent() method through omitting
+                // the invocations to the popup's dismiss() method, so that the popup remains showing
+                // within an outside touch event stream till the up event is reached, in which, instead,
+                // we will dismiss it manually.
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    //noinspection JavaReflectionMemberAccess
+                    sPopupDecorViewField = PopupWindow.class.getDeclaredField("mDecorView");
+                    sPopupDecorViewField.setAccessible(true);
+                } else {
+                    // @see ListPopupWindow#setForceIgnoreOutsideTouch() — public hidden method
+                    //                                                   — restricted to internal use only
+                    // @see ListPopupWindow#show()
+                    sForceIgnoreOutsideTouchField = listPopupClass.getDeclaredField("mForceIgnoreOutsideTouch");
+                    sForceIgnoreOutsideTouchField.setAccessible(true);
+                }
+            } catch (NoSuchFieldException e) {
                 e.printStackTrace();
-                showVideoErrorMsg(-1004 /* MediaPlayer.MEDIA_ERROR_IO */);
-                showLoadingView(false); // in case it is already showing
-                setPlaybackState(PLAYBACK_STATE_ERROR);
             }
-        } else {
-            showLoadingView(false);
-            setPlaybackState(PLAYBACK_STATE_IDLE);
+*/
+            try {
+                //noinspection JavaReflectionMemberAccess
+                sPopupOnDismissListenerField = PopupWindow.class.getDeclaredField("mOnDismissListener");
+                sPopupOnDismissListenerField.setAccessible(true);
+            } catch (NoSuchFieldException e) {
+                e.printStackTrace();
+            }
+        } catch (NoSuchFieldException e) {
+            e.printStackTrace();
+            sListPopupField = sPopupField = null;
         }
-        cancelDraggingVideoSeekBar();
+
+        try {
+            Class<DrawerLayout> drawerLayoutClass = DrawerLayout.class;
+            sLeftDraggerField = drawerLayoutClass.getDeclaredField("mLeftDragger");
+            sLeftDraggerField.setAccessible(true);
+            sRightDraggerField = drawerLayoutClass.getDeclaredField("mRightDragger");
+            sRightDraggerField.setAccessible(true);
+        } catch (NoSuchFieldException e) {
+            e.printStackTrace();
+            sLeftDraggerField = sRightDraggerField = null;
+        }
+        try {
+            Class<LayoutParams> lpClass = LayoutParams.class;
+            sOpenStateField = lpClass.getDeclaredField("openState");
+            sOpenStateField.setAccessible(true);
+        } catch (NoSuchFieldException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public TextureVideoView(@NonNull Context context) {
+        this(context, null);
+    }
+
+    public TextureVideoView(@NonNull Context context, @Nullable AttributeSet attrs) {
+        this(context, attrs, 0);
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    public TextureVideoView(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
+        super(context, attrs, defStyleAttr);
+        setBackgroundColor(Color.BLACK);
+
+        mStringPlay = mResources.getString(R.string.play);
+        mStringPause = mResources.getString(R.string.pause);
+        mStringLock = mResources.getString(R.string.lock);
+        mStringUnlock = mResources.getString(R.string.unlock);
+        mStringBrightnessFollowsSystem = mResources.getString(R.string.brightness_followsSystem);
+        mSpeedsStringArray = mResources.getStringArray(R.array.speeds);
+        mSeekingViewHorizontalOffset = mResources.getDimension(R.dimen.seekingViewHorizontalOffset);
+        mSeekingVideoThumbCornerRadius = mResources.getDimension(R.dimen.seekingVideoThumbCornerRadius);
+
+        // Inflate the content
+        View.inflate(context, R.layout.view_video, this);
+        mContentView = findViewById(R.id.content_videoview);
+        mDrawerView = findViewById(R.id.drawer_videoview);
+        mPlayList = findViewById(R.id.rv_playlist);
+        mTextureView = findViewById(R.id.textureView);
+        mScrimView = findViewById(R.id.scrim);
+        mSeekingVideoThumbText = findViewById(R.id.text_seekingVideoThumb);
+        mSeekingTextProgressFrame = findViewById(R.id.frame_seekingTextProgress);
+        mSeekingProgressDurationText = findViewById(R.id.text_seeking_progress_duration);
+        mSeekingProgress = findViewById(R.id.pb_seekingProgress);
+        mLoadingImage = findViewById(R.id.image_loading);
+        mTopControlsFrame = findViewById(R.id.frame_topControls);
+        mTitleText = findViewById(R.id.text_title);
+        mShareButton = findViewById(R.id.btn_share);
+        mMoreButton = findViewById(R.id.btn_more);
+        mLockUnlockButton = findViewById(R.id.btn_lockUnlock);
+        mCameraButton = findViewById(R.id.btn_camera);
+        mVideoCameraButton = findViewById(R.id.btn_videoCamera);
+        mBrightnessOrVolumeFrame = findViewById(R.id.frame_brightness_or_volume);
+        mBrightnessOrVolumeText = findViewById(R.id.text_brightness_or_volume);
+        mBrightnessOrVolumeProgress = findViewById(R.id.pb_brightness_or_volume);
+        mBottomControlsFrame = findViewById(R.id.frame_bottomControls);
+        inflateBottomControls();
+
+        mNavInitialPaddingTop = mTopControlsFrame.getPaddingTop();
+
+        setDrawerLockModeInternal(LOCK_MODE_LOCKED_CLOSED, mDrawerView);
+        addDrawerListener(new DrawerListener() {
+            int scrollState;
+            float slideOffset;
+
+            @Override
+            public void onDrawerSlide(@NonNull View drawerView, float slideOffset) {
+                if (!isControlsShowing()
+                        && scrollState == STATE_SETTLING
+                        && slideOffset < 0.5f && slideOffset < this.slideOffset) {
+                    showControls(true);
+                }
+                this.slideOffset = slideOffset;
+            }
+
+            @Override
+            public void onDrawerStateChanged(int newState) {
+                if (newState == STATE_SETTLING && sOpenStateField != null) {
+                    try {
+                        final int state = sOpenStateField.getInt(mDrawerView.getLayoutParams());
+                        if ((state & FLAG_IS_OPENING) != 0) {
+                            showControls(false);
+                        } else if ((state & FLAG_IS_CLOSING) != 0) {
+                            showControls(true);
+                        }
+                    } catch (IllegalAccessException e) {
+                        e.printStackTrace();
+                    }
+                }
+                scrollState = newState;
+            }
+
+            @Override
+            public void onDrawerOpened(@NonNull View drawerView) {
+                setDrawerLockModeInternal(LOCK_MODE_UNLOCKED, drawerView);
+            }
+
+            @Override
+            public void onDrawerClosed(@NonNull View drawerView) {
+                mPlayList.setVisibility(GONE);
+                if (mMoreView != null) {
+                    mDrawerView.removeView(mMoreView);
+                    mMoreView = null;
+                }
+                setDrawerLockModeInternal(LOCK_MODE_LOCKED_CLOSED, drawerView);
+            }
+        });
+
+        mContentView.setOnTouchListener(mOnChildTouchListener);
+        mContentView.setTouchInterceptor(mOnChildTouchListener);
+
+        mTitleText.setOnClickListener(mOnClickListener);
+        mShareButton.setOnClickListener(mOnClickListener);
+        mMoreButton.setOnClickListener(mOnClickListener);
+        mLockUnlockButton.setOnClickListener(mOnClickListener);
+        mCameraButton.setOnClickListener(mOnClickListener);
+        mVideoCameraButton.setOnClickListener(mOnClickListener);
+
+        // Prepare video playback
+        mTextureView.setSurfaceTextureListener(new TextureView.SurfaceTextureListener() {
+            @Override
+            public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
+                mSurface = new Surface(surface);
+                if (mVideoPlayer != null) {
+                    mVideoPlayer.openVideo();
+                }
+            }
+
+            @Override
+            public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
+                if (mVideoPlayer != null) {
+                    mVideoPlayer.closeVideo();
+                }
+                mSurface.release();
+                mSurface = null;
+                return true;
+            }
+
+            @Override
+            public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
+            }
+
+            @Override
+            public void onSurfaceTextureUpdated(SurfaceTexture surface) {
+            }
+        });
+
+        mMaxVolume = mAudioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+
+        Typeface tf = Typeface.createFromAsset(mResources.getAssets(), "fonts/avenirnext-medium.ttf");
+        mSeekingVideoThumbText.setTypeface(tf);
+        mSeekingProgressDurationText.setTypeface(tf);
+
+        mLoadingDrawable = new CircularProgressDrawable(context);
+        mLoadingDrawable.setColorSchemeColors(mColorAccent);
+        mLoadingDrawable.setStrokeWidth(mResources.getDimension(R.dimen.circular_progress_stroke_width));
+        mLoadingDrawable.setStrokeCap(Paint.Cap.ROUND);
+        mLoadingImage.setImageDrawable(mLoadingDrawable);
+    }
+
+    private void inflateBottomControls() {
+        ViewGroup root = mBottomControlsFrame;
+        if (root.getChildCount() > 0) {
+            root.removeViewAt(0);
+        }
+
+        if (isInFullscreenMode()) {
+            if (isLocked()) {
+                mVideoSeekBar = (SeekBar) LayoutInflater.from(mContext).inflate(
+                        R.layout.bottom_controls_fullscreen_locked, root, false);
+                root.addView(mVideoSeekBar);
+
+                mVideoProgressText = null;
+                mVideoDurationText = null;
+                mMinimizeButton = null;
+                mFullscreenButton = null;
+                mSkipNextButton = null;
+                mVideoProgressDurationText = null;
+                mSpeedSpinner = null;
+                mSpinnerListPopup = null;
+                mSpinnerPopup = null;
+                mChooseEpisodeButton = null;
+                mToggleButton = null;
+                return;
+            }
+
+            View.inflate(mContext, R.layout.bottom_controls_fullscreen, root);
+            mSkipNextButton = root.findViewById(R.id.btn_skipNext);
+            mVideoProgressDurationText = root.findViewById(R.id.text_videoProgressDuration);
+            mSpeedSpinner = root.findViewById(R.id.spinner_speed);
+            mChooseEpisodeButton = root.findViewById(R.id.btn_chooseEpisode);
+
+            ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                    mContext, R.layout.item_speed_spinner, mSpeedsStringArray);
+            adapter.setDropDownViewResource(R.layout.dropdown_item_speed_spinner);
+
+            mSpeedSpinner.setOnItemSelectedListener(mOnItemSelectedListener);
+            mSpeedSpinner.setPopupBackgroundResource(R.color.bg_popup);
+            mSpeedSpinner.setAdapter(adapter);
+            final float playbackSpeed = mVideoPlayer == null ?
+                    IVideoPlayer.DEFAULT_PLAYBACK_SPEED : mVideoPlayer.mPlaybackSpeed;
+            mSpeedSpinner.setSelection(indexOfPlaybackSpeed(playbackSpeed), false);
+            mSpeedSpinner.setOnTouchListener(mOnChildTouchListener);
+
+            if (sListPopupField != null && sPopupField != null) {
+                try {
+                    mSpinnerListPopup = (ListPopupWindow) sListPopupField.get(mSpeedSpinner);
+                    mSpinnerListPopup.setForceIgnoreOutsideTouch(true);
+/*
+                    // Works on platforms prior to P
+                    if (sForceIgnoreOutsideTouchField != null) {
+                        // Sets the field `mForceIgnoreOutsideTouch` of the ListPopupWindow to `true`
+                        // to discourage it from setting `mOutsideTouchable` to `true` for the popup
+                        // in its show() method, so that the popup receives no outside touch event
+                        // to dismiss itself.
+                        sForceIgnoreOutsideTouchField.setBoolean(mSpinnerListPopup, true);
+                    }
+ */
+                    mSpinnerPopup = (PopupWindow) sPopupField.get(mSpinnerListPopup);
+                    // This popup window reports itself as focusable so that it can intercept the
+                    // back button. However, if we are currently in fullscreen mode, what will the
+                    // aftereffect be？Yeah，the system bars will become visible to the user and
+                    // even affect the user to choose a reasonable speed for the player.
+                    // For all of the reasons, we're supposed to prevent it from doing that.
+                    mSpinnerPopup.setFocusable(false);
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            if (!canSkipToNext()) {
+                mSkipNextButton.setVisibility(GONE);
+                if (!canSkipToPrevious()) {
+                    mChooseEpisodeButton.setVisibility(GONE);
+                }
+            }
+
+            mSkipNextButton.setOnClickListener(mOnClickListener);
+            mChooseEpisodeButton.setOnClickListener(mOnClickListener);
+
+            mVideoProgressText = null;
+            mVideoDurationText = null;
+            mMinimizeButton = null;
+            mFullscreenButton = null;
+        } else {
+            View.inflate(mContext, R.layout.bottom_controls, root);
+            mVideoProgressText = root.findViewById(R.id.text_videoProgress);
+            mVideoDurationText = root.findViewById(R.id.text_videoDuration);
+            mMinimizeButton = root.findViewById(R.id.btn_minimize);
+            mFullscreenButton = root.findViewById(R.id.btn_fullscreen);
+
+            mMinimizeButton.setOnClickListener(mOnClickListener);
+            mFullscreenButton.setOnClickListener(mOnClickListener);
+
+            mSkipNextButton = null;
+            mVideoProgressDurationText = null;
+            mSpeedSpinner = null;
+            mSpinnerListPopup = null;
+            mSpinnerPopup = null;
+            mChooseEpisodeButton = null;
+        }
+
+        mVideoSeekBar = root.findViewById(R.id.sb_video);
+        mVideoSeekBar.setOnSeekBarChangeListener(mOnSeekBarChangeListener);
+
+        mToggleButton = root.findViewById(R.id.btn_toggle);
+        mToggleButton.setOnClickListener(mOnClickListener);
+        adjustToggleState(mVideoPlayer != null && mVideoPlayer.isPlaying());
+    }
+
+    private void adjustToggleState(boolean playing) {
+        if (!isLocked()) {
+            if (playing) {
+                mToggleButton.setImageResource(R.drawable.btn_pause_32dp);
+                mToggleButton.setContentDescription(mStringPause);
+            } else {
+                mToggleButton.setImageResource(R.drawable.btn_play_32dp);
+                mToggleButton.setContentDescription(mStringPlay);
+            }
+        }
+    }
+
+    private int indexOfPlaybackSpeed(float speed) {
+        final String speedString = speed + "x";
+        for (int i = 0; i < mSpeedsStringArray.length; i++) {
+            if (mSpeedsStringArray[i].equals(speedString)) return i;
+        }
+        return -1;
+    }
+
+    /** @return the {@link VideoPlayer} object used by this view or null if unset */
+    @Nullable
+    public VideoPlayer getVideoPlayer() {
+        return mVideoPlayer;
     }
 
     /**
-     * {@inheritDoc}
-     * <p>
-     * <strong>NOTE: </strong> If this method is called during the video being closed, it does
-     * nothing other than setting the playback state to {@link #PLAYBACK_STATE_UNDEFINED}, so as
-     * not to suppress he next call to the {@link #openVideo()) method if the current playback state
-     * is {@link #PLAYBACK_STATE_COMPLETED}, and the state is usually needed to be updated in
-     * this call, too. Thus for all of the above reasons, it is the best to switch over to.
+     * @see #setVideoPlayer(VideoPlayer, boolean)
      */
+    public void setVideoPlayer(@Nullable VideoPlayer videoPlayer) {
+        setVideoPlayer(videoPlayer, true);
+    }
+
+    /**
+     * Sets the {@link VideoPlayer} for this view to load and play video contents.
+     *
+     * @param videoPlayer               the player to use, or {@code null} to detach the current player.
+     * @param restoreLastPlayerSettings whether to restore the player settings to the newly set
+     *                                  VideoPlayer (if the last is nonnull).
+     */
+    public void setVideoPlayer(@Nullable VideoPlayer videoPlayer, boolean restoreLastPlayerSettings) {
+        VideoPlayer lastVideoPlayer = mVideoPlayer;
+        if (lastVideoPlayer == videoPlayer) return;
+        mVideoPlayer = videoPlayer;
+        if (mEventListener != null) {
+            mEventListener.onPlayerChange(videoPlayer);
+        }
+
+        if (mMoreView != null) {
+            closeDrawer(mDrawerView);
+        }
+
+        if (lastVideoPlayer == null || !restoreLastPlayerSettings) {
+            if (lastVideoPlayer != null) {
+                lastVideoPlayer.closeVideoInternal(false);
+            }
+            if (videoPlayer != null) {
+                // Here we also synchronize the UI state when VideoPlayer set from null to nonnull.
+                onPlaybackSpeedChanged(videoPlayer.mPlaybackSpeed);
+
+                videoPlayer.openVideo();
+                videoPlayer.play(false);
+            }
+        } else {
+            // Caches the playback speed in case it changes during the video off
+            final float lastPlaybackSpeed = lastVideoPlayer.mPlaybackSpeed;
+            lastVideoPlayer.closeVideoInternal(false);
+
+            if (videoPlayer == null) return;
+            List<IVideoPlayer.VideoListener> videoListeners = lastVideoPlayer.mVideoListeners;
+            if (videoListeners != null && !videoListeners.isEmpty()) {
+                videoPlayer.mVideoListeners = new ArrayList<>(videoListeners);
+            }
+            List<IVideoPlayer.OnPlaybackStateChangeListener> onPlaybackStateChangeListeners =
+                    lastVideoPlayer.mOnPlaybackStateChangeListeners;
+            if (onPlaybackStateChangeListeners != null && !onPlaybackStateChangeListeners.isEmpty()) {
+                videoPlayer.mOnPlaybackStateChangeListeners =
+                        new ArrayList<>(onPlaybackStateChangeListeners);
+            }
+            // videoPlayer.setVideoUri(lastVideoPlayer.mVideoUri) may do nothing if
+            // the encoded string representations of the new player's original Uri
+            // and the one to be set for it are equal.
+            videoPlayer.setVideoUri(lastVideoPlayer.mVideoUri);
+            if ((lastVideoPlayer.mPrivateFlags & VideoPlayer.PFLAG_VIDEO_INFO_RESOLVED) != 0) {
+                videoPlayer.mPrivateFlags |= VideoPlayer.PFLAG_VIDEO_INFO_RESOLVED;
+                videoPlayer.mVideoWidth = lastVideoPlayer.mVideoWidth;
+                videoPlayer.mVideoHeight = lastVideoPlayer.mVideoHeight;
+                videoPlayer.mVideoDuration = lastVideoPlayer.mVideoDuration;
+                videoPlayer.mVideoDurationString = lastVideoPlayer.mVideoDurationString;
+            }
+            videoPlayer.seekTo(lastVideoPlayer.getVideoProgress(), false);
+            videoPlayer.setPlaybackSpeed(lastPlaybackSpeed);
+            videoPlayer.setPureAudioPlayback(lastVideoPlayer.isPureAudioPlayback());
+            videoPlayer.setSingleVideoLoopPlayback(lastVideoPlayer.isSingleVideoLoopPlayback());
+        }
+
+        if (PackageConsts.DEBUG_LISTENER &&
+                videoPlayer != null && videoPlayer.mOnPlaybackStateChangeDebuggingListener == null) {
+            final String videoPlayerTextualRepresentation =
+                    videoPlayer.getClass().getName() + "@" + Integer.toHexString(videoPlayer.hashCode());
+            videoPlayer.mOnPlaybackStateChangeDebuggingListener = (oldState, newState) ->
+                    Utils.showUserCancelableSnackbar(this,
+                            videoPlayerTextualRepresentation + ": "
+                                    + Utils.playbackStateIntToString(oldState) + " -> "
+                                    + Utils.playbackStateIntToString(newState),
+                            Snackbar.LENGTH_LONG);
+            videoPlayer.addOnPlaybackStateChangeListener(videoPlayer.mOnPlaybackStateChangeDebuggingListener);
+        }
+    }
+
+    @Nullable
     @Override
-    public void restartVideo() {
-        // First, resets mSeekOnPlay to 0 in case the MediaPlayer object is (being) released.
-        // This ensures the video to be started at its beginning position the next time it resumes.
-        mSeekOnPlay = 0;
-        if (mMediaPlayer != null) {
-            if ((mPrivateFlags & PFLAG_VIDEO_IS_CLOSING) != 0) {
-                setPlaybackState(PLAYBACK_STATE_UNDEFINED);
+    public Surface getSurface() {
+        return mSurface;
+    }
+
+    /**
+     * Sets the listener to monitor all the events related to (some of the widgets of) this view.
+     *
+     * @see EventListener
+     */
+    public void setEventListener(@Nullable EventListener listener) {
+        mEventListener = listener;
+    }
+
+    /**
+     * Sets the callback to receive the operation callbacks from this view.
+     *
+     * @see OpCallback
+     */
+    public void setOpCallback(@Nullable OpCallback opCallback) {
+        mOpCallback = opCallback;
+    }
+
+    /**
+     * @return the brightness of the window this view is attached to or 0
+     * if no {@link OpCallback} is set.
+     */
+    public int getBrightness() {
+        if (mOpCallback != null) {
+            return ScreenUtils.getWindowBrightness(mOpCallback.getWindow());
+        }
+        return 0;
+    }
+
+    /**
+     * Sets the brightness for the window to which this view is attached.
+     * <p>
+     * <strong>NOTE:</strong> When changing current view's brightness, you should invoke
+     * this method instead of a direct call to {@link ScreenUtils#setWindowBrightness(Window, int)}
+     */
+    public void setBrightness(int brightness) {
+        if (mOpCallback != null) {
+            brightness = Util.constrainValue(brightness, BRIGHTNESS_FOLLOWS_SYSTEM, MAX_BRIGHTNESS);
+            // Changes the brightness of the current Window
+            ScreenUtils.setWindowBrightness(mOpCallback.getWindow(), brightness);
+            // Sets that progress for the brightness ProgressBar
+            refreshBrightnessProgress(brightness);
+        }
+    }
+
+    private int volumeToProgress(int volume) {
+        return volume * RATIO_VOLUME_PROGRESS_TO_VOLUME;
+    }
+
+    private int progressToVolume(int progress) {
+        return (int) ((float) progress / RATIO_VOLUME_PROGRESS_TO_VOLUME + 0.5f);
+    }
+
+    /**
+     * @return the current volume of the media, maybe 0 if the ringer mode is silent or vibration
+     */
+    public int getVolume() {
+        return mAudioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
+    }
+
+    /**
+     * Sets the media volume of the system used in the player.
+     */
+    public void setVolume(int volume) {
+        volume = Util.constrainValue(volume, 0, mMaxVolume);
+        // Changes the system's media volume
+        mAudioManager.setStreamVolume(AudioManager.STREAM_MUSIC, volume, 0);
+        // Sets that progress for the volume ProgressBar
+        refreshVolumeProgress(volumeToProgress(volume));
+    }
+
+    /**
+     * @return true if we can skip the video played to the previous one
+     */
+    public boolean canSkipToPrevious() {
+        return (mPrivateFlags & PFLAG_CAN_SKIP_TO_PREVIOUS) != 0;
+    }
+
+    /**
+     * Sets whether or not we can skip the playing video to the previous one.
+     */
+    public void setCanSkipToPrevious(boolean able) {
+        mPrivateFlags = mPrivateFlags & ~PFLAG_CAN_SKIP_TO_PREVIOUS
+                | (able ? PFLAG_CAN_SKIP_TO_PREVIOUS : 0);
+        if (mChooseEpisodeButton != null) {
+            mChooseEpisodeButton.setVisibility(
+                    (!able && !canSkipToNext()) ? GONE : VISIBLE);
+        }
+    }
+
+    /**
+     * @return true if we can skip the video played to the next one
+     */
+    public boolean canSkipToNext() {
+        return (mPrivateFlags & PFLAG_CAN_SKIP_TO_NEXT) != 0;
+    }
+
+    /**
+     * Sets whether or not we can skip the playing video to the next one.
+     * <p>
+     * If set to `true` and this view is currently in full screen mode, the 'Skip Next' button
+     * will become visible to the user.
+     */
+    public void setCanSkipToNext(boolean able) {
+        mPrivateFlags = mPrivateFlags & ~PFLAG_CAN_SKIP_TO_NEXT
+                | (able ? PFLAG_CAN_SKIP_TO_NEXT : 0);
+        if (mSkipNextButton != null) {
+            mSkipNextButton.setVisibility(able ? VISIBLE : GONE);
+        }
+        if (mChooseEpisodeButton != null) {
+            mChooseEpisodeButton.setVisibility(
+                    (!able && !canSkipToPrevious()) ? GONE : VISIBLE);
+        }
+    }
+
+    /**
+     * @param <VH> A class that extends {@link RecyclerView.ViewHolder} that was used by the adapter.
+     * @return the RecyclerView adapter for the video playlist or `null` if not set
+     */
+    @Nullable
+    public <VH extends RecyclerView.ViewHolder> PlayListAdapter<VH> getPlayListAdapter() {
+        //noinspection unchecked
+        return (PlayListAdapter<VH>) mPlayList.getAdapter();
+    }
+
+    /**
+     * Sets an adapter for the RecyclerView that displays the video playlist
+     *
+     * @param adapter see {@link PlayListAdapter}
+     * @param <VH>    A class that extends {@link RecyclerView.ViewHolder} that will be used by the adapter.
+     */
+    public <VH extends RecyclerView.ViewHolder> void setPlayListAdapter(@Nullable PlayListAdapter<VH> adapter) {
+        if (adapter != null && mPlayList.getLayoutManager() == null) {
+            mPlayList.setLayoutManager(new LinearLayoutManager(mContext));
+            mPlayList.addItemDecoration(
+                    new DividerItemDecoration(mContext, DividerItemDecoration.VERTICAL));
+            mPlayList.setHasFixedSize(true);
+        }
+        mPlayList.setAdapter(adapter);
+    }
+
+    /**
+     * @return title of the video.
+     */
+    @Nullable
+    public String getTitle() {
+        return mTitle;
+    }
+
+    /**
+     * Sets the title of the video to play.
+     */
+    public void setTitle(@Nullable String title) {
+        if (!ObjectsCompat.equals(title, mTitle)) {
+            mTitle = title;
+            if (isInFullscreenMode()) {
+                mTitleText.setText(title);
+            }
+        }
+    }
+
+    /**
+     * @return <code>true</code> if the bounds of this view is clipped to adapt for the video
+     */
+    public boolean isClipViewBounds() {
+        return (mPrivateFlags & PFLAG_CLIP_VIEW_BOUNDS) != 0;
+    }
+
+    /**
+     * Sets whether this view should crop its border to fit the aspect ratio of the video.
+     * <p>
+     * <strong>NOTE:</strong> After invoking this method, you may need to directly call
+     * {@link #requestLayout()} to refresh the layout or do that via an implicit invocation
+     * which will call it internally (such as {@link #setLayoutParams(ViewGroup.LayoutParams)}).
+     *
+     * @param clip If true, the bounds of this view will be clipped;
+     *             otherwise, black bars will be filled to the view's remaining area.
+     */
+    public void setClipViewBounds(boolean clip) {
+        if (clip != isClipViewBounds()) {
+            mPrivateFlags = mPrivateFlags & ~PFLAG_CLIP_VIEW_BOUNDS
+                    | (clip ? PFLAG_CLIP_VIEW_BOUNDS : 0);
+            if (clip) {
+                ViewCompat.setBackground(this, null);
             } else {
-                // Not clear the PFLAG_VIDEO_INFO_RESOLVED flag
-                mPrivateFlags &= ~(PFLAG_VIDEO_PAUSED_BY_USER
-                        | PFLAG_SEEKING
-                        | PFLAG_BUFFERING);
-                pause(false);
-                // Resets below to prepare for the next resume of the video player
-                mPlaybackSpeed = DEFAULT_PLAYBACK_SPEED;
-                mBuffering = 0;
-                mMediaPlayer.reset();
-                startVideo();
+                setBackgroundColor(Color.BLACK);
+            }
+        }
+    }
+
+    /**
+     * @return whether this view is in fullscreen mode or not
+     */
+    public boolean isInFullscreenMode() {
+        return (mPrivateFlags & PFLAG_IN_FULLSCREEN_MODE) != 0;
+    }
+
+    /**
+     * Sets this view to put it into fullscreen mode or not.
+     * If set, minimize and fullscreen buttons will disappear (visibility set to {@link #GONE}) and
+     * the specified padding `navTopInset` will be inserted at the top of the top controls' frame.
+     * <p>
+     * <strong>NOTE:</strong> This method does not resize the view as the system bars and
+     * the screen orientation may need to be adjusted simultaneously, meaning that you should
+     * implement your own logic to resize it.
+     *
+     * @param fullscreen  Whether this view should go into fullscreen mode.
+     * @param navTopInset The downward offset of the navigation widget relative to its initial
+     *                    position. Normally, when setting fullscreen mode, you need to move it
+     *                    down a proper distance, so that it appears below the status bar.
+     */
+    public void setFullscreenMode(boolean fullscreen, int navTopInset) {
+        try {
+            if (fullscreen == isInFullscreenMode()) {
+                return;
+            }
+
+            mPrivateFlags = mPrivateFlags & ~PFLAG_IN_FULLSCREEN_MODE
+                    | (fullscreen ? PFLAG_IN_FULLSCREEN_MODE : 0);
+            if (fullscreen) {
+                mTitleText.setText(mTitle);
+                if (isControlsShowing()) {
+                    mLockUnlockButton.setVisibility(VISIBLE);
+                    mCameraButton.setVisibility(VISIBLE);
+                    mVideoCameraButton.setVisibility(VISIBLE);
+                }
+            } else {
+                mTitleText.setText(null);
+                if (isLocked()) {
+                    setLocked(false, false);
+                } else {
+                    mLockUnlockButton.setVisibility(GONE);
+                    mCameraButton.setVisibility(GONE);
+                    mVideoCameraButton.setVisibility(GONE);
+                    cancelVideoPhotoCapture();
+                    hideClipView(true /* usually true */);
+
+                    // Only closes the playlist when this view is out of fullscreen mode
+                    if (mMoreView == null && isDrawerVisible(mDrawerView)) {
+                        closeDrawer(mDrawerView);
+                    }
+                }
+            }
+            inflateBottomControls();
+
+            final int mode = fullscreen
+                    ? isVideoStretchedToFitFullscreenLayout() ? //@formatter:off
+                            VIEW_MODE_VIDEO_STRETCHED_FULLSCREEN : VIEW_MODE_FULLSCREEN //@formatter:on
+                    : VIEW_MODE_DEFAULT;
+            setViewMode(mode, true);
+        } finally {
+            final int paddingTop = mNavInitialPaddingTop + navTopInset;
+            if (mTopControlsFrame.getPaddingTop() != paddingTop) {
+                mTopControlsFrame.setPadding(
+                        mTopControlsFrame.getPaddingLeft(),
+                        paddingTop,
+                        mTopControlsFrame.getPaddingRight(),
+                        mTopControlsFrame.getPaddingBottom());
+            }
+        }
+    }
+
+    /**
+     * @return whether the video is forced to be stretched to fit the layout size in fullscreen.
+     */
+    public boolean isVideoStretchedToFitFullscreenLayout() {
+        return (mPrivateFlags & PFLAG_VIDEO_STRETCHED_TO_FIT_FULLSCREEN_LAYOUT) != 0;
+    }
+
+    /**
+     * Sets the video to be forced to be stretched to fit the layout size in fullscreen,
+     * which may be distorted if its aspect ratio is unequal to the current view's.
+     * <p>
+     * <strong>NOTE:</strong> If the clip view bounds flag is also set, then it always wins.
+     */
+    public void setVideoStretchedToFitFullscreenLayout(boolean stretched) {
+        setVideoStretchedToFitFullscreenLayoutInternal(stretched, true);
+    }
+
+    private void setVideoStretchedToFitFullscreenLayoutInternal(boolean stretched, boolean checkSwitch) {
+        if (stretched == isVideoStretchedToFitFullscreenLayout()) {
+            return;
+        }
+        mPrivateFlags = mPrivateFlags & ~PFLAG_VIDEO_STRETCHED_TO_FIT_FULLSCREEN_LAYOUT
+                | (stretched ? PFLAG_VIDEO_STRETCHED_TO_FIT_FULLSCREEN_LAYOUT : 0);
+        if (checkSwitch && mMoreView != null) {
+            Checkable toggle = mMoreView.findViewById(R.id.btn_stretchVideo);
+            if (stretched != toggle.isChecked()) {
+                toggle.setChecked(stretched);
+            }
+        }
+        if (isInFullscreenMode()) {
+            if (!isClipViewBounds() && mVideoPlayer != null) {
+                final int videoWidth = mVideoPlayer.getVideoWidth();
+                final int videoHeight = mVideoPlayer.getVideoHeight();
+                if (videoWidth != 0 && videoHeight != 0) {
+                    final int width = mContentView.getWidth();
+                    final int height = mContentView.getHeight();
+                    if (!Utils.areEqualIgnorePrecisionError(
+                            (float) width / height, (float) videoWidth / videoHeight)) {
+                        ViewPropertyAnimatorCompat vpac = ViewCompat.animate(mTextureView);
+                        vpac.withLayer()
+                                .scaleX(stretched ? (float) width / mTextureView.getWidth() : 1.0f)
+                                .scaleY(stretched ? (float) height / mTextureView.getHeight() : 1.0f)
+                                .setInterpolator(sStretchShrinkVideoInterpolator)
+                                .setDuration(500)
+                                .start();
+                        mTextureView.setTag(vpac);
+                    }
+                }
+            }
+
+            if (isLocked()) {
+                if (stretched) {
+                    setViewMode(VIEW_MODE_VIDEO_STRETCHED_LOCKED_FULLSCREEN, true);
+                } else {
+                    setViewMode(VIEW_MODE_LOCKED_FULLSCREEN, true);
+                }
+            } else if (stretched) {
+                setViewMode(VIEW_MODE_VIDEO_STRETCHED_FULLSCREEN, true);
+            } else {
+                setViewMode(VIEW_MODE_FULLSCREEN, true);
             }
         }
     }
 
     @Override
-    public void play(boolean fromUser) {
-        if ((mPrivateFlags & PFLAG_VIDEO_IS_CLOSING) != 0) {
-            // In case the video playback is closing
+    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        int width = MeasureSpec.getSize(widthMeasureSpec);
+        int height = MeasureSpec.getSize(heightMeasureSpec);
+
+        final boolean clipBounds = isClipViewBounds();
+        final boolean fullscreen = isInFullscreenMode();
+
+//        if (!clipBounds) {
+//            width -= (getPaddingLeft() + getPaddingRight());
+//            height -= (getPaddingTop() + getPaddingBottom());
+//        }
+        final float aspectRatio = (float) width / height;
+
+        if (mVideoPlayer != null) {
+            final int videoWidth = mVideoPlayer.getVideoWidth();
+            final int videoHeight = mVideoPlayer.getVideoHeight();
+            if (videoWidth != 0 && videoHeight != 0) {
+                final float videoAspectRatio = (float) videoWidth / videoHeight;
+
+                final int tvw, tvh;
+                if (videoAspectRatio >= aspectRatio) {
+                    tvw = width;
+                    tvh = (int) (width / videoAspectRatio + 0.5f);
+                } else {
+                    tvw = (int) (height * videoAspectRatio + 0.5f);
+                    tvh = height;
+                }
+
+                if (clipBounds) {
+                    width = tvw;
+                    height = tvh;
+                }
+
+                ViewPropertyAnimatorCompat vpac = (ViewPropertyAnimatorCompat) mTextureView.getTag();
+                if (vpac != null) {
+                    vpac.cancel();
+                }
+                if (fullscreen && !clipBounds && isVideoStretchedToFitFullscreenLayout()) {
+                    mTextureView.setScaleX((float) width / tvw);
+                    mTextureView.setScaleY((float) height / tvh);
+                } else {
+                    mTextureView.setScaleX(1.0f);
+                    mTextureView.setScaleY(1.0f);
+                }
+
+                ViewGroup.LayoutParams tvlp = mTextureView.getLayoutParams();
+                tvlp.width = tvw;
+                tvlp.height = tvh;
+//            mTextureView.setLayoutParams(tvlp);
+            }
+        }
+
+
+        ViewGroup.LayoutParams lp = mDrawerView.getLayoutParams();
+        if (fullscreen) {
+            // When in landscape mode, we need to make the drawer view appear to the user appropriately.
+            // Its width should not occupy too much display space，so as not to affect the user
+            // to preview the video content.
+            if (aspectRatio > 1.0f) {
+                mDrawerViewMinimumHeight = height;
+                lp.width = (int) (width / 2f + 0.5f); //XXX: To make this more adaptable
+            } else {
+                mDrawerViewMinimumHeight = 0;
+                lp.width = ViewGroup.LayoutParams.MATCH_PARENT;
+            }
+            lp.height = ViewGroup.LayoutParams.MATCH_PARENT;
+        } else {
+            mDrawerViewMinimumHeight = 0;
+            lp.width = ViewGroup.LayoutParams.MATCH_PARENT;
+            lp.height = (int) (height * 0.88f + 0.5f);
+        }
+//        mDrawerView.setLayoutParams(lp);
+
+        super.onMeasure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY),
+                MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY));
+    }
+
+    @SuppressLint("RtlHardcoded")
+    @Override
+    protected void onLayout(boolean changed, int l, int t, int r, int b) {
+        // Ensures the drawer view to be opened/closed normally during this layout change
+        int state = 0;
+        if (changed && sOpenStateField != null) {
+            LayoutParams lp = (LayoutParams) mDrawerView.getLayoutParams();
+            try {
+                state = sOpenStateField.getInt(lp);
+                if ((state & (FLAG_IS_OPENING | FLAG_IS_CLOSING)) != 0) {
+                    if (mDragHelper == null) {
+                        final int absHG = Utils.getAbsoluteHorizontalGravity(this, lp.gravity);
+                        mDragHelper = (ViewDragHelper) (absHG == Gravity.LEFT ?
+                                sLeftDraggerField.get(this) : sRightDraggerField.get(this));
+                    }
+                    mDragHelper.abort();
+                }
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            }
+        }
+        super.onLayout(changed, l, t, r, b);
+        if (changed && state != 0) {
+            if ((state & FLAG_IS_OPENING) != 0) {
+                openDrawer(mDrawerView);
+            } else if ((state & FLAG_IS_CLOSING) != 0) {
+                closeDrawer(mDrawerView);
+            }
+        }
+
+        // Postponing checking over the visibilities of the camera buttons ensures that we can
+        // correctly get the widget locations on screen so that we can decide whether or not
+        // to show them and the View displaying the captured video photo.
+        removeCallbacks(mCheckCameraButtonsVisibilitiesRunnable);
+        post(mCheckCameraButtonsVisibilitiesRunnable);
+    }
+
+    // Removes all pending actions
+    @Override
+    protected void onDetachedFromWindow() {
+        super.onDetachedFromWindow();
+        removeCallbacks(mRefreshVideoProgressRunnable);
+        removeCallbacks(mHideControlsRunnable);
+        cancelVideoPhotoCapture();
+        hideClipView(false);
+
+        removeCallbacks(mHideBrightnessOrVolumeFrameRunnable);
+        mBrightnessOrVolumeFrame.setVisibility(GONE);
+
+        if (mTimedOffRunnable != null) {
+            removeCallbacks(mTimedOffRunnable);
+            mTimedOffRunnable = null;
+        }
+
+        if (mVideoPlayer != null) {
+            mVideoPlayer.closeVideoInternal(false);
+        }
+    }
+
+    /**
+     * Call this when the host of the view (Activity for instance) has detected the user's press of
+     * the back key to close some widget opened or exit from the fullscreen mode.
+     *
+     * @return true if the back key event is handled by this view
+     */
+    @Override
+    public boolean onBackPressed() {
+        if (mClipView != null) {
+            hideClipView(true);
+            return true;
+        } else if (isDrawerVisible(mDrawerView)) {
+            closeDrawer(mDrawerView);
+            return true;
+        } else if (isInFullscreenMode()) {
+            setViewMode(VIEW_MODE_DEFAULT, false);
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public void onMinimizationModeChange(boolean minimized) {
+        setViewMode(minimized ? VIEW_MODE_MINIMUM : VIEW_MODE_DEFAULT, true);
+    }
+
+    /**
+     * @return the present mode for this view, maybe one of
+     * {@link #VIEW_MODE_DEFAULT},
+     * {@link #VIEW_MODE_MINIMUM},
+     * {@link #VIEW_MODE_FULLSCREEN},
+     * {@link #VIEW_MODE_LOCKED_FULLSCREEN},
+     * {@link #VIEW_MODE_VIDEO_STRETCHED_FULLSCREEN},
+     * {@link #VIEW_MODE_VIDEO_STRETCHED_LOCKED_FULLSCREEN}
+     */
+    @ViewMode
+    public int getViewMode() {
+        return mViewMode;
+    }
+
+    private void setViewMode(@ViewMode int mode, boolean layoutMatches) {
+        final int old = mViewMode;
+        if (old != mode) {
+            mViewMode = mode;
+            if (mEventListener != null) {
+                mEventListener.onViewModeChange(old, mode, layoutMatches);
+            }
+        }
+    }
+
+    /**
+     * Returns whether or not the current view is locked.
+     */
+    public boolean isLocked() {
+        return (mPrivateFlags & PFLAG_LOCKED) != 0;
+    }
+
+    /** @see #setLocked(boolean, boolean) */
+    public void setLocked(boolean locked) {
+        setLocked(locked, true);
+    }
+
+    /**
+     * Sets this view to be locked or not. When it is locked, all option controls are hided
+     * except for the lock toggle button and a progress bar used for indicating where
+     * the current video is played and the invisible control related ops are disabled, too.
+     *
+     * @param locked  Whether to lock this view
+     * @param animate Whether the locking or unlocking of this view should be animated.
+     *                This only makes sense when this view is currently in fullscreen mode.
+     */
+    public void setLocked(boolean locked, boolean animate) {
+        if (locked != isLocked()) {
+            final boolean fullscreen = isInFullscreenMode();
+            final boolean showing = isControlsShowing();
+            if (fullscreen && showing) {
+                if (animate && Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                    Fade fade = new Fade();
+                    Utils.includeChildrenForTransition(fade, mContentView,
+                            mTopControlsFrame,
+                            mLockUnlockButton, mCameraButton, mVideoCameraButton,
+                            mBottomControlsFrame);
+
+                    ChangeBounds cb = new ChangeBounds();
+                    Utils.includeChildrenForTransition(cb, mContentView, mBottomControlsFrame);
+
+                    TransitionManager.beginDelayedTransition(mContentView,
+                            new TransitionSet().addTransition(fade).addTransition(cb));
+                }
+                showControls(false, false);
+            }
+            if (locked) {
+                mPrivateFlags |= PFLAG_LOCKED;
+                mLockUnlockButton.setContentDescription(mStringLock);
+                mLockUnlockButton.setImageResource(R.drawable.btn_lock_24dp);
+            } else {
+                mPrivateFlags &= ~PFLAG_LOCKED;
+                mLockUnlockButton.setContentDescription(mStringUnlock);
+                mLockUnlockButton.setImageResource(R.drawable.btn_unlock_24dp);
+            }
+            if (fullscreen) {
+                inflateBottomControls();
+                if (showing) {
+                    showControls(true, false);
+                }
+
+                if (locked) {
+                    if (isVideoStretchedToFitFullscreenLayout()) {
+                        setViewMode(VIEW_MODE_VIDEO_STRETCHED_LOCKED_FULLSCREEN, true);
+                    } else {
+                        setViewMode(VIEW_MODE_LOCKED_FULLSCREEN, true);
+                    }
+                } else if (isVideoStretchedToFitFullscreenLayout()) {
+                    setViewMode(VIEW_MODE_VIDEO_STRETCHED_FULLSCREEN, true);
+                } else {
+                    setViewMode(VIEW_MODE_FULLSCREEN, true);
+                }
+            }
+        }
+    }
+
+    /**
+     * @return whether the controls are currently showing or not
+     */
+    public boolean isControlsShowing() {
+        return (mPrivateFlags & PFLAG_CONTROLS_SHOWING) != 0;
+    }
+
+    /** @see #showControls(boolean, boolean) */
+    public void showControls(boolean show) {
+        showControls(show, true);
+    }
+
+    /**
+     * Shows the controls on screen. They will go away automatically after
+     * {@value #TIMEOUT_SHOW_CONTROLS} milliseconds of inactivity.
+     * If the controls are already showing, Calling this method also makes sense, as it will keep
+     * the controls showing till a new {@value #TIMEOUT_SHOW_CONTROLS} ms delay is past.
+     *
+     * @param animate whether to fade in/out the controls smoothly or not
+     */
+    public void showControls(boolean show, boolean animate) {
+        if ((mPrivateFlags & PFLAG_CONTROLS_SHOW_STICKILY) != 0) {
+            return;
+        }
+        if (show) {
+            if (mVideoPlayer != null && mVideoPlayer.isPlaying()) {
+                showControls(TIMEOUT_SHOW_CONTROLS, animate);
+            } else {
+                // stay showing
+                showControls(-1, animate);
+            }
+        } else {
+            hideControls(animate);
+        }
+    }
+
+    /**
+     * Shows the controls on screen. They will go away automatically
+     * after `timeout` milliseconds of inactivity.
+     *
+     * @param timeout The timeout in milliseconds. Use negative to show the controls
+     *                till {@link #hideControls(boolean)} is called.
+     * @param animate whether to fade in the controls smoothly or not
+     */
+    private void showControls(int timeout, boolean animate) {
+        removeCallbacks(mHideControlsRunnable);
+
+        if ((mPrivateFlags & PFLAG_CONTROLS_SHOWING) == 0) {
+            mPrivateFlags |= PFLAG_CONTROLS_SHOWING;
+            final boolean unlocked = !isLocked();
+            if (animate) {
+                beginControlsFadingTransition(true, unlocked);
+            }
+            if (unlocked) {
+                mTopControlsFrame.setVisibility(VISIBLE);
+
+                if (isDrawerVisible(mDrawerView)) closeDrawer(mDrawerView);
+            }
+            if (isInFullscreenMode()) {
+                mLockUnlockButton.setVisibility(VISIBLE);
+                if (unlocked) {
+                    mCameraButton.setVisibility(VISIBLE);
+                    mVideoCameraButton.setVisibility(VISIBLE);
+                }
+            }
+            mBottomControlsFrame.setVisibility(VISIBLE);
+        }
+
+        // Cause the video progress bar to be updated even if it is already showing.
+        // This happens, for example, if video is paused with the progress bar showing,
+        // the user hits play.
+        removeCallbacks(mRefreshVideoProgressRunnable);
+        post(mRefreshVideoProgressRunnable);
+
+        if (timeout >= 0) {
+            postDelayed(mHideControlsRunnable, timeout);
+        }
+    }
+
+    /**
+     * Hides the controls at both ends in the vertical from the screen.
+     *
+     * @param animate whether to fade out the controls smoothly or not
+     */
+    private void hideControls(boolean animate) {
+        // Removes the pending action of hiding the controls as this is being called.
+        removeCallbacks(mHideControlsRunnable);
+
+        if ((mPrivateFlags & PFLAG_CONTROLS_SHOWING) != 0) {
+            mPrivateFlags &= ~PFLAG_CONTROLS_SHOWING;
+            final boolean unlocked = !isLocked();
+            if (animate) {
+                beginControlsFadingTransition(false, unlocked);
+            }
+            if (unlocked) {
+                mTopControlsFrame.setVisibility(GONE);
+            }
+            if (isInFullscreenMode()) {
+                mLockUnlockButton.setVisibility(GONE);
+                if (unlocked) {
+                    mCameraButton.setVisibility(GONE);
+                    mVideoCameraButton.setVisibility(GONE);
+                    cancelVideoPhotoCapture();
+                }
+            }
+            mBottomControlsFrame.setVisibility(GONE);
+        }
+    }
+
+    private void beginControlsFadingTransition(boolean in, boolean unlocked) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            Transition transition = new Fade(in ? Fade.IN : Fade.OUT);
+            if (unlocked) {
+                Utils.includeChildrenForTransition(transition, mContentView,
+                        mTopControlsFrame,
+                        mLockUnlockButton, mCameraButton, mVideoCameraButton,
+                        mBottomControlsFrame);
+            } else {
+                Utils.includeChildrenForTransition(transition, mContentView,
+                        mLockUnlockButton, mCameraButton, mVideoCameraButton,
+                        mBottomControlsFrame);
+            }
+            TransitionManager.beginDelayedTransition(mContentView, transition);
+        }
+    }
+
+    private void showTextureView(boolean show) {
+        if (show) {
+            mTextureView.setVisibility(VISIBLE);
+        } else {
+            // Temporarily make the TextureView invisible. Do NOT use GONE as the Surface used to
+            // render the video content will also be released when it is detached from this view
+            // (the onSurfaceTextureDestroyed() method of its SurfaceTextureListener is called).
+            mTextureView.setVisibility(INVISIBLE);
+        }
+    }
+
+    @Override
+    public void showLoadingView(boolean show) {
+        if (show) {
+            if (mLoadingImage.getVisibility() != VISIBLE) {
+                mLoadingImage.setVisibility(VISIBLE);
+                mLoadingDrawable.start();
+            }
+        } else if (mLoadingImage.getVisibility() != GONE) {
+            mLoadingImage.setVisibility(GONE);
+            mLoadingDrawable.stop();
+        }
+    }
+
+    private void checkCameraButtonsVisibilities() {
+        boolean show = isControlsShowing() && isInFullscreenMode() && !isLocked();
+        if (show && isSpinnerPopupShowing()) {
+            final int[] location = new int[2];
+
+            View popupRoot = mSpinnerPopup.getContentView().getRootView();
+            popupRoot.getLocationOnScreen(location);
+            final int popupTop = location[1];
+
+            View camera = mVideoCameraButton;
+            camera.getLocationOnScreen(location);
+            final int cameraBottom = location[1] + camera.getHeight();
+
+            if (popupTop < cameraBottom + 25f * mResources.getDisplayMetrics().density) {
+                show = false;
+            }
+        }
+        if (!show) {
+            cancelVideoPhotoCapture();
+        }
+        final int visibility = show ? VISIBLE : GONE;
+        mCameraButton.setVisibility(visibility);
+        mVideoCameraButton.setVisibility(visibility);
+    }
+
+    private void hideCapturedPhotoView(boolean share) {
+        if (mCapturedPhotoView != null) {
+            Transition transition = null;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                transition = (Transition) mCapturedPhotoView.getTag();
+                transition.addListener(new TransitionListenerAdapter() {
+                    @Override
+                    public void onTransitionEnd(Transition transition) {
+                        // Recycling of the bitmap captured for the playing video MUST ONLY be done
+                        // after the transition ends, in case we use a recycled bitmap for drawing.
+                        mCapturedBitmap.recycle();
+                        mCapturedBitmap = null;
+                    }
+                });
+                TransitionManager.beginDelayedTransition(mContentView, transition);
+            }
+            mContentView.removeView(mCapturedPhotoView);
+            mCapturedPhotoView = null;
+            if (transition == null) {
+                mCapturedBitmap.recycle();
+                mCapturedBitmap = null;
+            }
+
+            if (share && mEventListener != null) {
+                mEventListener.onShareCapturedVideoPhoto(mSavedPhoto);
+            }
+            mSavedPhoto = null;
+        }
+    }
+
+    private void cancelVideoPhotoCapture() {
+        Animation a = mContentView.getAnimation();
+        if (a != null && a.hasStarted() && !a.hasEnded()) {
+            // We call onAnimationEnd() manually to ensure it to be called immediately to restore
+            // the playback state when the animation cancels and before the next animation starts
+            // (if any), when the listener of the animation will be removed, so that no second call
+            // will be introduced by the clearAnimation() method below.
+            ((Animation.AnimationListener) mContentView.getTag()).onAnimationEnd(a);
+            mContentView.clearAnimation();
+        }
+        if (mSaveCapturedPhotoTask != null) {
+            mSaveCapturedPhotoTask.cancel(false);
+            mSaveCapturedPhotoTask = null;
+        }
+        removeCallbacks(mHideCapturedPhotoViewRunnable);
+        hideCapturedPhotoView(false);
+    }
+
+    private void captureVideoPhoto() {
+        if (mSurface == null || mVideoPlayer == null || mVideoPlayer.mVideoUri == null
+                || mVideoPlayer.isPureAudioPlayback()) {
             return;
         }
 
-        final int playbackState = getPlaybackState();
+        final int width = mTextureView.getWidth();
+        final int height = mTextureView.getHeight();
+        if (width == 0 || height == 0) return;
 
-        if (mMediaPlayer == null) {
-            // Opens the video only if this is a user request
-            if (fromUser) {
-                // If the video playback finished, skip to the next video if possible
-                if (playbackState == PLAYBACK_STATE_COMPLETED &&
-                        skipToNextIfPossible() && mMediaPlayer != null) {
+        final ViewGroup content = mContentView;
+
+        Animation animation = content.getAnimation();
+        if (animation != null && animation.hasStarted() && !animation.hasEnded()) {
+            ((Animation.AnimationListener) content.getTag()).onAnimationEnd(animation);
+            animation.cancel();
+        }
+        if (mSaveCapturedPhotoTask != null) {
+            mSaveCapturedPhotoTask.cancel(false);
+            mSaveCapturedPhotoTask = null;
+        }
+
+        final Bitmap bitmap = mTextureView.getBitmap(width, height);
+
+        final float oldAspectRatio = mCapturedPhotoView == null ?
+                0 : (float) mCapturedBitmap.getWidth() / mCapturedBitmap.getHeight();
+        final float aspectRatio = (float) width / height;
+
+        final boolean capturedPhotoViewValid;
+        if (mCapturedPhotoView == null) {
+            capturedPhotoViewValid = false;
+        } else {
+            removeCallbacks(mHideCapturedPhotoViewRunnable);
+            if (aspectRatio >= 1 && oldAspectRatio >= 1
+                    || aspectRatio < 1 && oldAspectRatio < 1) {
+                capturedPhotoViewValid = true;
+                mCapturedPhotoView.setVisibility(INVISIBLE);
+            } else {
+                capturedPhotoViewValid = false;
+                hideCapturedPhotoView(false);
+            }
+        }
+
+        if (animation == null) {
+            animation = new AlphaAnimation(0.0f, 1.0f);
+            animation.setDuration(256);
+        }
+        Animation.AnimationListener listener = new Animation.AnimationListener() {
+            boolean playing;
+
+            @SuppressLint("StaticFieldLeak")
+            @Override
+            public void onAnimationStart(Animation animation) {
+                playing = mVideoPlayer != null && mVideoPlayer.isPlaying();
+                if (playing) {
+                    mVideoPlayer.pause(true);
+                }
+                mSaveCapturedPhotoTask = new AsyncTask<Void, Void, File>() {
+                    @SuppressLint("SimpleDateFormat")
+                    @Override
+                    public File doInBackground(Void... voids) {
+                        return FileUtils.saveBitmapToDisk(mContext,
+                                bitmap, Bitmap.CompressFormat.PNG, 100,
+                                getFileOutputDirectory() + "/screenshots",
+                                mTitle + "_"
+                                        + new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss-SSS") //@formatter:off
+                                                .format(System.currentTimeMillis()) //@formatter:on
+                                        + ".png");
+                    }
+
+                    @Override
+                    public void onPostExecute(File photo) {
+                        mSavedPhoto = photo;
+                        if (photo == null) {
+                            Utils.showUserCancelableSnackbar(TextureVideoView.this,
+                                    R.string.saveScreenshotFailed, Snackbar.LENGTH_SHORT);
+                            if (capturedPhotoViewValid) {
+                                hideCapturedPhotoView(false);
+                            }
+                        } else {
+                            mCapturedBitmap = bitmap;
+
+                            View cpv = mCapturedPhotoView;
+                            if (capturedPhotoViewValid) {
+                                cpv.setVisibility(VISIBLE);
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                                    TransitionManager.beginDelayedTransition(
+                                            content, (Transition) cpv.getTag());
+                                }
+                            } else {
+                                mCapturedPhotoView = cpv = LayoutInflater.from(mContext).inflate(
+                                        aspectRatio > 1
+                                                ? R.layout.layout_captured_video_photo
+                                                : R.layout.layout_captured_video_photo_portrait,
+                                        content, false);
+                            }
+
+                            TextView shareButton = cpv.findViewById(R.id.btn_sharePhoto);
+                            shareButton.setOnClickListener(mOnClickListener);
+
+                            ImageView photoImage = cpv.findViewById(R.id.image_videoPhoto);
+                            photoImage.setImageBitmap(bitmap);
+
+                            if (!Utils.areEqualIgnorePrecisionError(aspectRatio, oldAspectRatio)) {
+                                ViewGroup.LayoutParams lp = photoImage.getLayoutParams();
+                                if (aspectRatio > 1) {
+                                    shareButton.measure(0, 0);
+                                    lp.width = shareButton.getMeasuredWidth();
+                                    lp.height = (int) (lp.width / aspectRatio + 0.5f);
+                                } else {
+                                    // Makes the text arrange vertically
+                                    final CharSequence text = shareButton.getText();
+                                    final int length = text.length();
+                                    final StringBuilder sb = new StringBuilder();
+                                    for (int i = 0; i < length; i++) {
+                                        sb.append(text.subSequence(i, i + 1));
+                                        if (i < length - 1) sb.append("\n");
+                                    }
+                                    shareButton.setText(sb);
+
+                                    shareButton.measure(0, 0);
+                                    lp.height = shareButton.getMeasuredHeight();
+                                    lp.width = (int) (lp.height * aspectRatio + 0.5f);
+                                }
+                                photoImage.setLayoutParams(lp);
+                            }
+
+                            if (!capturedPhotoViewValid) {
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                                    Transition transition = new Fade();
+                                    Utils.includeChildrenForTransition(transition, content);
+                                    TransitionManager.beginDelayedTransition(content, transition);
+
+                                    cpv.setTag(transition);
+                                }
+                                content.addView(cpv);
+                            }
+                            postDelayed(mHideCapturedPhotoViewRunnable, TIMEOUT_SHOW_CAPTURED_PHOTO);
+                        }
+
+                        mSaveCapturedPhotoTask = null;
+                    }
+                }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+            }
+
+            @Override
+            public void onAnimationEnd(Animation animation) {
+                animation.setAnimationListener(null);
+                content.setTag(null);
+                if (playing && mVideoPlayer != null) {
+                    mVideoPlayer.play(false);
+                }
+            }
+
+            @Override
+            public void onAnimationRepeat(Animation animation) {
+            }
+        };
+        animation.setAnimationListener(listener);
+        content.setTag(listener);
+        content.startAnimation(animation);
+    }
+
+    private String getFileOutputDirectory() {
+        String directory = null;
+        if (mOpCallback != null) {
+            directory = mOpCallback.getFileOutputDirectory();
+        }
+        if (directory == null) {
+            directory = Environment.getExternalStorageDirectory() + "/" + mAppName;
+        }
+        return directory;
+    }
+
+    @SuppressLint("StaticFieldLeak")
+    private void showClipView() {
+        VideoPlayer videoPlayer = mVideoPlayer;
+        // Not available when video info is waiting to be known
+        if (videoPlayer == null
+                || (videoPlayer.mPrivateFlags & VideoPlayer.PFLAG_VIDEO_INFO_RESOLVED) == 0) {
+            return;
+        }
+
+        final int progress = videoPlayer.getVideoProgress();
+        final int duration = videoPlayer.getVideoDuration();
+        final float videoAspectRatio = (float) videoPlayer.getVideoWidth() / videoPlayer.getVideoHeight();
+        final Uri videoUri = videoPlayer.mVideoUri;
+
+        final int defaultRange = VideoClipView.DEFAULT_MAX_CLIP_DURATION
+                + VideoClipView.DEFAULT_MIN_UNSELECTED_CLIP_DURATION;
+        final int range; // selectable time interval in millisecond, starting with 0.
+        final int rangeOffset; // first value of the above interval plus the mapped playback position.
+        if (duration >= defaultRange) {
+            range = defaultRange;
+            final float halfOfMaxClipDuration = VideoClipView.DEFAULT_MAX_CLIP_DURATION / 2f;
+            final float intervalOffset = (defaultRange - halfOfMaxClipDuration) / 2f;
+            float intervalEnd = progress + halfOfMaxClipDuration + intervalOffset;
+            if (intervalEnd > duration) {
+                intervalEnd = duration;
+            }
+            rangeOffset = Math.max((int) (intervalEnd - range + 0.5f), 0);
+        } else {
+            range = duration;
+            rangeOffset = 0;
+        }
+
+        final int[] interval = new int[2];
+
+        final ViewGroup view;
+        mClipView = view = (ViewGroup) LayoutInflater.from(mContext)
+                .inflate(R.layout.layout_video_clip, mContentView, false);
+        final View cutoutShortVideoButton = view.findViewById(R.id.btn_cutoutShortVideo);
+        final View cutoutGifButton = view.findViewById(R.id.btn_cutoutGif);
+        final View cancelButton = view.findViewById(R.id.btn_cancel);
+        final View okButton = view.findViewById(R.id.btn_ok);
+        final TextView vcdText = view.findViewById(R.id.text_videoclipDescription);
+        final SurfaceView sv = view.findViewById(R.id.surfaceView);
+        final VideoClipView vcv = view.findViewById(R.id.view_videoclip);
+
+        cutoutShortVideoButton.setSelected(true);
+
+        @SuppressLint("SimpleDateFormat") final OnClickListener listener = v -> {
+            if (v == cutoutShortVideoButton) {
+                cutoutShortVideoButton.setSelected(true);
+                cutoutGifButton.setSelected(false);
+
+            } else if (v == cutoutGifButton) {
+                cutoutGifButton.setSelected(true);
+                cutoutShortVideoButton.setSelected(false);
+
+            } else if (v == cancelButton) {
+                hideClipView(true);
+
+            } else if (v == okButton) {
+                hideClipView(true);
+
+                /*
+                 * Below code blocks for cutting out the desired short video or GIF.
+                 * This should normally be done on a worker thread rather than the main thread that
+                 * blocks the UI from updating itself till the op completes, but here we do it on
+                 * the main thread just for temporary convenience as the code undoubtedly needs
+                 * to be improved at some point in the future.
+                 */
+                final boolean cutoutShortVideo = cutoutShortVideoButton.isSelected();
+                if (!cutoutShortVideo) {
+                    Utils.showUserCancelableSnackbar(this,
+                            R.string.gifClippingIsNotYetSupported, Snackbar.LENGTH_SHORT);
                     return;
                 }
 
-                mPrivateFlags &= ~PFLAG_VIDEO_PAUSED_BY_USER;
-                openVideoInternal();
-            } else {
-                Log.w(TAG, "Cannot start playback programmatically before the video is opened");
+                final String srcPath = FileUtils.UriResolver.getPath(mContext, videoUri);
+                if (srcPath == null) {
+                    Utils.showUserCancelableSnackbar(this,
+                            R.string.clippingFailed, Snackbar.LENGTH_SHORT);
+                    if (BuildConfig.DEBUG) {
+                        Log.e(TAG, "", new IOException("Failed to resolve the path of the video being clipped."));
+                    }
+                    return;
+                }
+
+                final String destDirectory = getFileOutputDirectory()
+                        + "/clips/" + (cutoutShortVideo ? "ShortVideos" : "GIFs");
+                final String destName = mTitle + "_"
+                        + new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss-SSS") //@formatter:off
+                                .format(System.currentTimeMillis()) //@formatter:on
+                        + (cutoutShortVideo ? ".mp4" : ".gif");
+                final String destPath = destDirectory + "/" + destName;
+                File destFile = null;
+                if (cutoutShortVideo) {
+                    try {
+                        destFile = VideoUtils.clip(srcPath, destPath, interval[0], interval[1]);
+                    } catch (IOException | IllegalArgumentException | UnsupportedOperationException e) {
+                        e.printStackTrace();
+                    } catch (OutOfMemoryError e) {
+                        // This error occurs as we clip a video that is not in MPEG-4 format.
+                        e.printStackTrace();
+                    }
+                } else {
+                    //TODO: the logic of cutting out a GIF
+                }
+                if (destFile == null) {
+                    Utils.showUserCancelableSnackbar(this,
+                            R.string.clippingFailed, Snackbar.LENGTH_SHORT);
+
+                } else if (cutoutShortVideo) {
+                    FileUtils.recordMediaFileToDatabaseAndScan(mContext,
+                            MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+                            destFile, "video/mp4");
+                    Utils.showUserCancelableSnackbar(this,
+                            mResources.getString(R.string.shortVideoHasBeenSavedTo, destName, destDirectory),
+                            true, Snackbar.LENGTH_INDEFINITE);
+                } else {
+                    FileUtils.recordMediaFileToDatabaseAndScan(mContext,
+                            MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                            destFile, "image/gif");
+                    Utils.showUserCancelableSnackbar(this,
+                            mResources.getString(R.string.gifHasBeenSavedTo, destName, destDirectory),
+                            true, Snackbar.LENGTH_INDEFINITE);
+                }
             }
+        };
+        cutoutShortVideoButton.setOnClickListener(listener);
+        cutoutGifButton.setOnClickListener(listener);
+        cancelButton.setOnClickListener(listener);
+        okButton.setOnClickListener(listener);
+
+//        view.measure(MeasureSpec.makeMeasureSpec(mContentView.getWidth(), MeasureSpec.EXACTLY),
+//                MeasureSpec.makeMeasureSpec(mContentView.getHeight(), MeasureSpec.EXACTLY));
+//        sv.getLayoutParams().width = (int) (sv.getMeasuredHeight() * videoAspectRatio + 0.5f);
+        ConstraintLayout.LayoutParams svlp = (ConstraintLayout.LayoutParams) sv.getLayoutParams();
+        svlp.dimensionRatio = String.valueOf(videoAspectRatio);
+
+        final SurfaceHolder holder = sv.getHolder();
+        final Surface surface = holder.getSurface();
+        final AdsMediaSource.MediaSourceFactory factory =
+                Build.VERSION.SDK_INT >= 16 /* Jelly Bean */ && videoPlayer instanceof ExoPlayer
+                        ? ((ExoPlayer) videoPlayer).mMediaSourceFactory : null;
+        final VideoClipPlayer player = new VideoClipPlayer(mContext, surface, videoUri, mUserAgent, factory);
+        final Runnable trackProgressRunnable = new Runnable() {
+            @Override
+            public void run() {
+                final int position = player.getCurrentPosition();
+                vcv.setSelection(position - rangeOffset);
+                if (player.isPlaying()) {
+                    if (position < interval[0] || position > interval[1]) {
+                        player.seekTo(interval[0]);
+                    }
+                    vcv.post(this);
+                }
+            }
+        };
+        final boolean[] selectionBeingDragged = {false};
+        vcv.addOnSelectionChangeListener(new VideoClipView.OnSelectionChangeListener() {
+            final String seconds = mResources.getString(R.string.seconds);
+            final ForegroundColorSpan colorAccentSpan = new ForegroundColorSpan(mColorAccent);
+
+            @Override
+            public void onStartTrackingTouch() {
+                if (player.isPlaying()) {
+                    holder.setKeepScreenOn(false);
+                    player.pause();
+                    vcv.removeCallbacks(trackProgressRunnable);
+                }
+                selectionBeingDragged[0] = true;
+            }
+
+            @Override
+            public void onSelectionIntervalChange(int start, int end, boolean fromUser) {
+                interval[0] = rangeOffset + start;
+                interval[1] = rangeOffset + end;
+
+                final int total = (int) (vcv.getMaximumClipDuration() / 1000f + 0.5f);
+                final int selected = (int) ((end - start) / 1000f + 0.5f);
+                final String s = mResources.getString(
+                        R.string.canTakeUpToXSecondsXSecondsSelected, total, selected);
+                final SpannableString ss = new SpannableString(s);
+                ss.setSpan(colorAccentSpan,
+                        s.lastIndexOf(String.valueOf(selected)),
+                        s.lastIndexOf(seconds) + seconds.length(),
+                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                vcdText.setText(ss);
+            }
+
+            @Override
+            public void onSelectionChange(int start, int end, int selection, boolean fromUser) {
+                if (fromUser) {
+                    player.seekTo(rangeOffset + selection);
+                }
+            }
+
+            @Override
+            public void onStopTrackingTouch() {
+                if (surface.isValid()) {
+                    holder.setKeepScreenOn(true);
+                    if (mVideoPlayer != null) {
+                        mVideoPlayer.closeVideoInternal(true /* no or little use */);
+                    }
+                    player.play();
+                    vcv.post(trackProgressRunnable);
+                }
+                selectionBeingDragged[0] = false;
+            }
+        });
+        // MUST set the durations after the above OnSelectionChangeListener was added to vcv, which
+        // will ensure the onSelectionInternalChange() method to be called for the first time.
+        if (range < defaultRange) {
+            vcv.setMaximumClipDuration(range);
+            vcv.setMinimumClipDuration(Math.min(VideoClipView.DEFAULT_MIN_CLIP_DURATION, range));
+            vcv.setMinimumUnselectedClipDuration(0);
+        }
+        final int minClipDuration = vcv.getMinimumClipDuration();
+        final int maxClipDuration = vcv.getMaximumClipDuration();
+        final int minUnselectedClipDuration = vcv.getMinimumUnselectedClipDuration();
+        final int totalDuration = maxClipDuration + minUnselectedClipDuration;
+        final int initialSelection = progress - rangeOffset;
+        final int tmpInterval = (int) (maxClipDuration / 2f + 0.5f);
+        int intervalEnd = initialSelection + tmpInterval;
+        if (intervalEnd > totalDuration) {
+            intervalEnd = totalDuration;
+        }
+        int intervalStart = intervalEnd - tmpInterval;
+        if (tmpInterval < minClipDuration) {
+            final int diff = minClipDuration - tmpInterval;
+            final int remaining = totalDuration - intervalEnd;
+            if (remaining >= diff) {
+                intervalEnd += diff;
+            } else {
+                intervalEnd = totalDuration;
+                intervalStart -= diff - remaining;
+            }
+        }
+        vcv.setSelectionInterval(intervalStart, intervalEnd);
+        vcv.setSelection(initialSelection);
+        vcv.post(() -> {
+            final int thumbHeight = vcv.getThumbDisplayHeight();
+            final float thumbWidth = thumbHeight * videoAspectRatio;
+            final int thumbGalleryWidth = vcv.getThumbGalleryWidth();
+            final int thumbCount = (int) (thumbGalleryWidth / thumbWidth + 0.5f);
+            final int finalThumbWidth = (int) ((float) thumbGalleryWidth / thumbCount + 0.5f);
+            mLoadClipThumbsTask = new AsyncTask<Void, Bitmap, Void>() {
+                @Override
+                public Void doInBackground(Void... voids) {
+                    MediaMetadataRetriever mmr = new MediaMetadataRetriever();
+                    try {
+                        mmr.setDataSource(mContext, videoUri);
+                        if (mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_HAS_VIDEO) != null) {
+                            for (int i = 0; i < thumbCount && !isCancelled(); ) {
+                                Bitmap frame = mmr.getFrameAtTime(
+                                        (rangeOffset + ++i * range / thumbCount) * 1000L);
+                                if (frame == null) {
+                                    // If no frame at the specified time position is retrieved,
+                                    // create a empty placeholder bitmap instead.
+                                    frame = Bitmap.createBitmap(
+                                            finalThumbWidth, thumbHeight, Bitmap.Config.ALPHA_8);
+                                } else {
+                                    frame = BitmapUtils.createScaledBitmap(
+                                            frame, finalThumbWidth, thumbHeight, true);
+                                }
+                                publishProgress(frame);
+                            }
+                        }
+                    } catch (IllegalArgumentException e) {
+                        e.printStackTrace();
+                    } finally {
+                        mmr.release();
+                    }
+                    return null;
+                }
+
+                @Override
+                public void onProgressUpdate(Bitmap... thumbs) {
+                    vcv.addThumbnail(thumbs[0]);
+                }
+
+                @Override
+                public void onPostExecute(Void aVoid) {
+                    mLoadClipThumbsTask = null;
+                }
+            }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        });
+        holder.addCallback(new SurfaceHolder.Callback() {
+            @Override
+            public void surfaceCreated(SurfaceHolder holder) {
+                player.init();
+                // Seeks to the playback millisecond position mapping to the initial selection
+                // as we were impossible to seek in the above OnSelectionChangeListener's
+                // onSelectionChange() method when the player was not created; also we
+                // have been leaving out the selection changes that are caused by the program code
+                // rather than the user.
+                player.seekTo(progress);
+                if (!selectionBeingDragged[0]) {
+                    holder.setKeepScreenOn(true);
+                    // We need to make sure of the video to be closed before the clip preview starts,
+                    // because the video in one of the special formats (e.g. mov) will not play if
+                    // the video resource is not released in advance.
+                    // This will also abandon the audio focus gained for the preceding video playback.
+                    // That's why we do this just before the preview starts, for the purpose of not
+                    // letting another media application have the opportunity to resume its playback.
+                    if (mVideoPlayer != null) {
+                        mVideoPlayer.closeVideoInternal(true /* no or little use */);
+                    }
+                    player.play();
+                    vcv.post(trackProgressRunnable);
+                }
+            }
+
+            @Override
+            public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+            }
+
+            @Override
+            public void surfaceDestroyed(SurfaceHolder holder) {
+                holder.setKeepScreenOn(false);
+                player.pause();
+                player.release();
+                vcv.removeCallbacks(trackProgressRunnable);
+            }
+        });
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            Transition transition = new Fade();
+            Utils.includeChildrenForTransition(transition, mContentView,
+                    mTopControlsFrame,
+                    mLockUnlockButton, mCameraButton, mVideoCameraButton,
+                    mBottomControlsFrame,
+                    view);
+            transition.excludeTarget(sv, true);
+            TransitionManager.beginDelayedTransition(mContentView, transition);
+        }
+        videoPlayer.pause(true);
+        showControls(false, false);
+        mContentView.addView(view);
+    }
+
+    private void hideClipView(boolean fromUser) {
+        if (mClipView != null) {
+            mContentView.removeView(mClipView);
+            mClipView = null;
+            if (mLoadClipThumbsTask != null) {
+                mLoadClipThumbsTask.cancel(false);
+                mLoadClipThumbsTask = null;
+            }
+
+            if (mVideoPlayer != null) {
+                mVideoPlayer.play(fromUser);
+            }
+            showControls(true); // Make sure the controls will be showed immediately
+        }
+    }
+
+    private void refreshBrightnessProgress(int progress) {
+        if ((mOnChildTouchListener.touchFlags & OnChildTouchListener.TFLAG_ADJUSTING_BRIGHTNESS)
+                == OnChildTouchListener.TFLAG_ADJUSTING_BRIGHTNESS) {
+            final boolean brightnessFollowsSystem = progress == -1;
+            mBrightnessOrVolumeText.setText(brightnessFollowsSystem
+                    ? mStringBrightnessFollowsSystem
+                    : mResources.getString(R.string.brightness_progress,
+                    (float) progress / MAX_BRIGHTNESS * 100f));
+            mBrightnessOrVolumeProgress.setProgress(brightnessFollowsSystem ? 0 : progress);
+        }
+    }
+
+    private void refreshVolumeProgress(int progress) {
+        if ((mOnChildTouchListener.touchFlags & OnChildTouchListener.TFLAG_ADJUSTING_VOLUME)
+                == OnChildTouchListener.TFLAG_ADJUSTING_VOLUME) {
+            mBrightnessOrVolumeText.setText(mResources.getString(R.string.volume_progress,
+                    (float) progress / volumeToProgress(mMaxVolume) * 100f));
+            mBrightnessOrVolumeProgress.setProgress(progress);
+        }
+    }
+
+    private void refreshVideoProgress(int progress) {
+        refreshVideoProgress(progress, true);
+    }
+
+    private void refreshVideoProgress(int progress, boolean refreshSeekBar) {
+        VideoPlayer videoPlayer = mVideoPlayer;
+        if (videoPlayer == null) progress = 0;
+        final int videoBufferedProgress = videoPlayer == null ? 0 : videoPlayer.getVideoBufferedProgress();
+        final int videoDuration = videoPlayer == null ? 0 : videoPlayer.getVideoDuration();
+        final String videoDurationString = videoPlayer == null ?
+                VideoPlayer.DEFAULT_STRING_VIDEO_DURATION : videoPlayer.mVideoDurationString;
+        if (!isLocked()) {
+            if (isInFullscreenMode()) {
+                mVideoProgressDurationText.setText(
+                        mResources.getString(R.string.progress_duration,
+                                TimeUtil.formatTimeByColon(progress), videoDurationString));
+            } else {
+                mVideoProgressText.setText(TimeUtil.formatTimeByColon(progress));
+            }
+        }
+        if (mVideoSeekBar.getMax() != videoDuration) {
+            mVideoSeekBar.setMax(videoDuration);
+            if (mVideoDurationText != null) {
+                mVideoDurationText.setText(videoDurationString);
+            }
+        }
+        mVideoSeekBar.setSecondaryProgress(videoBufferedProgress);
+        if (refreshSeekBar) {
+            mVideoSeekBar.setProgress(progress);
+        }
+    }
+
+    @SuppressWarnings("ClickableViewAccessibility")
+    @Override
+    public void cancelDraggingVideoSeekBar() {
+        MotionEvent ev = null;
+        if ((mOnChildTouchListener.touchFlags & OnChildTouchListener.TFLAG_ADJUSTING_VIDEO_PROGRESS) != 0) {
+            ev = Utils.obtainCancelEvent();
+            mOnChildTouchListener.onTouchContent(ev);
+        } else if (mVideoSeekBar.isPressed()) {
+            ev = Utils.obtainCancelEvent();
+            mVideoSeekBar.onTouchEvent(ev);
+            // Sets an OnTouchListener for it to intercept the subsequent touch events within
+            // this event stream, so that the seek bar stays not dragged.
+            mVideoSeekBar.setOnTouchListener((v, event) -> {
+                final int action = event.getAction();
+                switch (action) {
+                    case MotionEvent.ACTION_DOWN:
+                    case MotionEvent.ACTION_UP:
+                    case MotionEvent.ACTION_CANCEL:
+                        v.setOnTouchListener(null);
+                        return action != MotionEvent.ACTION_DOWN;
+                }
+                return true;
+            });
+        }
+        if (ev != null) ev.recycle();
+    }
+
+    private boolean isSpinnerPopupShowing() {
+        return mSpinnerPopup != null && mSpinnerPopup.isShowing();
+    }
+
+    private void dismissSpinnerPopup() {
+        if (mSpinnerListPopup != null) {
+            mSpinnerListPopup.dismiss();
+        }
+    }
+
+    private final class OnChildTouchListener implements OnTouchListener, ConstraintLayout.TouchInterceptor {
+
+        int touchFlags;
+        static final int TFLAG_STILL_DOWN_ON_POPUP = 1;
+        static final int TFLAG_DOWN_ON_STATUS_BAR_AREA = 1 << 1;
+        static final int TFLAG_ADJUSTING_BRIGHTNESS = 1 << 2;
+        static final int TFLAG_ADJUSTING_VOLUME = 1 << 3;
+        static final int TFLAG_ADJUSTING_BRIGHTNESS_OR_VOLUME =
+                TFLAG_ADJUSTING_BRIGHTNESS | TFLAG_ADJUSTING_VOLUME;
+        static final int TFLAG_ADJUSTING_VIDEO_PROGRESS = 1 << 4;
+        static final int MASK_ADJUSTING_PROGRESS_FLAGS =
+                TFLAG_ADJUSTING_BRIGHTNESS_OR_VOLUME | TFLAG_ADJUSTING_VIDEO_PROGRESS;
+
+        // for SpeedSpinner
+        float popupDownX, popupDownY;
+        final Runnable postPopupOnClickedRunnable = this::onClickSpinner;
+
+        // for ContentView
+        int activePointerId = MotionEvent.INVALID_POINTER_ID;
+        float downX, downY;
+        float lastX, lastY;
+        final GestureDetector detector = new GestureDetector(mContext, new GestureDetector.SimpleOnGestureListener() {
+
+            @Override
+            public boolean onDown(MotionEvent e) {
+                return isLocked() || isSpinnerPopupShowing();
+            }
+
+            @Override
+            public boolean onSingleTapUp(MotionEvent e) {
+                return isLocked() || isSpinnerPopupShowing();
+            }
+
+            @Override
+            public boolean onSingleTapConfirmed(MotionEvent e) {
+                if (isSpinnerPopupShowing()) {
+                    dismissSpinnerPopup();
+                } else {
+                    showControls(!isControlsShowing());
+                }
+                return true;
+            }
+
+            @Override
+            public boolean onDoubleTap(MotionEvent e) {
+                if (isLocked()) {
+                    return true;
+                }
+                if (isSpinnerPopupShowing()) {
+                    dismissSpinnerPopup();
+
+                } else if (mVideoPlayer != null) {
+                    mVideoPlayer.toggle(true);
+                }
+                return true;
+            }
+
+            @Override
+            public boolean onDoubleTapEvent(MotionEvent e) {
+                return true;
+            }
+
+            @Override
+            public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+                return isLocked() || isSpinnerPopupShowing();
+            }
+
+            @Override
+            public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+                return isLocked() /*|| isSpinnerPopupShowing()*/;
+            }
+        });
+
+        @Override
+        public boolean shouldInterceptTouchEvent(@NonNull MotionEvent ev) {
+            if (isSpinnerPopupShowing()) {
+                // If the spinner's popup is showing, let content view intercept the touch events to
+                // prevent the user from pressing the buttons ('play/pause', 'skip next', 'back', etc.)
+                // All the things we do is for the aim that try our best to make the popup act as if
+                // it was focusable.
+                return true;
+            }
+            // No child of the content view but the 'unlock' button can receive touch events when
+            // this view is locked.
+            if (isLocked()) {
+                final float x = ev.getX();
+                final float y = ev.getY();
+                final View lub = mLockUnlockButton;
+                return x < lub.getLeft() || x > lub.getRight() || y < lub.getTop() || y > lub.getBottom();
+            }
+            return false;
+        }
+
+        @SuppressLint("ClickableViewAccessibility")
+        @Override
+        public boolean onTouch(View v, MotionEvent event) {
+            if (v == mContentView) {
+                return onTouchContent(event);
+            } else if (v == mSpeedSpinner) {
+                return onTouchSpinner(event);
+            }
+            return false;
+        }
+
+        // Offer the speed spinner an OnClickListener as needed
+        boolean onTouchSpinner(MotionEvent event) {
+            switch (event.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN:
+                    popupDownX = event.getX();
+                    popupDownY = event.getY();
+                    touchFlags |= TFLAG_STILL_DOWN_ON_POPUP;
+                    removeCallbacks(postPopupOnClickedRunnable);
+                    break;
+                case MotionEvent.ACTION_MOVE:
+                    if ((touchFlags & TFLAG_STILL_DOWN_ON_POPUP) != 0) {
+                        final float absDx = Math.abs(event.getX() - popupDownX);
+                        final float absDy = Math.abs(event.getY() - popupDownY);
+                        if (absDx * absDx + absDy * absDy > mTouchSlop * mTouchSlop) {
+                            touchFlags &= ~TFLAG_STILL_DOWN_ON_POPUP;
+                            removeCallbacks(postPopupOnClickedRunnable);
+                        }
+                    }
+                    break;
+                case MotionEvent.ACTION_UP:
+                    if ((touchFlags & TFLAG_STILL_DOWN_ON_POPUP) != 0) {
+                        touchFlags &= ~TFLAG_STILL_DOWN_ON_POPUP;
+                        // Delay 100 milliseconds to let the spinner's onClick() be called before
+                        // our one is called so that we can access the variables created in its show()
+                        // method via reflections without any NullPointerException.
+                        // This is a bit similar to the GestureDetector's onSingleTapConfirmed() method,
+                        // but not so rigorous as our logic processing is lightweight and effective
+                        // enough in this use case.
+                        postDelayed(postPopupOnClickedRunnable, 100);
+                    }
+                    break;
+                case MotionEvent.ACTION_POINTER_DOWN:
+                case MotionEvent.ACTION_CANCEL:
+                    touchFlags &= ~TFLAG_STILL_DOWN_ON_POPUP;
+                    removeCallbacks(postPopupOnClickedRunnable);
+                    break;
+            }
+            return false; // we just need an OnClickListener, so not consume events
+        }
+
+        @SuppressLint("ClickableViewAccessibility")
+        void onClickSpinner() {
+            mPrivateFlags |= PFLAG_CONTROLS_SHOW_STICKILY;
+            showControls(-1, true);
+            checkCameraButtonsVisibilities();
+
+            if (mSpinnerPopup == null) return;
+            try {
+/*
+                // Needed on platform versions >= P only
+                if (sPopupDecorViewField != null) {
+                    // Although this is a member field in the PopupWindow class, it is created in the
+                    // popup's show() method and reset to `null` each time the popup dismisses. Thus,
+                    // always retrieving it via reflection after the spinner clicked is really needed.
+                    ((View) sPopupDecorViewField.get(mSpinnerPopup)).setOnTouchListener((v, event) ->
+                            // This is roughly the same as the onTouchEvent() of the popup's decorView,
+                            // but just returns `true` according to the same conditions on actions 'down'
+                            // and 'outside' instead of additionally dismissing the popup as we need it
+                            // to remain showing within this event stream till the up event is arrived.
+                            //
+                            // @see PopupWindow.PopupDecorView.onTouchEvent(MotionEvent)
+                    {
+                        switch (event.getAction()) {
+                            case MotionEvent.ACTION_DOWN:
+                                final float x = event.getX();
+                                final float y = event.getY();
+                                if (x < 0 || x >= v.getWidth() || y < 0 || y >= v.getHeight()) {
+                                    // no dismiss()
+                                    return true;
+                                }
+                                break;
+                            case MotionEvent.ACTION_OUTSIDE:
+                                // no dismiss()
+                                return true;
+                        }
+                        return false;
+                    });
+                }
+*/
+                if (sPopupOnDismissListenerField == null) return;
+                // A local variable in Spinner/AppCompatSpinner class. Do NOT cache!
+                // We do need to get it via reflection each time the spinner's popup window
+                // shows to the user, though this may cause the program to run slightly slower.
+                final PopupWindow.OnDismissListener listener =
+                        (PopupWindow.OnDismissListener) sPopupOnDismissListenerField.get(mSpinnerPopup);
+                // This is a little bit of a hack, but... we need to get notified when the spinner's
+                // popup window dismisses, so as not to cause the controls unhiddable (even if
+                // the client calls showControls(false), it does nothing for the
+                // PFLAG_CONTROLS_SHOW_STICKILY flag keeps it from doing what the client wants).
+                mSpinnerPopup.setOnDismissListener(() -> {
+                    // First, lets the internal one get notified to release some related resources
+                    listener.onDismiss();
+
+                    // Then, do what we want (hide the controls in both the vertical ends after
+                    // a delay of 5 seconds)
+                    mPrivateFlags &= ~PFLAG_CONTROLS_SHOW_STICKILY;
+                    showControls(true, false);
+                    checkCameraButtonsVisibilities();
+
+                    // Third, clear reference to let gc do its work
+                    mSpinnerPopup.setOnDismissListener(null);
+                });
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            }
+        }
+
+        boolean onTouchContent(MotionEvent event) {
+            if (detector.onTouchEvent(event) || isLocked()) {
+                return true;
+            }
+
+            final int action = event.getAction();
+
+            if (isSpinnerPopupShowing()) {
+                if (action == MotionEvent.ACTION_UP) {
+                    dismissSpinnerPopup();
+                }
+                return true;
+            }
+
+            // In fullscreen mode, if the y coordinate of the initial 'down' event is less than
+            // the navigation top inset, it is easy to make the brightness/volume progress bar showing
+            // while the user is pulling down the status bar, of which, however, the user may have
+            // no tendency. In that case, to avoid touch conflicts, we just return `true` instead.
+            if (isInFullscreenMode()) {
+                if (action == MotionEvent.ACTION_DOWN) {
+                    final int navTopInset = mTopControlsFrame.getPaddingTop() - mNavInitialPaddingTop;
+                    touchFlags = touchFlags & ~TFLAG_DOWN_ON_STATUS_BAR_AREA
+                            | (event.getY() <= navTopInset ? TFLAG_DOWN_ON_STATUS_BAR_AREA : 0);
+                }
+                if ((touchFlags & TFLAG_DOWN_ON_STATUS_BAR_AREA) != 0) return true;
+            }
+
+            switch (action & MotionEvent.ACTION_MASK) {
+                case MotionEvent.ACTION_DOWN:
+                case MotionEvent.ACTION_POINTER_DOWN:
+                    final int actionIndex = event.getActionIndex();
+                    lastX = downX = event.getX(actionIndex);
+                    lastY = downY = event.getY(actionIndex);
+                    activePointerId = event.getPointerId(actionIndex);
+                    break;
+
+                case MotionEvent.ACTION_MOVE:
+                    final int pointerIndex = event.findPointerIndex(activePointerId);
+                    if (pointerIndex < 0) {
+                        Log.e(TAG, "Error processing slide; pointer index for id "
+                                + activePointerId + " not found. Did any MotionEvents get skipped?");
+                        return false;
+                    }
+
+                    final boolean rtl = Utils.isLayoutRtl(mContentView);
+
+                    final float x = event.getX(pointerIndex);
+                    final float y = event.getY(pointerIndex);
+                    // positive when finger swipes towards the end of horizontal
+                    final float deltaX = rtl ? lastX - x : x - lastX;
+                    final float deltaY = lastY - y; // positive when finger swipes up
+                    lastX = x;
+                    lastY = y;
+
+                    switch (touchFlags & MASK_ADJUSTING_PROGRESS_FLAGS) {
+                        case TFLAG_ADJUSTING_BRIGHTNESS: {
+                            final int progress = mBrightnessOrVolumeProgress.getProgress();
+                            final int newProgress = computeProgressOnTrackTouchVertically(
+                                    mBrightnessOrVolumeProgress, deltaY, 1.0f);
+                            if (newProgress == progress) {
+                                if (progress == 0 && deltaY < 0) {
+                                    setBrightness(-1);
+                                }
+                            } else {
+                                setBrightness(newProgress);
+                            }
+                        }
+                        break;
+
+                        case TFLAG_ADJUSTING_VOLUME: {
+                            final int progress = mBrightnessOrVolumeProgress.getProgress();
+                            final int newProgress = computeProgressOnTrackTouchVertically(
+                                    mBrightnessOrVolumeProgress, deltaY, 1.0f);
+                            if (newProgress != progress) {
+                                mAudioManager.setStreamVolume(
+                                        AudioManager.STREAM_MUSIC, progressToVolume(newProgress), 0);
+                                refreshVolumeProgress(newProgress);
+                            }
+                        }
+                        break;
+
+                        case TFLAG_ADJUSTING_VIDEO_PROGRESS: {
+                            final int progress = mVideoSeekBar.getProgress();
+                            final int newProgress = computeProgressOnTrackTouchHorizontally(
+                                    mVideoSeekBar, deltaX, 0.33333334f);
+                            if (newProgress != progress) {
+                                mVideoSeekBar.setProgress(newProgress);
+                                mOnSeekBarChangeListener.onProgressChanged(
+                                        mVideoSeekBar, newProgress, true);
+                            }
+                        }
+                        break;
+
+                        case TFLAG_ADJUSTING_BRIGHTNESS_OR_VOLUME:
+                            //noinspection IntegerDivisionInFloatingPointContext
+                            if (mOpCallback != null &&
+                                    (!rtl && x < mContentView.getWidth() / 2
+                                            || rtl && x > mContentView.getWidth() / 2)) {
+                                touchFlags = touchFlags & ~TFLAG_ADJUSTING_BRIGHTNESS_OR_VOLUME
+                                        | TFLAG_ADJUSTING_BRIGHTNESS;
+                                removeCallbacks(mHideBrightnessOrVolumeFrameRunnable);
+                                mBrightnessOrVolumeFrame.setVisibility(VISIBLE);
+                                mBrightnessOrVolumeProgress.setMax(MAX_BRIGHTNESS);
+                                refreshBrightnessProgress(getBrightness());
+                            } else {
+                                touchFlags = touchFlags & ~TFLAG_ADJUSTING_BRIGHTNESS_OR_VOLUME
+                                        | TFLAG_ADJUSTING_VOLUME;
+                                removeCallbacks(mHideBrightnessOrVolumeFrameRunnable);
+                                mBrightnessOrVolumeFrame.setVisibility(VISIBLE);
+                                mBrightnessOrVolumeProgress.setMax(volumeToProgress(mMaxVolume));
+                                refreshVolumeProgress(volumeToProgress(getVolume()));
+                            }
+                            break;
+
+                        default:
+                            final float absDx = Math.abs(x - downX);
+                            final float absDy = Math.abs(y - downY);
+                            if (absDy >= absDx) {
+                                if (absDy > mTouchSlop)
+                                    touchFlags = touchFlags & ~MASK_ADJUSTING_PROGRESS_FLAGS
+                                            | TFLAG_ADJUSTING_BRIGHTNESS_OR_VOLUME;
+                            } else {
+                                if (absDx > mTouchSlop) {
+                                    touchFlags = touchFlags & ~MASK_ADJUSTING_PROGRESS_FLAGS
+                                            | TFLAG_ADJUSTING_VIDEO_PROGRESS;
+                                    if (!isControlsShowing()) {
+                                        mVideoSeekBar.setProgress(
+                                                mVideoPlayer == null ? 0 : mVideoPlayer.getVideoProgress());
+                                    }
+                                    mOnSeekBarChangeListener.onStartTrackingTouch(mVideoSeekBar);
+                                }
+                            }
+                            break;
+                    }
+                    break;
+
+                case MotionEvent.ACTION_POINTER_UP:
+                    onSecondaryPointerUp(event);
+                    break;
+
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_CANCEL:
+                    switch (touchFlags & MASK_ADJUSTING_PROGRESS_FLAGS) {
+                        case TFLAG_ADJUSTING_BRIGHTNESS:
+                        case TFLAG_ADJUSTING_VOLUME:
+                            postDelayed(mHideBrightnessOrVolumeFrameRunnable,
+                                    TIMEOUT_SHOW_BRIGHTNESS_OR_VOLUME);
+                            break;
+                        case TFLAG_ADJUSTING_VIDEO_PROGRESS:
+                            mOnSeekBarChangeListener.onStopTrackingTouch(mVideoSeekBar);
+                            break;
+                    }
+                    touchFlags &= ~MASK_ADJUSTING_PROGRESS_FLAGS;
+                    activePointerId = MotionEvent.INVALID_POINTER_ID;
+                    break;
+            }
+            return true;
+        }
+
+        private void onSecondaryPointerUp(MotionEvent ev) {
+            final int pointerIndex = ev.getActionIndex();
+            final int pointerId = ev.getPointerId(pointerIndex);
+            if (pointerId == activePointerId) {
+                // This was our active pointer going up.
+                // Choose a new active pointer and adjust accordingly.
+                final int newPointerIndex = pointerIndex == 0 ? 1 : 0;
+                activePointerId = ev.getPointerId(newPointerIndex);
+                lastX = downX = ev.getX(newPointerIndex);
+                lastY = downY = ev.getY(newPointerIndex);
+            }
+        }
+
+        int computeProgressOnTrackTouchHorizontally(ProgressBar progressBar, float deltaX, float sensitivity) {
+            final int maxProgress = progressBar.getMax();
+            final int progress = progressBar.getProgress()
+                    + Math.round((float) maxProgress / mContentView.getWidth() * deltaX * sensitivity);
+            return Util.constrainValue(progress, 0, maxProgress);
+        }
+
+        int computeProgressOnTrackTouchVertically(ProgressBar progressBar, float deltaY, float sensitivity) {
+            final int maxProgress = progressBar.getMax();
+            final int progress = progressBar.getProgress()
+                    + Math.round((float) maxProgress / mContentView.getHeight() * deltaY * sensitivity);
+            return Util.constrainValue(progress, 0, maxProgress);
+        }
+    }
+
+    private final class TimedOffRunnable implements Runnable {
+        int offTime;
+        static final int OFF_TIME_30_MINUTES = 30 * 60 * 1000; // ms
+        static final int OFF_TIME_AN_HOUR = 60 * 60 * 1000; // ms
+
+        @Override
+        public void run() {
+            mTimedOffRunnable = null;
+            if (mMoreView != null) {
+                switch (offTime) {
+                    case OFF_TIME_30_MINUTES:
+                        mMoreView.findViewById(R.id.text_30Minutes).setSelected(false);
+                        break;
+                    case OFF_TIME_AN_HOUR:
+                        mMoreView.findViewById(R.id.text_anHour).setSelected(false);
+                        break;
+                }
+            }
+            if (mVideoPlayer != null) {
+                mVideoPlayer.closeVideoInternal(true);
+            }
+        }
+    }
+
+    // --------------- Saved Instance State ------------------------
+
+    @Override
+    protected void onRestoreInstanceState(Parcelable state) {
+        if (!(state instanceof SavedState)) {
+            super.onRestoreInstanceState(state);
             return;
         }
 
-        switch (playbackState) {
-            case PLAYBACK_STATE_UNDEFINED:
-            case PLAYBACK_STATE_IDLE: // no video is set
-                // Already in the preparing or playing state
-            case PLAYBACK_STATE_PREPARING:
-            case PLAYBACK_STATE_PLAYING:
-                break;
+        final SavedState ss = (SavedState) state;
+        super.onRestoreInstanceState(ss.getSuperState());
 
-            case PLAYBACK_STATE_ERROR:
-                // Retries the failed playback after error occurred
-                mPrivateFlags &= ~(PFLAG_SEEKING | PFLAG_BUFFERING);
-                mPlaybackSpeed = DEFAULT_PLAYBACK_SPEED;
-                mBuffering = 0;
-                if ((mPrivateFlags & PFLAG_SEEK_POSITION_WHILE_VIDEO_PAUSED) == 0) {
-                    // Record the current playback position only if there is no external program code
-                    // requesting a position seek in this case.
+        setLocked(ss.locked, false);
+        setVideoStretchedToFitFullscreenLayout(ss.videoStretchedToFitFullscreenLayout);
+        setFullscreenMode(ss.fullscreen, ss.navTopInset);
+        IVideoPlayer videoPlayer = mVideoPlayer;
+        if (videoPlayer != null) {
+            videoPlayer.setPureAudioPlayback(ss.pureAudioPlayback);
+            videoPlayer.setSingleVideoLoopPlayback(ss.looping);
+            videoPlayer.setPlaybackSpeed(ss.playbackSpeed);
+            if (ss.seekOnPlay != 0) {
+                // Seeks to the saved playback position for the video even if it was paused by the user
+                // before, as this method is invoked after the Activity's onStart() was called, so that
+                // the flag PFLAG_VIDEO_PAUSED_BY_USER makes no sense.
+                videoPlayer.seekTo(ss.seekOnPlay, false);
+            }
+        }
+    }
+
+    @Override
+    protected Parcelable onSaveInstanceState() {
+        final Parcelable superState = super.onSaveInstanceState();
+        final SavedState ss = new SavedState(superState);
+
+        VideoPlayer videoPlayer = mVideoPlayer;
+        ss.playbackSpeed = videoPlayer == null ?
+                IVideoPlayer.DEFAULT_PLAYBACK_SPEED : videoPlayer.mPlaybackSpeed;
+        ss.seekOnPlay = videoPlayer == null ? 0 : videoPlayer.getVideoProgress();
+        ss.pureAudioPlayback = videoPlayer != null && videoPlayer.isPureAudioPlayback();
+        ss.looping = videoPlayer != null && videoPlayer.isSingleVideoLoopPlayback();
+        ss.locked = isLocked();
+        ss.videoStretchedToFitFullscreenLayout = isVideoStretchedToFitFullscreenLayout();
+        ss.fullscreen = isInFullscreenMode();
+        ss.navTopInset = mTopControlsFrame.getPaddingTop() - mNavInitialPaddingTop;
+
+        return ss;
+    }
+
+    /**
+     * State persisted across instances
+     */
+    @VisibleForTesting
+    public static final class SavedState extends AbsSavedState {
+        private float playbackSpeed;
+        private int seekOnPlay;
+        private boolean pureAudioPlayback;
+        private boolean looping;
+        private boolean locked;
+        private boolean videoStretchedToFitFullscreenLayout;
+        private boolean fullscreen;
+        private int navTopInset;
+
+        private SavedState(Parcelable superState) {
+            super(superState);
+        }
+
+        private SavedState(Parcel in, ClassLoader loader) {
+            super(in, loader);
+            playbackSpeed = in.readFloat();
+            seekOnPlay = in.readInt();
+            pureAudioPlayback = in.readByte() != (byte) 0;
+            looping = in.readByte() != (byte) 0;
+            locked = in.readByte() != (byte) 0;
+            videoStretchedToFitFullscreenLayout = in.readByte() != (byte) 0;
+            fullscreen = in.readByte() != (byte) 0;
+            navTopInset = in.readInt();
+        }
+
+        @Override
+        public void writeToParcel(Parcel dest, int flags) {
+            super.writeToParcel(dest, flags);
+            dest.writeFloat(playbackSpeed);
+            dest.writeInt(seekOnPlay);
+            dest.writeByte(pureAudioPlayback ? (byte) 1 : (byte) 0);
+            dest.writeByte(looping ? (byte) 1 : (byte) 0);
+            dest.writeByte(locked ? (byte) 1 : (byte) 0);
+            dest.writeByte(videoStretchedToFitFullscreenLayout ? (byte) 1 : (byte) 0);
+            dest.writeByte(fullscreen ? (byte) 1 : (byte) 0);
+            dest.writeInt(navTopInset);
+        }
+
+        @SuppressWarnings("deprecation")
+        public static final Creator<SavedState> CREATOR = ParcelableCompat.newCreator(
+                new ParcelableCompatCreatorCallbacks<SavedState>() {
+                    @Override
+                    public SavedState createFromParcel(Parcel in, ClassLoader loader) {
+                        return new SavedState(in, loader);
+                    }
+
+                    @Override
+                    public SavedState[] newArray(int size) {
+                        return new SavedState[size];
+                    }
+                });
+    }
+
+    // --------------- package-private overridden super methods ------------------------
+
+    @Override
+    void onVideoUriChanged() {
+        // Hides the TextureView only if its SurfaceTexture was created upon its first drawing
+        // since it had been attached to this view, or no Surface would be available for rendering
+        // the video content (Further to say, according to the logic of us, there would start
+        // no video at all).
+        if (mSurface != null) {
+            showTextureView(false);
+        }
+    }
+
+    @Override
+    void onVideoStarted() {
+        assert mVideoPlayer != null;
+        if (!mVideoPlayer.isPureAudioPlayback()) {
+            showTextureView(true);
+        }
+        setKeepScreenOn(true);
+        adjustToggleState(true);
+        if (mViewMode != VIEW_MODE_MINIMUM) {
+            if ((mPrivateFlags & PFLAG_CONTROLS_SHOW_STICKILY) != 0) {
+                // If the PFLAG_CONTROLS_SHOW_STICKILY flag is marked into mPrivateFlags, Calling
+                // showControls(true) is meaningless as this flag is a hindrance for the subsequent
+                // program in that method to continue. So we need repost mRefreshVideoProgressRunnable
+                // to make sure the video seek bar to be updated as the video plays.
+                removeCallbacks(mRefreshVideoProgressRunnable);
+                post(mRefreshVideoProgressRunnable);
+            } else {
+                showControls(true);
+            }
+        }
+    }
+
+    @Override
+    void onVideoStopped() {
+        setKeepScreenOn(false);
+        adjustToggleState(false);
+        if (mViewMode != VIEW_MODE_MINIMUM) {
+            showControls(true);
+        }
+    }
+
+    @Override
+    void onVideoSizeChanged(int width, int height) {
+        if (width != 0 && height != 0) requestLayout();
+    }
+
+    @Override
+    boolean skipToPreviousIfPossible() {
+        if (mEventListener != null && canSkipToPrevious()) {
+            mEventListener.onSkipToPrevious();
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    boolean skipToNextIfPossible() {
+        if (mEventListener != null && canSkipToNext()) {
+            mEventListener.onSkipToNext();
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    void onPureAudioPlaybackModeChanged(boolean audioOnly) {
+        showTextureView(!audioOnly);
+        if (mMoreView != null) {
+            Checkable toggle = mMoreView.findViewById(R.id.btn_pureAudioPlayback);
+            if (audioOnly != toggle.isChecked()) {
+                toggle.setChecked(audioOnly);
+            }
+        }
+    }
+
+    @Override
+    void onSingleVideoLoopPlaybackModeChanged(boolean looping) {
+        if (mMoreView != null) {
+            Checkable toggle = mMoreView.findViewById(R.id.btn_loopSingleVideo);
+            if (looping != toggle.isChecked()) {
+                toggle.setChecked(looping);
+            }
+        }
+    }
+
+    @Override
+    boolean willTurnOffWhenThisEpisodeEnds() {
+        return (mPrivateFlags & PFLAG_TURN_OFF_WHEN_THIS_EPISODE_ENDS) != 0;
+    }
+
+    @Override
+    void onVideoTurnedOffWhenTheEpisodeEnds() {
+        mPrivateFlags &= ~PFLAG_TURN_OFF_WHEN_THIS_EPISODE_ENDS;
+        if (mMoreView != null) {
+            mMoreView.findViewById(R.id.text_whenThisEpisodeEnds).setSelected(false);
+        }
+    }
+
+    @Override
+    void onPlaybackSpeedChanged(float speed) {
+        if (mSpeedSpinner != null) {
+            mSpeedSpinner.setSelection(indexOfPlaybackSpeed(speed), true);
+        }
+    }
+
+    // --------------- VideoPlayer components ------------------------
+
+    /**
+     * A sub implementation class of {@link VideoPlayer} to deal with the audio/video playback logic
+     * related to the media player component through a {@link android.media.MediaPlayer} object.
+     *
+     * @author 刘振林
+     */
+    @SuppressLint("LongLogTag")
+    public static class MediaPlayer extends VideoPlayer {
+
+        private static final String TAG = "TextureVideoView$MediaPlayer";
+
+        /**
+         * Flag used to indicate that the volume of the video is auto-turned down by the system
+         * when the player temporarily loses the audio focus.
+         */
+        private static final int PFLAG_VIDEO_VOLUME_TURNED_DOWN_AUTOMATICALLY = PFLAG_VIDEO_IS_CLOSING << 1;
+
+        /**
+         * Flag indicates that a position seek request happens when the video is not playing.
+         */
+        private static final int PFLAG_SEEK_POSITION_WHILE_VIDEO_PAUSED = PFLAG_VIDEO_IS_CLOSING << 2;
+
+        /**
+         * If true, MediaPlayer is moving the media to some specified time position
+         */
+        private static final int PFLAG_SEEKING = PFLAG_VIDEO_IS_CLOSING << 3;
+
+        /**
+         * If true, MediaPlayer is temporarily pausing playback internally in order to buffer more data.
+         */
+        private static final int PFLAG_BUFFERING = PFLAG_VIDEO_IS_CLOSING << 4;
+
+        private android.media.MediaPlayer mMediaPlayer;
+
+        /**
+         * How much of the network-based video has been buffered from the media stream received
+         * through progressive HTTP download.
+         */
+        private int mBuffering;
+
+        private final AudioManager.OnAudioFocusChangeListener mOnAudioFocusChangeListener
+                = new AudioManager.OnAudioFocusChangeListener() {
+            @Override
+            public void onAudioFocusChange(int focusChange) {
+                switch (focusChange) {
+                    // Audio focus gained
+                    case AudioManager.AUDIOFOCUS_GAIN:
+                        play(false);
+                        break;
+
+                    // Loss of audio focus of unknown duration.
+                    // This usually happens when the user switches to another audio/video application
+                    // that causes our view to stop playing, so the video can be thought of as
+                    // being paused/closed by the user.
+                    case AudioManager.AUDIOFOCUS_LOSS:
+                        if (mVideoView.isInForeground()) {
+                            // If the view is still in the foreground, pauses the video only.
+                            pause(true);
+                        } else {
+                            // But if this occurs during background playback, we must close the video
+                            // to release the resources associated with it.
+                            closeVideoInternal(true);
+                        }
+                        break;
+
+                    // Temporarily lose the audio focus and will probably gain it again soon.
+                    // Must stop the video playback but no need for releasing the MediaPlayer here.
+                    case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT:
+                        pause(false);
+                        break;
+
+                    // Temporarily lose the audio focus but the playback can continue.
+                    // The volume of the playback needs to be turned down.
+                    case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK:
+                        if (mMediaPlayer != null) {
+                            mPrivateFlags |= PFLAG_VIDEO_VOLUME_TURNED_DOWN_AUTOMATICALLY;
+                            mMediaPlayer.setVolume(0.5f, 0.5f);
+                        }
+                        break;
+                }
+            }
+        };
+        private final AudioFocusRequest mAudioFocusRequest =
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ?
+                        new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+                                .setAudioAttributes(sDefaultAudioAttrs.getAudioAttributesV21())
+                                .setOnAudioFocusChangeListener(mOnAudioFocusChangeListener)
+                                .setAcceptsDelayedFocusGain(true)
+                                .build()
+                        : null;
+
+        public MediaPlayer(@NonNull AbsTextureVideoView videoView) {
+            super(videoView);
+        }
+
+        @Override
+        public void setVideoResourceId(@RawRes int resId) {
+            setVideoPath(resId == 0 ?
+                    null : "android.resource://" + mContext.getPackageName() + "/" + resId);
+        }
+
+        @Override
+        public void setVideoUri(@Nullable Uri uri) {
+            if (!ObjectsCompat.equals(uri, mVideoUri)) {
+                super.setVideoUri(uri);
+                mVideoDuration = 0;
+                mVideoDurationString = DEFAULT_STRING_VIDEO_DURATION;
+                mPrivateFlags &= ~PFLAG_VIDEO_INFO_RESOLVED;
+                if (mMediaPlayer == null) {
+                    // Removes the PFLAG_VIDEO_PAUSED_BY_USER flag and resets mSeekOnPlay to 0 in case
+                    // the MediaPlayer was previously released and has not been initialized yet.
+                    mPrivateFlags &= ~PFLAG_VIDEO_PAUSED_BY_USER;
+                    mSeekOnPlay = 0;
+                    if (uri == null) {
+                        // Sets the playback state to idle directly when the player is not created
+                        // and no video is set
+                        setPlaybackState(PLAYBACK_STATE_IDLE);
+                    } else {
+                        openVideoInternal();
+                    }
+                } else {
+                    restartVideo();
+                }
+            }
+        }
+
+        @Override
+        protected void openVideoInternal() {
+            Surface surface = mVideoView.getSurface();
+            if (mMediaPlayer == null && surface != null && mVideoUri != null
+                    && (mPrivateFlags & PFLAG_VIDEO_PAUSED_BY_USER) == 0) {
+                mMediaPlayer = new android.media.MediaPlayer();
+                mMediaPlayer.setSurface(isPureAudioPlayback() ? null : surface);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    mMediaPlayer.setAudioAttributes(sDefaultAudioAttrs.getAudioAttributesV21());
+                } else {
+                    mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+                }
+                mMediaPlayer.setOnPreparedListener(mp -> {
+                    mVideoView.showLoadingView(false);
+                    if ((mPrivateFlags & PFLAG_VIDEO_INFO_RESOLVED) == 0) {
+                        mVideoDuration = mp.getDuration();
+                        mVideoDurationString = TimeUtil.formatTimeByColon(mVideoDuration);
+                        mPrivateFlags |= PFLAG_VIDEO_INFO_RESOLVED;
+                    }
+                    setPlaybackState(PLAYBACK_STATE_PREPARED);
+                    play(false);
+                });
+                mMediaPlayer.setOnSeekCompleteListener(mp -> {
+                    if ((mPrivateFlags & PFLAG_BUFFERING) == 0) {
+                        mVideoView.showLoadingView(false);
+                    }
+                    mPrivateFlags &= ~PFLAG_SEEKING;
+                });
+                mMediaPlayer.setOnInfoListener((mp, what, extra) -> {
+                    switch (what) {
+                        case android.media.MediaPlayer.MEDIA_INFO_BUFFERING_START:
+                            mPrivateFlags |= PFLAG_BUFFERING;
+                            if ((mPrivateFlags & PFLAG_SEEKING) == 0) {
+                                mVideoView.showLoadingView(true);
+                            }
+                            break;
+                        case android.media.MediaPlayer.MEDIA_INFO_BUFFERING_END:
+                            mPrivateFlags &= ~PFLAG_BUFFERING;
+                            if ((mPrivateFlags & PFLAG_SEEKING) == 0) {
+                                mVideoView.showLoadingView(false);
+                            }
+                            break;
+                    }
+                    return false;
+                });
+                mMediaPlayer.setOnBufferingUpdateListener((mp, percent)
+                        -> mBuffering = (int) (mVideoDuration * percent / 100f + 0.5f));
+                mMediaPlayer.setOnErrorListener((mp, what, extra) -> {
+                    if (BuildConfig.DEBUG) {
+                        Log.e(TAG, "Error occurred while playing video:" +
+                                " what= " + what + "; extra= " + extra);
+                    }
+                    showVideoErrorMsg(extra);
+
+                    mVideoView.showLoadingView(false);
+                    final boolean playing = isPlaying();
+                    setPlaybackState(PLAYBACK_STATE_ERROR);
+                    if (playing) {
+                        pauseInternal(false);
+                    }
+                    return true;
+                });
+                mMediaPlayer.setOnCompletionListener(mp -> onPlaybackCompleted());
+                mMediaPlayer.setOnVideoSizeChangedListener((mp, width, height)
+                        -> onVideoSizeChanged(width, height));
+                startVideo();
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    mSession = new MediaSessionCompat(mContext, TAG);
+                    mSession.setCallback(new SessionCallback());
+                    mSession.setActive(true);
+                }
+                mHeadsetEventsReceiver = new HeadsetEventsReceiver(mContext) {
+                    @Override
+                    public void onHeadsetPluggedOutOrBluetoothDisconnected() {
+                        pause(true);
+                    }
+                };
+                mHeadsetEventsReceiver.register(AudioManager.ACTION_AUDIO_BECOMING_NOISY);
+            }
+        }
+
+        private void showVideoErrorMsg(int errorType) {
+            final int stringRes;
+            switch (errorType) {
+                case android.media.MediaPlayer.MEDIA_ERROR_IO:
+                    stringRes = R.string.failedToLoadThisVideo;
+                    break;
+                case android.media.MediaPlayer.MEDIA_ERROR_UNSUPPORTED:
+                case android.media.MediaPlayer.MEDIA_ERROR_MALFORMED:
+                    stringRes = R.string.videoInThisFormatIsNotSupported;
+                    break;
+                case android.media.MediaPlayer.MEDIA_ERROR_TIMED_OUT:
+                    stringRes = R.string.loadTimeout;
+                    break;
+                default:
+                    stringRes = R.string.unknownErrorOccurredWhenVideoIsPlaying;
+                    break;
+            }
+            Utils.showUserCancelableSnackbar(mVideoView, stringRes, Snackbar.LENGTH_SHORT);
+        }
+
+        private void startVideo() {
+            if (mVideoUri != null) {
+                try {
+                    mMediaPlayer.setDataSource(mContext, mVideoUri);
+                    mVideoView.showLoadingView(true);
+                    setPlaybackState(PLAYBACK_STATE_PREPARING);
+                    mMediaPlayer.prepareAsync();
+                    mMediaPlayer.setLooping(isSingleVideoLoopPlayback());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    showVideoErrorMsg(-1004 /* android.media.MediaPlayer.MEDIA_ERROR_IO */);
+                    mVideoView.showLoadingView(false); // in case it is already showing
+                    setPlaybackState(PLAYBACK_STATE_ERROR);
+                }
+            } else {
+                mVideoView.showLoadingView(false);
+                setPlaybackState(PLAYBACK_STATE_IDLE);
+            }
+            mVideoView.cancelDraggingVideoSeekBar();
+        }
+
+        /**
+         * {@inheritDoc}
+         * <p>
+         * <strong>NOTE: </strong> If this method is called during the video being closed, it does
+         * nothing other than setting the playback state to {@link #PLAYBACK_STATE_UNDEFINED}, so as
+         * not to suppress the next call to the {@link #openVideo())} method if the current playback state
+         * is {@link #PLAYBACK_STATE_COMPLETED}, and the state is usually needed to be updated in
+         * this call, too. Thus for all of the above reasons, it is the best to switch over to.
+         */
+        @Override
+        public void restartVideo() {
+            // First, resets mSeekOnPlay to 0 in case the MediaPlayer object is (being) released.
+            // This ensures the video to be started at its beginning position the next time it resumes.
+            mSeekOnPlay = 0;
+            if (mMediaPlayer != null) {
+                if ((mPrivateFlags & PFLAG_VIDEO_IS_CLOSING) != 0) {
+                    setPlaybackState(PLAYBACK_STATE_UNDEFINED);
+                } else {
+                    // Not clear the PFLAG_VIDEO_INFO_RESOLVED flag
+                    mPrivateFlags &= ~(PFLAG_VIDEO_PAUSED_BY_USER
+                            | PFLAG_SEEKING
+                            | PFLAG_BUFFERING);
+                    pause(false);
+                    // Resets below to prepare for the next resume of the video player
+                    mPlaybackSpeed = DEFAULT_PLAYBACK_SPEED;
+                    mBuffering = 0;
+                    mMediaPlayer.reset();
+                    startVideo();
+                }
+            }
+        }
+
+        @Override
+        public void play(boolean fromUser) {
+            if ((mPrivateFlags & PFLAG_VIDEO_IS_CLOSING) != 0) {
+                // In case the video playback is closing
+                return;
+            }
+
+            final int playbackState = getPlaybackState();
+
+            if (mMediaPlayer == null) {
+                // Opens the video only if this is a user request
+                if (fromUser) {
+                    // If the video playback finished, skip to the next video if possible
+                    if (playbackState == PLAYBACK_STATE_COMPLETED &&
+                            skipToNextIfPossible() && mMediaPlayer != null) {
+                        return;
+                    }
+
+                    mPrivateFlags &= ~PFLAG_VIDEO_PAUSED_BY_USER;
+                    openVideoInternal();
+                } else {
+                    Log.w(TAG, "Cannot start playback programmatically before the video is opened");
+                }
+                return;
+            }
+
+            switch (playbackState) {
+                case PLAYBACK_STATE_UNDEFINED:
+                case PLAYBACK_STATE_IDLE: // no video is set
+                    // Already in the preparing or playing state
+                case PLAYBACK_STATE_PREPARING:
+                case PLAYBACK_STATE_PLAYING:
+                    break;
+
+                case PLAYBACK_STATE_ERROR:
+                    // Retries the failed playback after error occurred
+                    mPrivateFlags &= ~(PFLAG_SEEKING | PFLAG_BUFFERING);
+                    mPlaybackSpeed = DEFAULT_PLAYBACK_SPEED;
+                    mBuffering = 0;
+                    if ((mPrivateFlags & PFLAG_SEEK_POSITION_WHILE_VIDEO_PAUSED) == 0) {
+                        // Record the current playback position only if there is no external program code
+                        // requesting a position seek in this case.
+                        mSeekOnPlay = getVideoProgress();
+                    }
+                    mPrivateFlags &= ~PFLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER;
+                    mMediaPlayer.reset();
+                    startVideo();
+                    break;
+
+                case PLAYBACK_STATE_COMPLETED:
+                    if (skipToNextIfPossible() && getPlaybackState() != PLAYBACK_STATE_COMPLETED) {
+                        break;
+                    }
+                    // Starts the video only if we have prepared it for the player
+                case PLAYBACK_STATE_PREPARED:
+                case PLAYBACK_STATE_PAUSED:
+                    //@formatter:off
+                    final int result = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ?
+                            mAudioManager.requestAudioFocus(mAudioFocusRequest)
+                          : mAudioManager.requestAudioFocus(mOnAudioFocusChangeListener,
+                                  AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
+                    //@formatter:on
+                    switch (result) {
+                        case AudioManager.AUDIOFOCUS_REQUEST_FAILED:
+                            if (BuildConfig.DEBUG) {
+                                Log.w(TAG, "Failed to request audio focus");
+                            }
+                            // Starts to play video even if the audio focus is not gained, but it is
+                            // best not to happen.
+                        case AudioManager.AUDIOFOCUS_REQUEST_GRANTED:
+                            mMediaPlayer.start();
+                            // Position seek each time works correctly only if the player engine is started
+                            if (mSeekOnPlay != 0) {
+                                seekToInternal(mSeekOnPlay);
+                                mSeekOnPlay = 0;
+                            }
+                            if (mUserPlaybackSpeed != mPlaybackSpeed) {
+                                setPlaybackSpeedInternal(mUserPlaybackSpeed);
+                            }
+                            // Ensure the player's volume is at its maximum
+                            if ((mPrivateFlags & PFLAG_VIDEO_VOLUME_TURNED_DOWN_AUTOMATICALLY) != 0) {
+                                mPrivateFlags &= ~PFLAG_VIDEO_VOLUME_TURNED_DOWN_AUTOMATICALLY;
+                                mMediaPlayer.setVolume(1.0f, 1.0f);
+                            }
+                            mPrivateFlags &= ~PFLAG_VIDEO_PAUSED_BY_USER;
+                            mPrivateFlags |= PFLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER;
+                            onVideoStarted();
+                            break;
+
+                        case AudioManager.AUDIOFOCUS_REQUEST_DELAYED:
+                            // do nothing
+                            break;
+                    }
+                    break;
+            }
+        }
+
+        @Override
+        public void pause(boolean fromUser) {
+            if (isPlaying()) {
+                pauseInternal(fromUser);
+            }
+        }
+
+        /**
+         * Similar to {@link #pause(boolean)}}, but does not check the playback state.
+         */
+        private void pauseInternal(boolean fromUser) {
+            mMediaPlayer.pause();
+            mPrivateFlags = mPrivateFlags & ~PFLAG_VIDEO_PAUSED_BY_USER
+                    | (fromUser ? PFLAG_VIDEO_PAUSED_BY_USER : 0);
+            onVideoStopped();
+        }
+
+        @Override
+        protected void closeVideoInternal(boolean fromUser) {
+            if (mMediaPlayer != null && (mPrivateFlags & PFLAG_VIDEO_IS_CLOSING) == 0) {
+                mPrivateFlags |= PFLAG_VIDEO_IS_CLOSING;
+
+                if (getPlaybackState() != PLAYBACK_STATE_COMPLETED) {
                     mSeekOnPlay = getVideoProgress();
                 }
-                mMediaPlayer.reset();
-                startVideo();
-                break;
+                pause(fromUser);
+                abandonAudioFocus();
+                mMediaPlayer.release();
+                mMediaPlayer = null;
+                // Not clear the PFLAG_VIDEO_INFO_RESOLVED flag
+                mPrivateFlags &= ~(PFLAG_VIDEO_VOLUME_TURNED_DOWN_AUTOMATICALLY
+                        | PFLAG_SEEKING
+                        | PFLAG_BUFFERING
+                        | PFLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER);
+                // Resets below to prepare for the next resume of the video player
+                mPlaybackSpeed = DEFAULT_PLAYBACK_SPEED;
+                mBuffering = 0;
 
-            case PLAYBACK_STATE_COMPLETED:
-                if (skipToNextIfPossible() && getPlaybackState() != PLAYBACK_STATE_COMPLETED) {
-                    break;
+                if (mSession != null) {
+                    mSession.setActive(false);
+                    mSession.release();
+                    mSession = null;
                 }
-                // Starts the video only if we have prepared it for the player
-            case PLAYBACK_STATE_PREPARED:
-            case PLAYBACK_STATE_PAUSED:
-                //@formatter:off
-                final int result = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ?
-                          mAudioManager.requestAudioFocus(mAudioFocusRequest)
-                        : mAudioManager.requestAudioFocus(mOnAudioFocusChangeListener,
-                                AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
-                //@formatter:on
-                switch (result) {
-                    case AudioManager.AUDIOFOCUS_REQUEST_FAILED:
-                        if (BuildConfig.DEBUG) {
-                            Log.w(TAG, "Failed to request audio focus");
-                        }
-                        // Starts to play video even if the audio focus is not gained, but it is best
-                        // not to happen.
-                    case AudioManager.AUDIOFOCUS_REQUEST_GRANTED:
-                        mPrivateFlags &= ~PFLAG_VIDEO_PAUSED_BY_USER;
-                        // Ensure the player's volume is at its maximum
-                        if ((mPrivateFlags & PFLAG_VIDEO_VOLUME_TURNED_DOWN_AUTOMATICALLY) != 0) {
-                            mPrivateFlags &= ~PFLAG_VIDEO_VOLUME_TURNED_DOWN_AUTOMATICALLY;
-                            mMediaPlayer.setVolume(1.0f, 1.0f);
-                        }
-                        if (mUserPlaybackSpeed != mPlaybackSpeed) {
-                            setPlaybackSpeed(mUserPlaybackSpeed);
-                        }
-                        mMediaPlayer.start();
-                        // Position seek each time works correctly only if the player engine is started
-                        if (mSeekOnPlay != 0) {
-                            seekToInternal(mSeekOnPlay);
-                            mSeekOnPlay = 0;
-                        }
-                        onVideoStarted();
-                        break;
+                mHeadsetEventsReceiver.unregister();
+                mHeadsetEventsReceiver = null;
 
-                    case AudioManager.AUDIOFOCUS_REQUEST_DELAYED:
-                        // do nothing
-                        break;
+                mPrivateFlags &= ~PFLAG_VIDEO_IS_CLOSING;
+
+                mVideoView.showLoadingView(false);
+            }
+            mVideoView.cancelDraggingVideoSeekBar();
+        }
+
+        private void abandonAudioFocus() {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                mAudioManager.abandonAudioFocusRequest(mAudioFocusRequest);
+            } else {
+                mAudioManager.abandonAudioFocus(mOnAudioFocusChangeListener);
+            }
+        }
+
+        @Override
+        public void seekTo(int progress, boolean fromUser) {
+            if (isPlaying()) {
+                seekToInternal(progress);
+            } else {
+                mPrivateFlags |= PFLAG_SEEK_POSITION_WHILE_VIDEO_PAUSED;
+                mSeekOnPlay = progress;
+                play(fromUser);
+                mPrivateFlags &= ~PFLAG_SEEK_POSITION_WHILE_VIDEO_PAUSED;
+            }
+        }
+
+        /**
+         * Similar to {@link #seekTo(int, boolean)}, but without check to the playing state.
+         */
+        private void seekToInternal(int progress) {
+            if ((mPrivateFlags & PFLAG_BUFFERING) == 0) {
+                mVideoView.showLoadingView(true);
+            }
+            mPrivateFlags |= PFLAG_SEEKING;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                // Precise seek with larger performance overhead compared to the default one.
+                // Slow! Really slow!
+                mMediaPlayer.seekTo(progress, android.media.MediaPlayer.SEEK_CLOSEST);
+            } else {
+                mMediaPlayer.seekTo(progress /*, android.media.MediaPlayer.SEEK_PREVIOUS_SYNC*/);
+            }
+        }
+
+        @Override
+        public int getVideoProgress() {
+            if (getPlaybackState() == PLAYBACK_STATE_COMPLETED) {
+                // The playback position from the MediaPlayer, usually, is not the duration of the video
+                // but the position at the last video key-frame when the playback is finished, in the
+                // case of which instead, here is the duration returned to avoid progress inconsistencies.
+                return mVideoDuration;
+            }
+            if ((mPrivateFlags & PFLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER) != 0) {
+                return mMediaPlayer.getCurrentPosition();
+            }
+            return mSeekOnPlay;
+        }
+
+        @Override
+        public int getVideoBufferedProgress() {
+            return mBuffering;
+        }
+
+        @Override
+        public void setPureAudioPlayback(boolean audioOnly) {
+            if (audioOnly != isPureAudioPlayback()) {
+                if (mMediaPlayer != null) {
+                    mMediaPlayer.setSurface(audioOnly ? null : mVideoView.getSurface());
                 }
-                break;
-        }
-    }
-
-    @Override
-    public void pause(boolean fromUser) {
-        if (isPlaying()) {
-            pauseInternal(fromUser);
-        }
-    }
-
-    /**
-     * Similar to {@link #pause(boolean)}}, but does not check the playback state.
-     */
-    private void pauseInternal(boolean fromUser) {
-        mMediaPlayer.pause();
-        mPrivateFlags = mPrivateFlags & ~PFLAG_VIDEO_PAUSED_BY_USER
-                | (fromUser ? PFLAG_VIDEO_PAUSED_BY_USER : 0);
-        onVideoStopped();
-    }
-
-    @Override
-    protected void closeVideoInternal(boolean fromUser) {
-        if (mMediaPlayer != null && (mPrivateFlags & PFLAG_VIDEO_IS_CLOSING) == 0) {
-            mPrivateFlags |= PFLAG_VIDEO_IS_CLOSING;
-
-            if (getPlaybackState() != PLAYBACK_STATE_COMPLETED) {
-                mSeekOnPlay = getVideoProgress();
+                super.setPureAudioPlayback(audioOnly);
             }
-            pause(fromUser);
-            abandonAudioFocus();
-            mMediaPlayer.release();
-            mMediaPlayer = null;
-            // Not clear the PFLAG_VIDEO_INFO_RESOLVED flag
-            mPrivateFlags &= ~(PFLAG_VIDEO_VOLUME_TURNED_DOWN_AUTOMATICALLY
-                    | PFLAG_SEEKING
-                    | PFLAG_BUFFERING);
-            // Resets below to prepare for the next resume of the video player
-            mPlaybackSpeed = DEFAULT_PLAYBACK_SPEED;
-            mBuffering = 0;
+        }
 
-            if (mSession != null) {
-                mSession.setActive(false);
-                mSession.release();
-                mSession = null;
+        @Override
+        public void setSingleVideoLoopPlayback(boolean looping) {
+            if (looping != isSingleVideoLoopPlayback()) {
+                if (mMediaPlayer != null) {
+                    mMediaPlayer.setLooping(looping);
+                }
+                super.setSingleVideoLoopPlayback(looping);
             }
-            mHeadsetEventsReceiver.unregister();
-            mHeadsetEventsReceiver = null;
-
-            mPrivateFlags &= ~PFLAG_VIDEO_IS_CLOSING;
-
-            showLoadingView(false);
         }
-        cancelDraggingVideoSeekBar();
-    }
 
-    private void abandonAudioFocus() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            mAudioManager.abandonAudioFocusRequest(mAudioFocusRequest);
-        } else {
-            mAudioManager.abandonAudioFocus(mOnAudioFocusChangeListener);
-        }
-    }
-
-    @Override
-    public void seekTo(int progress, boolean fromUser) {
-        if (isPlaying()) {
-            seekToInternal(progress);
-        } else {
-            mPrivateFlags |= PFLAG_SEEK_POSITION_WHILE_VIDEO_PAUSED;
-            mSeekOnPlay = progress;
-            play(fromUser);
-            mPrivateFlags &= ~PFLAG_SEEK_POSITION_WHILE_VIDEO_PAUSED;
-        }
-    }
-
-    /**
-     * Similar to {@link #seekTo(int, boolean)}, but without check to the playing state.
-     */
-    private void seekToInternal(int progress) {
-        if ((mPrivateFlags & PFLAG_BUFFERING) == 0) {
-            showLoadingView(true);
-        }
-        mPrivateFlags |= PFLAG_SEEKING;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            // Precise seek with larger performance overhead compared to the default one.
-            // Slow! Really slow!
-            mMediaPlayer.seekTo(progress, MediaPlayer.SEEK_CLOSEST);
-        } else {
-            mMediaPlayer.seekTo(progress /*, MediaPlayer.SEEK_PREVIOUS_SYNC*/);
-        }
-    }
-
-    /**
-     * @return whether or not the video is prepared for the player
-     */
-    private boolean isVideoPrepared() {
-        return mMediaPlayer != null && (mPrivateFlags & PFLAG_VIDEO_INFO_RESOLVED) != 0;
-    }
-
-    @Override
-    public int getVideoProgress() {
-        if (getPlaybackState() == PLAYBACK_STATE_COMPLETED) {
-            // 1. If the video completed and the MediaPlayer object was released, we would get 0.
-            // 2. The playback position from the MediaPlayer, usually, is not the duration of the video
-            //    but the position at the last video key-frame when the playback is finished, in the
-            //    case of which instead, here is the duration returned to avoid progress inconsistencies.
-            return mVideoDuration;
-        }
-        if (isVideoPrepared()) {
-            return mMediaPlayer.getCurrentPosition();
-        }
-        return mSeekOnPlay;
-    }
-
-    @Override
-    public int getVideoBufferedProgress() {
-        return mBuffering;
-    }
-
-    @Override
-    public void setPureAudioPlayback(boolean audioOnly) {
-        if (audioOnly != isPureAudioPlayback()) {
-            if (mMediaPlayer != null) {
-                mMediaPlayer.setSurface(audioOnly ? null : mSurface);
+        @SuppressLint("MissingSuperCall")
+        @RestrictTo(RestrictTo.Scope.LIBRARY)
+        @Override
+        public void setPlaybackSpeed(float speed) {
+            if (canSetPlaybackSpeed(speed)) {
+                mUserPlaybackSpeed = speed;
+                // When video is not playing or has no tendency of to be started, we prefer recording
+                // the user request to forcing the player to start at that given speed.
+                final int playbackState = getPlaybackState();
+                if (playbackState == PLAYBACK_STATE_PREPARING
+                        || playbackState == PLAYBACK_STATE_PLAYING) {
+                    setPlaybackSpeedInternal(speed);
+                }
             }
-            super.setPureAudioPlayback(audioOnly);
         }
-    }
 
-    @Override
-    public void setSingleVideoLoopPlayback(boolean looping) {
-        if (looping != isSingleVideoLoopPlayback()) {
-            if (mMediaPlayer != null) {
-                mMediaPlayer.setLooping(looping);
-            }
-            super.setSingleVideoLoopPlayback(looping);
-        }
-    }
-
-    @RestrictTo(RestrictTo.Scope.LIBRARY)
-    @Override
-    public void setPlaybackSpeed(float speed) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && speed != mPlaybackSpeed) {
-            mUserPlaybackSpeed = speed;
-            // When video is not playing or has no tendency of to be started, we prefer recording
-            // the user request to forcing the player to start at that given speed.
-            if (getPlaybackState() == PLAYBACK_STATE_PREPARING || isPlaying()) {
+        /**
+         * Similar to {@link #setPlaybackSpeed(float)}, but without check to the playback state.
+         */
+        private void setPlaybackSpeedInternal(float speed) {
+            if (canSetPlaybackSpeed(speed)) {
                 PlaybackParams pp = mMediaPlayer.getPlaybackParams().allowDefaults();
                 pp.setSpeed(speed);
                 try {
@@ -564,28 +4239,504 @@ public class TextureVideoView extends AbsTextureVideoView {
                 }
                 // If the above fails due to an unsupported playback speed, then our speed will
                 // remain unchanged. This ensures the program runs steadily.
-                mPlaybackSpeed = speed;
+                mPlaybackSpeed = mUserPlaybackSpeed = speed;
                 super.setPlaybackSpeed(speed);
             }
         }
+
+        private boolean canSetPlaybackSpeed(float speed) {
+            return Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && speed != mPlaybackSpeed;
+        }
+
+        @Override
+        protected boolean isPlayerCreated() {
+            return mMediaPlayer != null;
+        }
+
+        @Override
+        protected boolean onPlaybackCompleted() {
+            final boolean closed = super.onPlaybackCompleted();
+            if (closed) {
+                // Since the playback completion state deters the pause(boolean) method from being called
+                // within the closeVideoInternal(boolean) method, we need this extra step to add
+                // the PFLAG_VIDEO_PAUSED_BY_USER flag into mPrivateFlags to denote that the user pauses
+                // (closes) the video.
+                mPrivateFlags |= PFLAG_VIDEO_PAUSED_BY_USER;
+                onVideoStopped();
+            }
+            return closed;
+        }
     }
 
-    @Override
-    protected boolean isPlayerCreated() {
-        return mMediaPlayer != null;
-    }
+    /**
+     * A sub implementation class of {@link VideoPlayer} to deal with the audio/video playback logic
+     * related to the media player component through an {@link com.google.android.exoplayer2.ExoPlayer} object.
+     *
+     * @author 刘振林
+     */
+    @SuppressLint("LongLogTag")
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN)
+    public static class ExoPlayer extends VideoPlayer {
 
-    @Override
-    protected boolean onPlaybackCompleted() {
-        final boolean closed = super.onPlaybackCompleted();
-        if (closed) {
-            // Since the playback completion state deters the pause(boolean) method from being called
-            // within the closeVideoInternal(boolean) method, we need this extra step to add
-            // the PFLAG_VIDEO_PAUSED_BY_USER flag into mPrivateFlags to denote that the user pauses
-            // (closes) the video.
-            mPrivateFlags |= PFLAG_VIDEO_PAUSED_BY_USER;
+        private static final String TAG = "TextureVideoView$ExoPlayer";
+
+        private SimpleExoPlayer mExoPlayer;
+        private AdsMediaSource.MediaSourceFactory mMediaSourceFactory;
+
+        private final AudioManager.OnAudioFocusChangeListener mOnAudioFocusChangeListener
+                = new AudioManager.OnAudioFocusChangeListener() {
+            @Override
+            public void onAudioFocusChange(int focusChange) {
+                switch (focusChange) {
+                    // Audio focus gained
+                    case AudioManager.AUDIOFOCUS_GAIN:
+                        play(false);
+                        break;
+
+                    // Loss of audio focus of unknown duration.
+                    // This usually happens when the user switches to another audio/video application
+                    // that causes our view to stop playing, so the video can be thought of as
+                    // being paused/closed by the user.
+                    case AudioManager.AUDIOFOCUS_LOSS:
+                        if (mVideoView.isInForeground()) {
+                            // If the view is still in the foreground, pauses the video only.
+                            pause(true);
+                        } else {
+                            // But if this occurs during background playback, we must close the video
+                            // to release the resources associated with it.
+                            closeVideoInternal(true);
+                        }
+                        break;
+
+                    // Temporarily lose the audio focus and will probably gain it again soon.
+                    // Must stop the video playback but no need for releasing the ExoPlayer here.
+                    case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT:
+                        pause(false);
+                        break;
+
+                    // Temporarily lose the audio focus but the playback can continue.
+                    // The volume of the playback needs to be turned down.
+                    case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK:
+                        if (mExoPlayer != null) {
+                            mExoPlayer.setVolume(0.5f);
+                        }
+                        break;
+                }
+            }
+        };
+        private final AudioFocusRequest mAudioFocusRequest =
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ?
+                        new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+                                .setAudioAttributes(sDefaultAudioAttrs.getAudioAttributesV21())
+                                .setOnAudioFocusChangeListener(mOnAudioFocusChangeListener)
+                                .setAcceptsDelayedFocusGain(true)
+                                .build()
+                        : null;
+
+        public ExoPlayer(@NonNull AbsTextureVideoView videoView) {
+            super(videoView);
+        }
+
+        /**
+         * @return the {@link AdsMediaSource.MediaSourceFactory} used for reading the media content
+         */
+        @Nullable
+        public AdsMediaSource.MediaSourceFactory getMediaSourceFactory() {
+            return mMediaSourceFactory;
+        }
+
+        /**
+         * Sets a MediaSourceFactory for creating {@link com.google.android.exoplayer2.source.MediaSource}s
+         * to play the provided media stream content (if any) or `null` a {@link ProgressiveMediaSource.Factory}
+         * with {@link DefaultDataSourceFactory} will be created to read the media(s).
+         *
+         * @param factory a subclass instance of {@link AdsMediaSource.MediaSourceFactory}
+         */
+        public void setMediaSourceFactory(@Nullable AdsMediaSource.MediaSourceFactory factory) {
+            mMediaSourceFactory = factory;
+        }
+
+        /**
+         * @return a user agent string based on the application name resolved from the context object
+         * of the view this player is bound to and the `exoplayer-core` library version,
+         * which can be used to create a {@link com.google.android.exoplayer2.upstream.DataSource.Factory}
+         * instance for the {@link AdsMediaSource.MediaSourceFactory} subclasses.
+         */
+        @NonNull
+        public String getUserAgent() {
+            return mVideoView.mUserAgent;
+        }
+
+        @Override
+        public void setVideoResourceId(int resId) {
+            setVideoPath(resId == 0 ? null : "rawresource:///" + resId);
+        }
+
+        @Override
+        public void setVideoUri(@Nullable Uri uri) {
+            if (!ObjectsCompat.equals(uri, mVideoUri)) {
+                super.setVideoUri(uri);
+                mVideoDuration = 0;
+                mVideoDurationString = DEFAULT_STRING_VIDEO_DURATION;
+                mPrivateFlags &= ~PFLAG_VIDEO_INFO_RESOLVED;
+                if (mExoPlayer == null) {
+                    // Removes the PFLAG_VIDEO_PAUSED_BY_USER flag and resets mSeekOnPlay to 0 in case
+                    // the ExoPlayer was previously released and has not been initialized yet.
+                    mPrivateFlags &= ~PFLAG_VIDEO_PAUSED_BY_USER;
+                    mSeekOnPlay = 0;
+                    if (uri == null) {
+                        // Sets the playback state to idle directly when the player is not created
+                        // and no video is set
+                        setPlaybackState(PLAYBACK_STATE_IDLE);
+                    } else {
+                        openVideoInternal();
+                    }
+                } else {
+                    restartVideo();
+                }
+            }
+        }
+
+        @Override
+        protected void openVideoInternal() {
+            Surface surface = mVideoView.getSurface();
+            if (mExoPlayer == null && surface != null && mVideoUri != null
+                    && (mPrivateFlags & PFLAG_VIDEO_PAUSED_BY_USER) == 0) {
+                mExoPlayer = ExoPlayerFactory.newSimpleInstance(mContext);
+                mExoPlayer.setVideoSurface(isPureAudioPlayback() ? null : surface);
+                mExoPlayer.setAudioAttributes(sDefaultAudioAttrs);
+                setPlaybackSpeed(mUserPlaybackSpeed);
+                mExoPlayer.setRepeatMode(
+                        isSingleVideoLoopPlayback() ? Player.REPEAT_MODE_ONE : Player.REPEAT_MODE_OFF);
+                mExoPlayer.addListener(new Player.EventListener() {
+                    @Override
+                    public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
+                        mVideoView.showLoadingView(playbackState == Player.STATE_BUFFERING);
+
+                        switch (playbackState) {
+                            case Player.STATE_READY:
+                                if (getPlaybackState() == PLAYBACK_STATE_PREPARING) {
+                                    if ((mPrivateFlags & PFLAG_VIDEO_INFO_RESOLVED) == 0) {
+                                        mVideoDuration = (int) mExoPlayer.getDuration();
+                                        mVideoDurationString = TimeUtil.formatTimeByColon(mVideoDuration);
+                                        mPrivateFlags |= PFLAG_VIDEO_INFO_RESOLVED;
+                                    }
+                                    setPlaybackState(PLAYBACK_STATE_PREPARED);
+                                    play(false);
+                                }
+                                break;
+
+                            case Player.STATE_ENDED:
+                                // XXX: For an unknown reason, the duration got from the ExoPlayer
+                                //  usually is one millisecond smaller than the actual one.
+                                mVideoDuration = (int) mExoPlayer.getCurrentPosition();
+                                onPlaybackCompleted();
+                                break;
+                        }
+                    }
+
+                    @Override
+                    public void onPlayerError(ExoPlaybackException error) {
+                        if (BuildConfig.DEBUG) {
+                            error.printStackTrace();
+                        }
+                        final int stringRes;
+                        if (error.type == ExoPlaybackException.TYPE_SOURCE) {
+                            stringRes = R.string.failedToLoadThisVideo;
+                        } else {
+                            stringRes = R.string.unknownErrorOccurredWhenVideoIsPlaying;
+                        }
+                        Utils.showUserCancelableSnackbar(mVideoView, stringRes, Snackbar.LENGTH_SHORT);
+
+                        final boolean playing = isPlaying();
+                        setPlaybackState(PLAYBACK_STATE_ERROR);
+                        if (playing) {
+                            pauseInternal(false);
+                        }
+                    }
+                });
+                mExoPlayer.addVideoListener(new com.google.android.exoplayer2.video.VideoListener() {
+                    @Override
+                    public void onVideoSizeChanged(int width, int height, int unappliedRotationDegrees, float pixelWidthHeightRatio) {
+                        ExoPlayer.this.onVideoSizeChanged(width, height);
+                    }
+                });
+                startVideo();
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    mSession = new MediaSessionCompat(mContext, TAG);
+                    mSession.setCallback(new SessionCallback());
+                    mSession.setActive(true);
+                }
+                mHeadsetEventsReceiver = new HeadsetEventsReceiver(mContext) {
+                    @Override
+                    public void onHeadsetPluggedOutOrBluetoothDisconnected() {
+                        pause(true);
+                    }
+                };
+                mHeadsetEventsReceiver.register(AudioManager.ACTION_AUDIO_BECOMING_NOISY);
+            }
+        }
+
+        private void startVideo() {
+            if (mVideoUri != null) {
+                if (mMediaSourceFactory == null) {
+                    mMediaSourceFactory = new ProgressiveMediaSource.Factory(
+                            new DefaultDataSourceFactory(mContext, getUserAgent()));
+                }
+                setPlaybackState(PLAYBACK_STATE_PREPARING);
+                mExoPlayer.prepare(mMediaSourceFactory.createMediaSource(mVideoUri));
+            } else {
+                setPlaybackState(PLAYBACK_STATE_IDLE);
+                mExoPlayer.stop(true);
+            }
+            mVideoView.cancelDraggingVideoSeekBar();
+        }
+
+        /**
+         * {@inheritDoc}
+         * <p>
+         * <strong>NOTE: </strong> If this method is called during the video being closed, it does
+         * nothing other than setting the playback state to {@link #PLAYBACK_STATE_UNDEFINED}, so as
+         * not to suppress the next call to the {@link #openVideo())} method if the current playback state
+         * is {@link #PLAYBACK_STATE_COMPLETED}, and the state is usually needed to be updated in
+         * this call, too. Thus for all of the above reasons, it is the best to switch over to.
+         */
+        @Override
+        public void restartVideo() {
+            // First, resets mSeekOnPlay to 0 in case the ExoPlayer object is (being) released.
+            // This ensures the video to be started at its beginning position the next time it resumes.
+            mSeekOnPlay = 0;
+            if (mExoPlayer != null) {
+                if ((mPrivateFlags & PFLAG_VIDEO_IS_CLOSING) != 0) {
+                    setPlaybackState(PLAYBACK_STATE_UNDEFINED);
+                } else {
+                    // Not clear the PFLAG_VIDEO_INFO_RESOLVED flag
+                    mPrivateFlags &= ~PFLAG_VIDEO_PAUSED_BY_USER;
+                    pause(false);
+                    startVideo();
+                }
+            }
+        }
+
+        @Override
+        public void play(boolean fromUser) {
+            if ((mPrivateFlags & PFLAG_VIDEO_IS_CLOSING) != 0) {
+                // In case the video playback is closing
+                return;
+            }
+
+            final int playbackState = getPlaybackState();
+
+            if (mExoPlayer == null) {
+                // Opens the video only if this is a user request
+                if (fromUser) {
+                    // If the video playback finished, skip to the next video if possible
+                    if (playbackState == PLAYBACK_STATE_COMPLETED &&
+                            skipToNextIfPossible() && mExoPlayer != null) {
+                        return;
+                    }
+
+                    mPrivateFlags &= ~PFLAG_VIDEO_PAUSED_BY_USER;
+                    openVideoInternal();
+                } else {
+                    Log.w(TAG, "Cannot start playback programmatically before the video is opened");
+                }
+                return;
+            }
+
+            switch (playbackState) {
+                case PLAYBACK_STATE_UNDEFINED:
+                case PLAYBACK_STATE_IDLE: // no video is set
+                    // Already in the preparing or playing state
+                case PLAYBACK_STATE_PREPARING:
+                case PLAYBACK_STATE_PLAYING:
+                    break;
+
+                case PLAYBACK_STATE_ERROR:
+                    // Retries the failed playback after error occurred
+                    setPlaybackState(PLAYBACK_STATE_PREPARING);
+                    mExoPlayer.retry();
+                    break;
+
+                case PLAYBACK_STATE_COMPLETED:
+                    if (skipToNextIfPossible() && getPlaybackState() != PLAYBACK_STATE_COMPLETED) {
+                        break;
+                    }
+                    // Starts the video only if we have prepared it for the player
+                case PLAYBACK_STATE_PREPARED:
+                case PLAYBACK_STATE_PAUSED:
+                    //@formatter:off
+                    final int result = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ?
+                            mAudioManager.requestAudioFocus(mAudioFocusRequest)
+                          : mAudioManager.requestAudioFocus(mOnAudioFocusChangeListener,
+                                  AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
+                    //@formatter:on
+                    switch (result) {
+                        case AudioManager.AUDIOFOCUS_REQUEST_FAILED:
+                            if (BuildConfig.DEBUG) {
+                                Log.w(TAG, "Failed to request audio focus");
+                            }
+                            // Starts to play video even if the audio focus is not gained, but it is
+                            // best not to happen.
+                        case AudioManager.AUDIOFOCUS_REQUEST_GRANTED:
+                            // Ensure the player's volume is at its maximum
+                            if (mExoPlayer.getVolume() != 1.0f) {
+                                mExoPlayer.setVolume(1.0f);
+                            }
+                            mExoPlayer.setPlayWhenReady(true);
+                            if (mSeekOnPlay != 0) {
+                                mExoPlayer.seekTo(mSeekOnPlay);
+                                mSeekOnPlay = 0;
+                            } else if (playbackState == PLAYBACK_STATE_COMPLETED) {
+                                mExoPlayer.seekToDefaultPosition();
+                            }
+                            mPrivateFlags &= ~PFLAG_VIDEO_PAUSED_BY_USER;
+                            mPrivateFlags |= PFLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER;
+                            onVideoStarted();
+                            break;
+
+                        case AudioManager.AUDIOFOCUS_REQUEST_DELAYED:
+                            // do nothing
+                            break;
+                    }
+                    break;
+            }
+        }
+
+        @Override
+        public void pause(boolean fromUser) {
+            if (isPlaying()) {
+                pauseInternal(fromUser);
+            }
+        }
+
+        /**
+         * Similar to {@link #pause(boolean)}}, but does not check the playback state.
+         */
+        private void pauseInternal(boolean fromUser) {
+            mExoPlayer.setPlayWhenReady(false);
+            mPrivateFlags = mPrivateFlags & ~PFLAG_VIDEO_PAUSED_BY_USER
+                    | (fromUser ? PFLAG_VIDEO_PAUSED_BY_USER : 0);
             onVideoStopped();
         }
-        return closed;
+
+        @Override
+        protected void closeVideoInternal(boolean fromUser) {
+            if (mExoPlayer != null && (mPrivateFlags & PFLAG_VIDEO_IS_CLOSING) == 0) {
+                mPrivateFlags |= PFLAG_VIDEO_IS_CLOSING;
+
+                if (getPlaybackState() != PLAYBACK_STATE_COMPLETED) {
+                    mSeekOnPlay = getVideoProgress();
+                }
+                pause(fromUser);
+                abandonAudioFocus();
+                mExoPlayer.release();
+                mExoPlayer = null;
+                mPrivateFlags &= ~PFLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER;
+//            mMediaSourceFactory = null;
+                // Resets the cached playback speed to prepare for the next resume of the video player
+                mPlaybackSpeed = DEFAULT_PLAYBACK_SPEED;
+
+                if (mSession != null) {
+                    mSession.setActive(false);
+                    mSession.release();
+                    mSession = null;
+                }
+                mHeadsetEventsReceiver.unregister();
+                mHeadsetEventsReceiver = null;
+
+                mPrivateFlags &= ~PFLAG_VIDEO_IS_CLOSING;
+
+                mVideoView.showLoadingView(false);
+            }
+            mVideoView.cancelDraggingVideoSeekBar();
+        }
+
+        private void abandonAudioFocus() {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                mAudioManager.abandonAudioFocusRequest(mAudioFocusRequest);
+            } else {
+                mAudioManager.abandonAudioFocus(mOnAudioFocusChangeListener);
+            }
+        }
+
+        @Override
+        public void seekTo(int progress, boolean fromUser) {
+            if (isPlaying()) {
+                mExoPlayer.seekTo(progress);
+            } else {
+                mSeekOnPlay = progress;
+                play(fromUser);
+            }
+        }
+
+        @Override
+        public int getVideoProgress() {
+            if ((mPrivateFlags & PFLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER) != 0) {
+                return (int) mExoPlayer.getCurrentPosition();
+            }
+            return mSeekOnPlay;
+        }
+
+        @Override
+        public int getVideoBufferedProgress() {
+            if (mExoPlayer != null) {
+                return (int) mExoPlayer.getBufferedPosition();
+            }
+            return 0;
+        }
+
+        @Override
+        public void setPureAudioPlayback(boolean audioOnly) {
+            if (audioOnly != isPureAudioPlayback()) {
+                if (mExoPlayer != null) {
+                    mExoPlayer.setVideoSurface(audioOnly ? null : mVideoView.getSurface());
+                }
+                super.setPureAudioPlayback(audioOnly);
+            }
+        }
+
+        @Override
+        public void setSingleVideoLoopPlayback(boolean looping) {
+            if (looping != isSingleVideoLoopPlayback()) {
+                if (mExoPlayer != null) {
+                    mExoPlayer.setRepeatMode(looping ? Player.REPEAT_MODE_ONE : Player.REPEAT_MODE_OFF);
+                }
+                super.setSingleVideoLoopPlayback(looping);
+            }
+        }
+
+        @RestrictTo(RestrictTo.Scope.LIBRARY)
+        @Override
+        public void setPlaybackSpeed(float speed) {
+            if (speed != mPlaybackSpeed) {
+                mUserPlaybackSpeed = speed;
+                if (mExoPlayer != null) {
+                    mExoPlayer.setPlaybackParameters(new PlaybackParameters(speed));
+                    mPlaybackSpeed = speed;
+                    super.setPlaybackSpeed(speed);
+                }
+            }
+        }
+
+        @Override
+        protected boolean isPlayerCreated() {
+            return mExoPlayer != null;
+        }
+
+        @Override
+        protected boolean onPlaybackCompleted() {
+            final boolean closed = super.onPlaybackCompleted();
+            if (closed) {
+                // Since the playback completion state deters the pause(boolean) method from being called
+                // within the closeVideoInternal(boolean) method, we need this extra step to add
+                // the PFLAG_VIDEO_PAUSED_BY_USER flag into mPrivateFlags to denote that the user pauses
+                // (closes) the video.
+                mPrivateFlags |= PFLAG_VIDEO_PAUSED_BY_USER;
+                onVideoStopped();
+            }
+            return closed;
+        }
     }
 }

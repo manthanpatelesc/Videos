@@ -45,11 +45,12 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.recyclerview.widget.StaggeredGridLayoutManager;
 
+import com.google.android.material.snackbar.Snackbar;
 import com.liuzhenlin.slidingdrawerlayout.Utils;
 import com.liuzhenlin.swipeback.SwipeBackActivity;
 import com.liuzhenlin.swipeback.SwipeBackLayout;
-import com.liuzhenlin.texturevideoview.AbsTextureVideoView;
-import com.liuzhenlin.texturevideoview.VideoPlayerControl;
+import com.liuzhenlin.texturevideoview.IVideoPlayer;
+import com.liuzhenlin.texturevideoview.TextureVideoView;
 import com.liuzhenlin.texturevideoview.utils.FileUtils;
 import com.liuzhenlin.texturevideoview.utils.SystemBarUtils;
 import com.liuzhenlin.videos.App;
@@ -85,8 +86,10 @@ public class VideoActivity extends SwipeBackActivity {
     private static WeakReference<VideoActivity> sActivityInPiP;
 
     private View mStatusBarView;
-    private AbsTextureVideoView mVideoView;
+    private TextureVideoView mVideoView;
     private ImageView mLockUnlockOrientationButton;
+
+    private IVideoPlayer mVideoPlayer;
 
     private RecyclerView mPlayList;
     private static final Object sRefreshVideoProgressPayload = new Object();
@@ -185,11 +188,11 @@ public class VideoActivity extends SwipeBackActivity {
         final Runnable runnable = new Runnable() {
             @Override
             public void run() {
-                final int progress = mVideoView.getVideoProgress();
-                if (mVideoView.isPlaying()) {
+                final int progress = mVideoPlayer.getVideoProgress();
+                if (mVideoPlayer.isPlaying()) {
                     mHandler.postDelayed(this, 1000 - progress % 1000);
                 }
-                mVideoProgressInPiP.setSecondaryProgress(mVideoView.getVideoBufferedProgress());
+                mVideoProgressInPiP.setSecondaryProgress(mVideoPlayer.getVideoBufferedProgress());
                 mVideoProgressInPiP.setProgress(progress);
             }
         };
@@ -231,7 +234,13 @@ public class VideoActivity extends SwipeBackActivity {
             setContentView(R.layout.activity_video);
             initViews(savedInstanceState);
         } else {
-            Toast.makeText(this, R.string.cannotPlayThisVideo, Toast.LENGTH_LONG).show();
+            Activity preactivity = getPreviousActivity();
+            if (preactivity == null) {
+                Toast.makeText(this, R.string.cannotPlayThisVideo, Toast.LENGTH_LONG).show();
+            } else {
+                UiUtils.showUserCancelableSnackbar(preactivity.getWindow().getDecorView(),
+                        R.string.cannotPlayThisVideo, Snackbar.LENGTH_LONG);
+            }
             finish();
         }
     }
@@ -305,7 +314,15 @@ public class VideoActivity extends SwipeBackActivity {
             }
         }
 
-        mLockUnlockOrientationButton = findViewById(R.id.bt_lockUnlockOrientation);
+        mVideoView = findViewById(R.id.videoview);
+        final TextureVideoView.VideoPlayer videoPlayer =
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN
+                        ? new TextureVideoView.ExoPlayer(mVideoView)
+                        : new TextureVideoView.MediaPlayer(mVideoView);
+        mVideoPlayer = videoPlayer;
+        mVideoView.setVideoPlayer(videoPlayer);
+
+        mLockUnlockOrientationButton = findViewById(R.id.btn_lockUnlockOrientation);
         mLockUnlockOrientationButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -324,7 +341,6 @@ public class VideoActivity extends SwipeBackActivity {
                     KEY_STATUS_HEIGHT_IN_LANDSCAPE_OF_NOTCH_SUPPORT_DEVICES, 0);
         }
 
-        mVideoView = findViewById(R.id.video_view);
         if (mVideos.length > 1) {
             mVideoView.setPlayListAdapter(new VideoEpisodesAdapter());
         }
@@ -333,23 +349,23 @@ public class VideoActivity extends SwipeBackActivity {
             notifyItemSelectionChanged(0, mVideoIndex, true);
         }
         setVideoToPlay(mVideoIndex);
-        mVideoView.setVideoListener(new AbsTextureVideoView.VideoListener() {
+        videoPlayer.addVideoListener(new IVideoPlayer.VideoListener() {
             @Override
             public void onVideoStarted() {
                 Video video = mVideos[mVideoIndex];
                 final int progress = video.getProgress();
                 if (progress > 0 && progress < video.getDuration()) {
-                    mVideoView.seekTo(progress, false); // 恢复上次关闭此页面时播放到的位置
+                    videoPlayer.seekTo(progress, false); // 恢复上次关闭此页面时播放到的位置
                     video.setProgress(0);
                 }
 
                 if (mVideoWidth == 0 && mVideoHeight == 0) {
-                    mVideoWidth = mVideoView.getVideoWidth();
-                    mVideoHeight = mVideoView.getVideoHeight();
+                    mVideoWidth = videoPlayer.getVideoWidth();
+                    mVideoHeight = videoPlayer.getVideoHeight();
                 }
 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    mVideoProgressInPiP.setMax(mVideoView.getVideoDuration());
+                    mVideoProgressInPiP.setMax(videoPlayer.getVideoDuration());
 
                     if (isInPictureInPictureMode()) {
                         // This Activity is recreated after killed by the System
@@ -376,7 +392,7 @@ public class VideoActivity extends SwipeBackActivity {
                 // action items to fast rewind, play and fast forward the video.
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && isInPictureInPictureMode()) {
                     int actions = PIP_ACTION_FAST_REWIND | PIP_ACTION_PLAY;
-                    if (!(mVideoView.getPlaybackState() == VideoPlayerControl.PLAYBACK_STATE_COMPLETED
+                    if (!(videoPlayer.getPlaybackState() == IVideoPlayer.PLAYBACK_STATE_COMPLETED
                             && !mVideoView.canSkipToNext())) {
                         actions |= PIP_ACTION_FAST_FORWARD;
                     }
@@ -409,7 +425,12 @@ public class VideoActivity extends SwipeBackActivity {
                 }
             }
         });
-        mVideoView.setEventListener(new AbsTextureVideoView.EventListener() {
+        mVideoView.setEventListener(new TextureVideoView.EventListener() {
+
+            @Override
+            public void onPlayerChange(@Nullable TextureVideoView.VideoPlayer videoPlayer) {
+                mVideoPlayer = videoPlayer;
+            }
 
             @Override
             public void onSkipToPrevious() {
@@ -432,7 +453,7 @@ public class VideoActivity extends SwipeBackActivity {
 
             public void onViewModeChange(int oldMode, int newMode, boolean layoutMatches) {
                 switch (newMode) {
-                    case AbsTextureVideoView.VIEW_MODE_MINIMUM:
+                    case TextureVideoView.VIEW_MODE_MINIMUM:
                         if (!layoutMatches
                                 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
                                 && mVideoWidth != 0 && mVideoHeight != 0) {
@@ -444,14 +465,14 @@ public class VideoActivity extends SwipeBackActivity {
                                     .build());
                         }
                         break;
-                    case AbsTextureVideoView.VIEW_MODE_DEFAULT:
+                    case TextureVideoView.VIEW_MODE_DEFAULT:
                         setFullscreenModeManually(false);
                         break;
-                    case AbsTextureVideoView.VIEW_MODE_LOCKED_FULLSCREEN:
-                    case AbsTextureVideoView.VIEW_MODE_VIDEO_STRETCHED_LOCKED_FULLSCREEN:
+                    case TextureVideoView.VIEW_MODE_LOCKED_FULLSCREEN:
+                    case TextureVideoView.VIEW_MODE_VIDEO_STRETCHED_LOCKED_FULLSCREEN:
                         showLockUnlockOrientationButton(false);
-                    case AbsTextureVideoView.VIEW_MODE_VIDEO_STRETCHED_FULLSCREEN:
-                    case AbsTextureVideoView.VIEW_MODE_FULLSCREEN:
+                    case TextureVideoView.VIEW_MODE_VIDEO_STRETCHED_FULLSCREEN:
+                    case TextureVideoView.VIEW_MODE_FULLSCREEN:
                         setFullscreenModeManually(true);
                         break;
                 }
@@ -469,7 +490,7 @@ public class VideoActivity extends SwipeBackActivity {
                         photo, "image/*");
             }
         });
-        mVideoView.setOpCallback(new AbsTextureVideoView.OpCallback() {
+        mVideoView.setOpCallback(new TextureVideoView.OpCallback() {
             @NonNull
             @Override
             public Window getWindow() {
@@ -488,7 +509,7 @@ public class VideoActivity extends SwipeBackActivity {
         Video video = mVideos[videoIndex];
         mVideoView.setCanSkipToPrevious(videoIndex > 0);
         mVideoView.setCanSkipToNext(videoIndex < mVideos.length - 1);
-        mVideoView.setVideoPath(video.getPath());
+        mVideoPlayer.setVideoPath(video.getPath());
         mVideoView.setTitle(FileUtils.getFileTitleFromFileName(video.getName()));
     }
 
@@ -516,7 +537,7 @@ public class VideoActivity extends SwipeBackActivity {
             }
             setAutoRotationEnabled(true);
         }
-        mVideoView.openVideo();
+        mVideoPlayer.openVideo();
     }
 
     @Override
@@ -633,7 +654,7 @@ public class VideoActivity extends SwipeBackActivity {
             }
             setAutoRotationEnabled(false);
         }
-        mVideoView.closeVideo();
+        mVideoPlayer.closeVideo();
     }
 
     @Override
@@ -660,7 +681,7 @@ public class VideoActivity extends SwipeBackActivity {
 
     private void recordCurrVideoProgress() {
         Video video = mVideos[mVideoIndex];
-        video.setProgress(mVideoView.getVideoProgress());
+        video.setProgress(mVideoPlayer.getVideoProgress());
 
         final long id = video.getId();
         if (id != Consts.NO_ID) {
@@ -688,7 +709,7 @@ public class VideoActivity extends SwipeBackActivity {
     }
 
     @Override
-    public void onConfigurationChanged(Configuration newConfig) {
+    public void onConfigurationChanged(@NonNull Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
         if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE
                 && mStatusHeightInLandscapeOfNotchSupportDevices == 0) {
@@ -1028,12 +1049,12 @@ public class VideoActivity extends SwipeBackActivity {
         mVideoView.onMinimizationModeChange(isInPictureInPictureMode);
         if (isInPictureInPictureMode) {
             int actions = PIP_ACTION_FAST_REWIND;
-            final int playbackState = mVideoView.getPlaybackState();
+            final int playbackState = mVideoPlayer.getPlaybackState();
             switch (playbackState) {
-                case VideoPlayerControl.PLAYBACK_STATE_PLAYING:
+                case IVideoPlayer.PLAYBACK_STATE_PLAYING:
                     actions |= PIP_ACTION_PAUSE | PIP_ACTION_FAST_FORWARD;
                     break;
-                case VideoPlayerControl.PLAYBACK_STATE_COMPLETED:
+                case IVideoPlayer.PLAYBACK_STATE_COMPLETED:
                     actions |= PIP_ACTION_PLAY
                             | (mVideoView.canSkipToNext() ? PIP_ACTION_FAST_FORWARD : 0);
                     break;
@@ -1055,17 +1076,17 @@ public class VideoActivity extends SwipeBackActivity {
                     final int action = intent.getIntExtra(EXTRA_PIP_ACTION, 0);
                     switch (action) {
                         case PIP_ACTION_PLAY:
-                            mVideoView.play(true);
+                            mVideoPlayer.play(true);
                             break;
                         case PIP_ACTION_PAUSE:
-                            mVideoView.pause(true);
+                            mVideoPlayer.pause(true);
                             break;
                         case PIP_ACTION_FAST_REWIND: {
-                            mVideoView.fastRewind(true);
+                            mVideoPlayer.fastRewind(true);
                         }
                         break;
                         case PIP_ACTION_FAST_FORWARD: {
-                            mVideoView.fastForward(true);
+                            mVideoPlayer.fastForward(true);
                         }
                         break;
                     }
@@ -1210,7 +1231,7 @@ public class VideoActivity extends SwipeBackActivity {
     }
 
     private final class VideoEpisodesAdapter
-            extends AbsTextureVideoView.PlayListAdapter<VideoEpisodesAdapter.ViewHolder> {
+            extends TextureVideoView.PlayListAdapter<VideoEpisodesAdapter.ViewHolder> {
 
         @Override
         public void onAttachedToRecyclerView(@NonNull RecyclerView recyclerView) {
@@ -1278,7 +1299,8 @@ public class VideoActivity extends SwipeBackActivity {
         @Override
         public void onItemClick(@NonNull View view, int position) {
             if (mVideoIndex == position) {
-                Toast.makeText(VideoActivity.this, R.string.theVideoIsPlaying, Toast.LENGTH_SHORT).show();
+                UiUtils.showUserCancelableSnackbar(mVideoView,
+                        R.string.theVideoIsPlaying, Snackbar.LENGTH_SHORT);
             } else {
                 recordCurrVideoProgress();
                 setVideoToPlay(position);
@@ -1312,7 +1334,7 @@ public class VideoActivity extends SwipeBackActivity {
     private static final String KEY_VIDEO_INDEX = "kvi";
 
     @Override
-    protected void onSaveInstanceState(Bundle outState) {
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putBoolean(KEY_IS_SCREEN_ORIENTATION_LOCKED,
                 (mPrivateFlags & PFLAG_SCREEN_ORIENTATION_LOCKED) != 0);

@@ -62,7 +62,7 @@ data class VideoDirectory(override var name: String = "",
             source.readString()!!,
             source.readLong(),
             1.toByte() == source.readByte(),
-            ArrayList<Video>().apply { source.readList(this, Video::class.java.classLoader) }
+            ArrayList<Video>().apply { source.readList(this as List<*>, Video::class.java.classLoader) }
     )
 
     override fun describeContents() = 0
@@ -72,7 +72,7 @@ data class VideoDirectory(override var name: String = "",
         writeString(path)
         writeLong(size)
         writeByte((if (isTopped) 1.toByte() else 0.toByte()))
-        writeList(videos)
+        writeList(videos as List<*>)
     }
 
     companion object {
