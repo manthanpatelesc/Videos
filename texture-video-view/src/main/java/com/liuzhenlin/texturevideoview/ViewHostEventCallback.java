@@ -19,7 +19,6 @@ public interface ViewHostEventCallback {
      * @see Activity#onBackPressed()
      * @see Dialog#onBackPressed()
      */
-    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     boolean onBackPressed();
 
     /**

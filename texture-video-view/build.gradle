@@ -45,6 +45,10 @@ dependencies {
     api 'androidx.media:media:1.1.0'
 
     api 'com.google.android.exoplayer:exoplayer-core:2.10.6'
+    api 'com.google.android.exoplayer:exoplayer-dash:2.10.6'
+    api 'com.google.android.exoplayer:exoplayer-hls:2.10.6'
+    api 'com.google.android.exoplayer:exoplayer-smoothstreaming:2.10.6'
+    api 'com.danikula:videocache:2.7.1'
 
 //    api 'org.mp4parser:muxer:1.9.39'
     api 'com.googlecode.mp4parser:isoparser:1.1.22'

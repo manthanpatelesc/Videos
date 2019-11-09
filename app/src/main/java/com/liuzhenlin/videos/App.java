@@ -15,6 +15,7 @@ import android.os.Environment;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatDelegate;
+import androidx.multidex.MultiDex;
 
 import com.liuzhenlin.floatingmenu.DensityUtils;
 import com.liuzhenlin.texturevideoview.utils.SystemBarUtils;
@@ -22,7 +23,8 @@ import com.squareup.leakcanary.LeakCanary;
 import com.squareup.leakcanary.RefWatcher;
 
 import java.io.File;
-import java.util.WeakHashMap;
+import java.lang.ref.WeakReference;
+import java.util.HashMap;
 
 /**
  * @author 刘振林
@@ -31,8 +33,8 @@ public class App extends Application implements Application.ActivityLifecycleCal
 
     private static App sApp;
 
-    private static final WeakHashMap</* class name */ String, Activity> sActivities =
-            new WeakHashMap<>(3);
+    private static final HashMap</* class name */ String, WeakReference<Activity>> sActivities =
+            new HashMap<>(3);
 
     private static String sAppDirectory;
 
@@ -52,6 +54,12 @@ public class App extends Application implements Application.ActivityLifecycleCal
 
     static {
         AppCompatDelegate.setCompatVectorFromResourcesEnabled(true);
+    }
+
+    @Override
+    protected void attachBaseContext(Context base) {
+        super.attachBaseContext(base);
+        MultiDex.install(base);
     }
 
     @Override
@@ -190,38 +198,46 @@ public class App extends Application implements Application.ActivityLifecycleCal
     }
 
     @Nullable
-    public static <A extends Activity> A getActivityByClassName(String clsName) {
-        //noinspection unchecked
-        return (A) sActivities.get(clsName);
+    public static <A extends Activity> A getActivityByClassName(@Nullable String clsName) {
+        WeakReference<Activity> activityRef = sActivities.get(clsName);
+        if (activityRef != null) {
+            //noinspection unchecked
+            A activity = (A) activityRef.get();
+            if (activity == null) {
+                sActivities.remove(clsName);
+            }
+            return activity;
+        }
+        return null;
     }
 
     @Override
-    public void onActivityCreated(Activity activity, Bundle savedInstanceState) {
-        sActivities.put(activity.getClass().getName(), activity);
+    public void onActivityCreated(@NonNull Activity activity, @Nullable Bundle savedInstanceState) {
+        sActivities.put(activity.getClass().getName(), new WeakReference<>(activity));
     }
 
     @Override
-    public void onActivityStarted(Activity activity) {
+    public void onActivityStarted(@NonNull Activity activity) {
     }
 
     @Override
-    public void onActivityResumed(Activity activity) {
+    public void onActivityResumed(@NonNull Activity activity) {
     }
 
     @Override
-    public void onActivityPaused(Activity activity) {
+    public void onActivityPaused(@NonNull Activity activity) {
     }
 
     @Override
-    public void onActivityStopped(Activity activity) {
+    public void onActivityStopped(@NonNull Activity activity) {
     }
 
     @Override
-    public void onActivitySaveInstanceState(Activity activity, Bundle outState) {
+    public void onActivitySaveInstanceState(@NonNull Activity activity, @NonNull Bundle outState) {
     }
 
     @Override
-    public void onActivityDestroyed(Activity activity) {
+    public void onActivityDestroyed(@NonNull Activity activity) {
         sActivities.remove(activity.getClass().getName());
     }
 }

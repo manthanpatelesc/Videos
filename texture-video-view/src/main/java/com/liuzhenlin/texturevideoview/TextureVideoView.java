@@ -26,10 +26,10 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Environment;
+import android.os.Messenger;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.provider.MediaStore;
-import android.support.v4.media.session.MediaSessionCompat;
 import android.text.ParcelableSpan;
 import android.text.SpannableString;
 import android.text.Spanned;
@@ -56,6 +56,7 @@ import android.view.animation.AlphaAnimation;
 import android.view.animation.Animation;
 import android.view.animation.Interpolator;
 import android.view.animation.OvershootInterpolator;
+import android.webkit.URLUtil;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Checkable;
@@ -88,18 +89,36 @@ import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.danikula.videocache.HttpProxyCacheServer;
+import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.ExoPlaybackException;
 import com.google.android.exoplayer2.ExoPlayerFactory;
 import com.google.android.exoplayer2.PlaybackParameters;
 import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.SimpleExoPlayer;
+import com.google.android.exoplayer2.database.ExoDatabaseProvider;
 import com.google.android.exoplayer2.source.ProgressiveMediaSource;
 import com.google.android.exoplayer2.source.ads.AdsMediaSource;
+import com.google.android.exoplayer2.source.dash.DashMediaSource;
+import com.google.android.exoplayer2.source.hls.HlsMediaSource;
+import com.google.android.exoplayer2.source.smoothstreaming.SsMediaSource;
+import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
+import com.google.android.exoplayer2.upstream.DefaultHttpDataSourceFactory;
+import com.google.android.exoplayer2.upstream.FileDataSourceFactory;
+import com.google.android.exoplayer2.upstream.cache.Cache;
+import com.google.android.exoplayer2.upstream.cache.CacheDataSink;
+import com.google.android.exoplayer2.upstream.cache.CacheDataSinkFactory;
+import com.google.android.exoplayer2.upstream.cache.CacheDataSource;
+import com.google.android.exoplayer2.upstream.cache.CacheDataSourceFactory;
+import com.google.android.exoplayer2.upstream.cache.LeastRecentlyUsedCacheEvictor;
+import com.google.android.exoplayer2.upstream.cache.SimpleCache;
 import com.google.android.exoplayer2.util.Util;
 import com.google.android.material.snackbar.Snackbar;
 import com.liuzhenlin.texturevideoview.drawable.CircularProgressDrawable;
 import com.liuzhenlin.texturevideoview.receiver.HeadsetEventsReceiver;
+import com.liuzhenlin.texturevideoview.receiver.MediaButtonEventHandler;
+import com.liuzhenlin.texturevideoview.receiver.MediaButtonEventReceiver;
 import com.liuzhenlin.texturevideoview.utils.BitmapUtils;
 import com.liuzhenlin.texturevideoview.utils.FileUtils;
 import com.liuzhenlin.texturevideoview.utils.ScreenUtils;
@@ -118,7 +137,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * A View used to display video contents onto {@link TextureView}, which takes care of computing
+ * A View used to display video content onto {@link TextureView}, which takes care of computing
  * the measurements of the child widgets from the video and synchronizing them with the state of
  * the {@link VideoPlayer}.
  *
@@ -2499,13 +2518,15 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                 if (playing) {
                     mVideoPlayer.pause(true);
                 }
+
+                final String fileOutputDirectory = getFileOutputDirectory();
                 mSaveCapturedPhotoTask = new AsyncTask<Void, Void, File>() {
                     @SuppressLint("SimpleDateFormat")
                     @Override
                     public File doInBackground(Void... voids) {
                         return FileUtils.saveBitmapToDisk(mContext,
                                 bitmap, Bitmap.CompressFormat.PNG, 100,
-                                getFileOutputDirectory() + "/screenshots",
+                                fileOutputDirectory + "/screenshots",
                                 mTitle + "_"
                                         + new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss-SSS") //@formatter:off
                                                 .format(System.currentTimeMillis()) //@formatter:on
@@ -2591,6 +2612,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
             public void onAnimationEnd(Animation animation) {
                 animation.setAnimationListener(null);
                 content.setTag(null);
+
                 if (playing && mVideoPlayer != null) {
                     mVideoPlayer.play(false);
                 }
@@ -2758,7 +2780,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
         final Surface surface = holder.getSurface();
         final AdsMediaSource.MediaSourceFactory factory =
                 Build.VERSION.SDK_INT >= 16 /* Jelly Bean */ && videoPlayer instanceof ExoPlayer
-                        ? ((ExoPlayer) videoPlayer).mMediaSourceFactory : null;
+                        ? ((ExoPlayer) videoPlayer).obtainMediaSourceFactory(videoUri) : null;
         final VideoClipPlayer player = new VideoClipPlayer(mContext, surface, videoUri, mUserAgent, factory);
         final Runnable trackProgressRunnable = new Runnable() {
             @Override
@@ -3734,6 +3756,8 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
 
         private android.media.MediaPlayer mMediaPlayer;
 
+        private static HttpProxyCacheServer sCacheServer;
+
         /**
          * How much of the network-based video has been buffered from the media stream received
          * through progressive HTTP download.
@@ -3791,6 +3815,16 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                                 .build()
                         : null;
 
+        private HttpProxyCacheServer getCacheServer() {
+            if (sCacheServer == null) {
+                sCacheServer = new HttpProxyCacheServer.Builder(mContext)
+                        .cacheDirectory(new File(getBaseVideoCacheDirectory(), "sm"))
+                        .maxCacheSize(DEFAULT_MAXIMUM_CACHE_SIZE)
+                        .build();
+            }
+            return sCacheServer;
+        }
+
         public MediaPlayer(@NonNull AbsTextureVideoView videoView) {
             super(videoView);
         }
@@ -3842,7 +3876,9 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                     mVideoView.showLoadingView(false);
                     if ((mPrivateFlags & PFLAG_VIDEO_INFO_RESOLVED) == 0) {
                         mVideoDuration = mp.getDuration();
-                        mVideoDurationString = TimeUtil.formatTimeByColon(mVideoDuration);
+                        mVideoDurationString = mVideoDuration == UNKNOWN_DURATION
+                                ? DEFAULT_STRING_VIDEO_DURATION
+                                : TimeUtil.formatTimeByColon(mVideoDuration);
                         mPrivateFlags |= PFLAG_VIDEO_INFO_RESOLVED;
                     }
                     setPlaybackState(PLAYBACK_STATE_PREPARED);
@@ -3893,11 +3929,8 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                         -> onVideoSizeChanged(width, height));
                 startVideo();
 
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                    mSession = new MediaSessionCompat(mContext, TAG);
-                    mSession.setCallback(new SessionCallback());
-                    mSession.setActive(true);
-                }
+                MediaButtonEventReceiver.setMediaButtonEventHandler(
+                        new MediaButtonEventHandler(new Messenger(new MsgHandler(this))));
                 mHeadsetEventsReceiver = new HeadsetEventsReceiver(mContext) {
                     @Override
                     public void onHeadsetPluggedOutOrBluetoothDisconnected() {
@@ -3931,7 +3964,12 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
         private void startVideo() {
             if (mVideoUri != null) {
                 try {
-                    mMediaPlayer.setDataSource(mContext, mVideoUri);
+                    final String url = mVideoUri.toString();
+                    if (URLUtil.isNetworkUrl(url)) {
+                        mMediaPlayer.setDataSource(getCacheServer().getProxyUrl(url));
+                    } else {
+                        mMediaPlayer.setDataSource(mContext, mVideoUri);
+                    }
                     mVideoView.showLoadingView(true);
                     setPlaybackState(PLAYBACK_STATE_PREPARING);
                     mMediaPlayer.prepareAsync();
@@ -4038,8 +4076,8 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                 case PLAYBACK_STATE_PREPARED:
                 case PLAYBACK_STATE_PAUSED:
                     //@formatter:off
-                    final int result = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ?
-                            mAudioManager.requestAudioFocus(mAudioFocusRequest)
+                    final int result = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+                          ? mAudioManager.requestAudioFocus(mAudioFocusRequest)
                           : mAudioManager.requestAudioFocus(mOnAudioFocusChangeListener,
                                   AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
                     //@formatter:on
@@ -4068,6 +4106,10 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                             mPrivateFlags &= ~PFLAG_VIDEO_PAUSED_BY_USER;
                             mPrivateFlags |= PFLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER;
                             onVideoStarted();
+
+                            // Register MediaButtonEventReceiver every time the video starts, which
+                            // will ensure it to be the sole receiver of MEDIA_BUTTON intents
+                            mAudioManager.registerMediaButtonEventReceiver(sMediaButtonEventReceiverComponent);
                             break;
 
                         case AudioManager.AUDIOFOCUS_REQUEST_DELAYED:
@@ -4116,11 +4158,6 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                 mPlaybackSpeed = DEFAULT_PLAYBACK_SPEED;
                 mBuffering = 0;
 
-                if (mSession != null) {
-                    mSession.setActive(false);
-                    mSession.release();
-                    mSession = null;
-                }
                 mHeadsetEventsReceiver.unregister();
                 mHeadsetEventsReceiver = null;
 
@@ -4282,6 +4319,8 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
 
         private SimpleExoPlayer mExoPlayer;
         private AdsMediaSource.MediaSourceFactory mMediaSourceFactory;
+        private AdsMediaSource.MediaSourceFactory mTmpMediaSourceFactory;
+        private static DataSource.Factory sDefaultDataSourceFactory;
 
         private final AudioManager.OnAudioFocusChangeListener mOnAudioFocusChangeListener
                 = new AudioManager.OnAudioFocusChangeListener() {
@@ -4338,7 +4377,8 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
         }
 
         /**
-         * @return the {@link AdsMediaSource.MediaSourceFactory} used for reading the media content
+         * @return the user (the person that may be using this class) specified
+         * {@link AdsMediaSource.MediaSourceFactory} for reading the media content(s)
          */
         @Nullable
         public AdsMediaSource.MediaSourceFactory getMediaSourceFactory() {
@@ -4347,13 +4387,44 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
 
         /**
          * Sets a MediaSourceFactory for creating {@link com.google.android.exoplayer2.source.MediaSource}s
-         * to play the provided media stream content (if any) or `null` a {@link ProgressiveMediaSource.Factory}
-         * with {@link DefaultDataSourceFactory} will be created to read the media(s).
+         * to play the provided media stream content (if any), or `null`, the MediaSourceFactory
+         * with {@link DefaultDataSourceFactory} will be created to read the media, based on
+         * the corresponding media stream type.
          *
          * @param factory a subclass instance of {@link AdsMediaSource.MediaSourceFactory}
          */
         public void setMediaSourceFactory(@Nullable AdsMediaSource.MediaSourceFactory factory) {
             mMediaSourceFactory = factory;
+            if (mMediaSourceFactory != null) {
+                mTmpMediaSourceFactory = null;
+            }
+        }
+
+        /**
+         * @return the default {@link DataSource.Factory} created by this class, which will be used for
+         * various of {@link AdsMediaSource.MediaSourceFactory}s (if the user specified one is not set).
+         */
+        @NonNull
+        public DataSource.Factory getDefaultDataSourceFactory() {
+            if (sDefaultDataSourceFactory == null) {
+                Cache cache = new SimpleCache(
+                        new File(getBaseVideoCacheDirectory(), "exo"),
+                        new LeastRecentlyUsedCacheEvictor(DEFAULT_MAXIMUM_CACHE_SIZE),
+                        new ExoDatabaseProvider(mContext));
+                DataSource.Factory upstreamFactory =
+                        new DefaultDataSourceFactory(mContext,
+                                new DefaultHttpDataSourceFactory(mVideoView.mUserAgent));
+                DataSource.Factory cacheReadDataSourceFactory = new FileDataSourceFactory();
+                CacheDataSinkFactory cacheWriteDataSourceFactory =
+                        new CacheDataSinkFactory(cache, CacheDataSink.DEFAULT_FRAGMENT_SIZE, 1024);
+                sDefaultDataSourceFactory = new CacheDataSourceFactory(
+                        cache,
+                        upstreamFactory, cacheReadDataSourceFactory, cacheWriteDataSourceFactory,
+                        CacheDataSource.FLAG_BLOCK_ON_CACHE
+                                | CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR,
+                        null);
+            }
+            return sDefaultDataSourceFactory;
         }
 
         /**
@@ -4417,8 +4488,14 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                             case Player.STATE_READY:
                                 if (getPlaybackState() == PLAYBACK_STATE_PREPARING) {
                                     if ((mPrivateFlags & PFLAG_VIDEO_INFO_RESOLVED) == 0) {
-                                        mVideoDuration = (int) mExoPlayer.getDuration();
-                                        mVideoDurationString = TimeUtil.formatTimeByColon(mVideoDuration);
+                                        final long duration = mExoPlayer.getDuration();
+                                        if (duration == C.TIME_UNSET) {
+                                            mVideoDuration = UNKNOWN_DURATION;
+                                            mVideoDurationString = DEFAULT_STRING_VIDEO_DURATION;
+                                        } else {
+                                            mVideoDuration = (int) duration;
+                                            mVideoDurationString = TimeUtil.formatTimeByColon(mVideoDuration);
+                                        }
                                         mPrivateFlags |= PFLAG_VIDEO_INFO_RESOLVED;
                                     }
                                     setPlaybackState(PLAYBACK_STATE_PREPARED);
@@ -4463,11 +4540,8 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                 });
                 startVideo();
 
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                    mSession = new MediaSessionCompat(mContext, TAG);
-                    mSession.setCallback(new SessionCallback());
-                    mSession.setActive(true);
-                }
+                MediaButtonEventReceiver.setMediaButtonEventHandler(
+                        new MediaButtonEventHandler(new Messenger(new MsgHandler(this))));
                 mHeadsetEventsReceiver = new HeadsetEventsReceiver(mContext) {
                     @Override
                     public void onHeadsetPluggedOutOrBluetoothDisconnected() {
@@ -4480,17 +4554,51 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
 
         private void startVideo() {
             if (mVideoUri != null) {
-                if (mMediaSourceFactory == null) {
-                    mMediaSourceFactory = new ProgressiveMediaSource.Factory(
-                            new DefaultDataSourceFactory(mContext, getUserAgent()));
-                }
                 setPlaybackState(PLAYBACK_STATE_PREPARING);
-                mExoPlayer.prepare(mMediaSourceFactory.createMediaSource(mVideoUri));
+                mExoPlayer.prepare(obtainMediaSourceFactory(mVideoUri).createMediaSource(mVideoUri));
             } else {
                 setPlaybackState(PLAYBACK_STATE_IDLE);
                 mExoPlayer.stop(true);
             }
             mVideoView.cancelDraggingVideoSeekBar();
+        }
+
+        private AdsMediaSource.MediaSourceFactory obtainMediaSourceFactory(Uri uri) {
+            if (mMediaSourceFactory != null) return mMediaSourceFactory;
+
+            @C.ContentType int type = Util.inferContentType(uri, null);
+            switch (type) {
+                case C.TYPE_DASH:
+                    if (mTmpMediaSourceFactory instanceof DashMediaSource.Factory) {
+                        return mTmpMediaSourceFactory;
+                    }
+                    return mTmpMediaSourceFactory =
+                            new DashMediaSource.Factory(getDefaultDataSourceFactory());
+
+                case C.TYPE_SS:
+                    if (mTmpMediaSourceFactory instanceof SsMediaSource.Factory) {
+                        return mTmpMediaSourceFactory;
+                    }
+                    return mTmpMediaSourceFactory =
+                            new SsMediaSource.Factory(getDefaultDataSourceFactory());
+
+                case C.TYPE_HLS:
+                    if (mTmpMediaSourceFactory instanceof HlsMediaSource.Factory) {
+                        return mTmpMediaSourceFactory;
+                    }
+                    return mTmpMediaSourceFactory =
+                            new HlsMediaSource.Factory(getDefaultDataSourceFactory());
+
+                case C.TYPE_OTHER:
+                    if (mTmpMediaSourceFactory instanceof ProgressiveMediaSource.Factory) {
+                        return mTmpMediaSourceFactory;
+                    }
+                    return mTmpMediaSourceFactory =
+                            new ProgressiveMediaSource.Factory(getDefaultDataSourceFactory());
+
+                default:
+                    throw new IllegalStateException("Unsupported media stream type: " + type);
+            }
         }
 
         /**
@@ -4567,8 +4675,8 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                 case PLAYBACK_STATE_PREPARED:
                 case PLAYBACK_STATE_PAUSED:
                     //@formatter:off
-                    final int result = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ?
-                            mAudioManager.requestAudioFocus(mAudioFocusRequest)
+                    final int result = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+                          ? mAudioManager.requestAudioFocus(mAudioFocusRequest)
                           : mAudioManager.requestAudioFocus(mOnAudioFocusChangeListener,
                                   AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
                     //@formatter:on
@@ -4594,6 +4702,10 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                             mPrivateFlags &= ~PFLAG_VIDEO_PAUSED_BY_USER;
                             mPrivateFlags |= PFLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER;
                             onVideoStarted();
+
+                            // Register MediaButtonEventReceiver every time the video starts, which
+                            // will ensure it to be the sole receiver of MEDIA_BUTTON intents
+                            mAudioManager.registerMediaButtonEventReceiver(sMediaButtonEventReceiverComponent);
                             break;
 
                         case AudioManager.AUDIOFOCUS_REQUEST_DELAYED:
@@ -4633,16 +4745,11 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                 abandonAudioFocus();
                 mExoPlayer.release();
                 mExoPlayer = null;
+                mTmpMediaSourceFactory = null;
                 mPrivateFlags &= ~PFLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER;
-//            mMediaSourceFactory = null;
                 // Resets the cached playback speed to prepare for the next resume of the video player
                 mPlaybackSpeed = DEFAULT_PLAYBACK_SPEED;
 
-                if (mSession != null) {
-                    mSession.setActive(false);
-                    mSession.release();
-                    mSession = null;
-                }
                 mHeadsetEventsReceiver.unregister();
                 mHeadsetEventsReceiver = null;
 

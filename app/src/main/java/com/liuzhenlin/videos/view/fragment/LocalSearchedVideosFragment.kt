@@ -145,10 +145,7 @@ class LocalSearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLon
                 }
             })
         }
-        actionbar.findViewById<View>(R.id.btn_cancelSearch).setOnClickListener {
-            UiUtils.hideSoftInput(mActivity.window)
-            requireFragmentManager().popBackStackImmediate()
-        }
+        actionbar.findViewById<View>(R.id.btn_cancelSearch).setOnClickListener(this)
 
         mRecyclerView = contentView.findViewById(R.id.recycler_searchedVideoList)
         mRecyclerView.layoutManager = LinearLayoutManager(mActivity)
@@ -191,10 +188,17 @@ class LocalSearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLon
         else -> false
     }
 
-    override fun onClick(v: View) =
-            if (v.parent === mRecyclerView)
+    override fun onClick(v: View) = when {
+        v.id == R.id.btn_cancelSearch -> {
+            UiUtils.hideSoftInput(mActivity.window)
+            requireFragmentManager().popBackStackImmediate()
+            Unit
+        }
+        v.parent === mRecyclerView -> {
                 playVideo(mSearchedVideos[v.tag as Int])
-            else Unit
+        }
+        else -> Unit
+    }
 
     override fun onLongClick(v: View) = if (v.parent === mRecyclerView) {
         val index = v.tag as Int
@@ -461,6 +465,7 @@ class LocalSearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLon
         }
 
         // 高亮搜索关键字
+        @SuppressLint("DefaultLocale")
         fun updateItemName(holder: ViewHolder, name: String) {
             val text = SpannableString(name)
             var fromIndex = 0

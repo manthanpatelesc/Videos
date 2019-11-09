@@ -49,7 +49,7 @@
         android:id="@+id/image_videoListItem"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:src="@drawable/ic_default_image"
+        android:src="@drawable/ic_default_thumb"
         android:contentDescription="@string/videoThumbnail" />
 
     <EditText

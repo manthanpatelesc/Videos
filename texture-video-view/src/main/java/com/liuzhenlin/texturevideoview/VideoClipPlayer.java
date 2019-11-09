@@ -36,7 +36,7 @@ import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
     public VideoClipPlayer(@NonNull Context context, @NonNull Surface surface,
                            @NonNull Uri videoUri, @NonNull String userAgent,
                            @Nullable AdsMediaSource.MediaSourceFactory mediaSourceFactory) {
-        mContext = context;
+        mContext = context.getApplicationContext();
         mSurface = surface;
         if (mediaSourceFactory == null) {
             mediaSourceFactory = new ProgressiveMediaSource.Factory(

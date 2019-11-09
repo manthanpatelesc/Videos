@@ -51,7 +51,7 @@ private fun deleteVideosInternal(vararg videos: Video) {
         }
     })
     if (sDeleteVideoTasks.size == 1) {
-        sDeleteVideoTasks.peek().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR)
+        sDeleteVideoTasks.peek()!!.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR)
     }
 }
 
@@ -84,7 +84,7 @@ interface VideoOpCallback {
             return false
         }
 
-        val newFile = File(file.parent + File.separator + newName)
+        val newFile = File(file.parent, newName)
         // 该路径下存在相同名称的视频文件
         if (!newName.equals(video.name, ignoreCase = true) && newFile.exists()) {
             if (view == null) {

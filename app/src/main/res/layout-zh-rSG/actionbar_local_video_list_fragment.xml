@@ -29,19 +29,18 @@
         android:textColor="@android:color/white"
         tools:ignore="SpUsage" />
 
-    <FrameLayout
-        android:layout_width="match_parent"
-        android:layout_height="match_parent">
+    <Space
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1" />
 
-        <ImageButton
-            android:id="@+id/btn_search"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:layout_marginLeft="10dp"
-            android:layout_marginRight="10dp"
-            android:layout_gravity="end"
-            android:src="@drawable/ic_search"
-            style="@style/Widget.AppCompat.Toolbar.Button.Navigation"
-            android:contentDescription="@string/searchVideos" />
-    </FrameLayout>
+    <ImageButton
+        android:id="@+id/btn_search"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_marginLeft="10dp"
+        android:layout_marginRight="10dp"
+        android:src="@drawable/ic_search"
+        style="@style/Widget.AppCompat.Toolbar.Button.Navigation"
+        android:contentDescription="@string/searchVideos" />
 </LinearLayout>

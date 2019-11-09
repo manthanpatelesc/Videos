@@ -141,7 +141,7 @@ public class SwipeBackLayout extends FrameLayout {
 
     private static final int FULL_ALPHA = 255;
 
-    protected final float mTouchSlop;
+    protected final int mTouchSlop;
     private static Field sDraggerTouchSlopField;
 
     static {
@@ -163,10 +163,9 @@ public class SwipeBackLayout extends FrameLayout {
 
     public SwipeBackLayout(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
-        final float dp = context.getResources().getDisplayMetrics().density;
-        mTouchSlop = ViewConfiguration.getTouchSlop() * dp;
+        mTouchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
         mDragHelper = ViewDragHelper.create(this, new ViewDragCallback());
-        mDragHelper.setMinVelocity(MIN_FLING_VELOCITY * dp);
+        mDragHelper.setMinVelocity(MIN_FLING_VELOCITY * getResources().getDisplayMetrics().density);
         setEdgeShadow(R.drawable.shadow_left, EDGE_LEFT);
         setEdgeShadow(R.drawable.shadow_right, EDGE_RIGHT);
     }
@@ -261,7 +260,7 @@ public class SwipeBackLayout extends FrameLayout {
     public float getSensitivity() {
         if (sDraggerTouchSlopField != null) {
             try {
-                return mTouchSlop / sDraggerTouchSlopField.getInt(mDragHelper);
+                return (float) mTouchSlop / sDraggerTouchSlopField.getInt(mDragHelper);
             } catch (IllegalAccessException e) {
                 e.printStackTrace();
             }

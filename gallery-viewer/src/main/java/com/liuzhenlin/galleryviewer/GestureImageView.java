@@ -211,7 +211,7 @@ public class GestureImageView extends AppCompatImageView {
         mGestureDetector = new GestureDetector(context, listener);
         mScaleGestureDetector = new ScaleGestureDetector(context, listener);
 
-        final float dp = context.getResources().getDisplayMetrics().density;
+        final float dp = getResources().getDisplayMetrics().density;
         final float touchSlop = ViewConfiguration.getTouchSlop() * dp;
         mTouchSlopSquare = touchSlop * touchSlop;
         mMaximumFlingVelocity = ViewConfiguration.getMaximumFlingVelocity() * dp;

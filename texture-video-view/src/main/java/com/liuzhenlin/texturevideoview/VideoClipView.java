@@ -127,7 +127,7 @@ public class VideoClipView extends FrameLayout {
     private float mProgressMoveOffset = Float.NaN;
 
     protected final float mDip;
-    protected final float mTouchSlop;
+    protected final int mTouchSlop;
 
     private int mActivePointerId;
     private float mDownX;
@@ -274,8 +274,8 @@ public class VideoClipView extends FrameLayout {
 
     public VideoClipView(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
+        mTouchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
         mDip = getResources().getDisplayMetrics().density;
-        mTouchSlop = ViewConfiguration.getTouchSlop() * mDip;
         mFrameBarHeight = (int) (2.5f * mDip + 0.5f);
         mProgressStrokeWidth = 3.0f * mDip;
         mProgressHeaderFooterStrokeWidth = 1.8f * mDip;

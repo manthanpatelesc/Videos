@@ -199,7 +199,8 @@ public class DisplayCutoutUtils {
         // 0x00000100 | 0x00000200 | 0x00000400 横竖屏都绘制到刘海区
         final int flag = 0x00000100 | 0x00000200 | 0x00000400;
         try {
-            Window.class.getMethod(in ? "addExtraFlags" : "clearExtraFlags", int.class)
+            Window.class
+                    .getMethod(in ? "addExtraFlags" : "clearExtraFlags", int.class)
                     .invoke(window, flag);
         } catch (Exception e) {
             //
@@ -209,11 +210,9 @@ public class DisplayCutoutUtils {
     @RequiresApi(api = Build.VERSION_CODES.P)
     public static void setLayoutInDisplayCutoutSinceP(@NonNull Window window, boolean in) {
         WindowManager.LayoutParams lp = window.getAttributes();
-        //@formatter:off
-        lp.layoutInDisplayCutoutMode = in ?
-                  WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+        lp.layoutInDisplayCutoutMode = in
+                ? WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
                 : WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT;
-        //@formatter:on
         window.setAttributes(lp);
     }
 }

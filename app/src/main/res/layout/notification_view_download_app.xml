@@ -1,23 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:padding="10dp">
+    android:layout_height="wrap_content">
+
+    <ImageView
+        android:id="@+id/image_appIcon"
+        android:layout_width="@dimen/notification_icon_size"
+        android:layout_height="@dimen/notification_icon_size"
+        android:layout_centerVertical="true"
+        android:src="@mipmap/ic_launcher"
+        android:contentDescription="@string/appIcon" />
 
     <TextView
         android:id="@+id/text_title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_toRightOf="@id/image_appIcon"
+        android:layout_toEndOf="@id/image_appIcon"
+        android:layout_marginLeft="10dp"
+        android:layout_marginStart="10dp"
         android:layout_marginBottom="5dp"
-        android:text="@string/downloading"
+        android:text="@string/downloadingUpdates"
         android:textSize="@dimen/primary_text_size"
-        android:textColor="@android:color/black" />
+        android:textColor="?android:attr/textColorPrimary" />
 
     <ProgressBar
         android:id="@+id/progress"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_below="@id/text_title"
+        android:layout_alignLeft="@id/text_title"
+        android:layout_alignStart="@id/text_title"
         android:layout_marginBottom="1dp"
         style="@style/Widget.AppCompat.ProgressBar.Horizontal" />
 
@@ -25,22 +38,24 @@
         android:id="@+id/text_progressPercent"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="true"
         android:layout_below="@id/progress"
-        android:textSize="@dimen/secondary_text_size" />
+        android:layout_alignLeft="@id/text_title"
+        android:layout_alignStart="@id/text_title"
+        android:textSize="@dimen/secondary_text_size"
+        android:textColor="?android:attr/textColorSecondary" />
 
     <TextView
         android:id="@+id/text_progressNumber"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_below="@id/progress"
         android:layout_alignParentRight="true"
         android:layout_alignParentEnd="true"
-        android:layout_below="@id/progress"
-        android:textSize="@dimen/secondary_text_size" />
+        android:textSize="@dimen/secondary_text_size"
+        android:textColor="?android:attr/textColorSecondary" />
 
     <TextView
-        android:id="@+id/btn_cancel_uapd"
+        android:id="@+id/btn_cancel_danv"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_below="@id/text_progressNumber"
@@ -49,6 +64,6 @@
         android:layout_marginTop="10dp"
         android:background="@drawable/selector_dialog_button"
         android:text="@string/cancel"
-        android:textSize="@dimen/dialog_button_text_size"
+        android:textSize="@dimen/secondary_text_size"
         android:textColor="@color/colorAccent" />
 </RelativeLayout>

@@ -44,5 +44,5 @@ public abstract class RotationObserver extends ContentObserver {
         mContext.getContentResolver().unregisterContentObserver(this);
     }
 
-    public abstract void onRotationChange(boolean selfChange, boolean enabled);
+    protected abstract void onRotationChange(boolean selfChange, boolean enabled);
 }

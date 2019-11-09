@@ -62,5 +62,5 @@ public abstract class ScreenNotchSwitchObserver extends ContentObserver {
         mContext.getContentResolver().unregisterContentObserver(this);
     }
 
-    public abstract void onNotchChange(boolean selfChange, boolean hidden);
+    protected abstract void onNotchChange(boolean selfChange, boolean hidden);
 }

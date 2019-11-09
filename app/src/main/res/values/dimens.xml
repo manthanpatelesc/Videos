@@ -5,7 +5,7 @@
 
 <resources>
     <dimen name="actionbarHeight">45dp</dimen>
-    <dimen name="tabHeight">48dp</dimen>
+    <dimen name="tabHeight">45dp</dimen>
     <dimen name="actionbarElevationHeight">4dp</dimen>
 
     <dimen name="action_bar_title_text_size">21dp</dimen>
@@ -19,4 +19,6 @@
     <dimen name="listitem_third_level_text_size">@dimen/smallest_text_size</dimen>
     <dimen name="icon_bottom_text_size">@dimen/smallest_text_size</dimen>
     <dimen name="dialog_button_text_size">@dimen/secondary_text_size</dimen>
+
+    <dimen name="notification_icon_size">40dp</dimen>
 </resources>

@@ -51,4 +51,6 @@
     <string name="videoInThisFormatIsNotSupported">不支持该格式视频！</string>
     <string name="unknownErrorOccurredWhenVideoIsPlaying">视频播放时发生未知错误！</string>
     <string name="undo">取消</string>
+    <string name="cancel">取消</string>
+    <string name="ok">确定</string>
 </resources>

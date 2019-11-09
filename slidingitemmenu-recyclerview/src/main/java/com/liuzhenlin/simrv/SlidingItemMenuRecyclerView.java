@@ -56,7 +56,7 @@ public class SlidingItemMenuRecyclerView extends RecyclerView {
     private boolean mHasItemFullyOpenOnActionDown;
 
     /** Distance to travel before drag may begin */
-    protected final float mTouchSlop;
+    protected final int mTouchSlop;
 
     private int mDownX;
     private int mDownY;
@@ -179,9 +179,8 @@ public class SlidingItemMenuRecyclerView extends RecyclerView {
 
     public SlidingItemMenuRecyclerView(Context context, @Nullable AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
-        final float dp = context.getResources().getDisplayMetrics().density;
-        mTouchSlop = ViewConfiguration.getTouchSlop() * dp;
-        mItemMinimumFlingVelocity = 200f * dp;
+        mTouchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
+        mItemMinimumFlingVelocity = 200f * getResources().getDisplayMetrics().density;
 
         final TypedArray ta = context.obtainStyledAttributes(attrs,
                 R.styleable.SlidingItemMenuRecyclerView, defStyle, 0);

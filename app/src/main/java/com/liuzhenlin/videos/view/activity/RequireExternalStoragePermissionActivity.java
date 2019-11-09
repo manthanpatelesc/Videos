@@ -31,7 +31,7 @@ import pub.devrel.easypermissions.PermissionRequest;
  */
 public class RequireExternalStoragePermissionActivity extends AppCompatActivity
         implements EasyPermissions.PermissionCallbacks, EasyPermissions.RationaleCallbacks {
-    private static final int REQUEST_CODE_WRITE_EXTERNAL_STORAGE_PERMISSION = 1;
+    private static final int REQUEST_CODE_WRITE_EXTERNAL_STORAGE_PERMISSION = 6;
 
     // Read-only Fields
     public String cancel;
@@ -68,7 +68,7 @@ public class RequireExternalStoragePermissionActivity extends AppCompatActivity
                                     REQUEST_CODE_WRITE_EXTERNAL_STORAGE_PERMISSION,
                                     Manifest.permission.WRITE_EXTERNAL_STORAGE) //@formatter:on
                             .setTheme(R.style.DialogStyle_MinWidth_NoTitle)
-                            .setRationale(R.string.rationale_askExternalStorage)
+                            .setRationale(R.string.rationale_askExternalStoragePermission)
                             .setNegativeButtonText(cancel)
                             .setPositiveButtonText(ok)
                             .build());
@@ -129,10 +129,11 @@ public class RequireExternalStoragePermissionActivity extends AppCompatActivity
             new AppSettingsDialog.Builder(this)
                     .setThemeResId(R.style.DialogStyle_MinWidth)
                     .setTitle(R.string.permissionsRequired)
-                    .setRationale(R.string.rationale_askExternalStorageAgain)
+                    .setRationale(R.string.rationale_askExternalStoragePermissionAgain)
                     .setNegativeButton(cancel)
                     .setPositiveButton(ok)
-                    .build().show();
+                    .build()
+                    .show();
         } else {
             onPermissionDenied();
         }

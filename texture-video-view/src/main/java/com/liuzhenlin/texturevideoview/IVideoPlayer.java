@@ -23,7 +23,7 @@ import java.lang.annotation.RetentionPolicy;
  */
 public interface IVideoPlayer {
 
-    int INVALID_DURATION = -1;
+    int UNKNOWN_DURATION = -1;
 
     float DEFAULT_PLAYBACK_SPEED = 1.0f;
 
@@ -231,7 +231,7 @@ public interface IVideoPlayer {
      *
      * @return the duration in milliseconds, if no duration is available (for example,
      * if streaming live content or the duration is not determined yet),
-     * then {@value INVALID_DURATION} is returned.
+     * then {@value UNKNOWN_DURATION} is returned.
      */
     int getVideoDuration();
 

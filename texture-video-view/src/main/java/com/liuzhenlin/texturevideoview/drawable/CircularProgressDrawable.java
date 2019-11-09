@@ -647,7 +647,7 @@ public class CircularProgressDrawable extends Drawable implements Animatable {
             mPaint.setAntiAlias(true);
             mPaint.setStyle(Style.STROKE);
 
-            mArrowPaint.setStyle(Style.FILL);
+            mArrowPaint.setStyle(Paint.Style.FILL);
             mArrowPaint.setAntiAlias(true);
 
             mCirclePaint.setColor(Color.TRANSPARENT);

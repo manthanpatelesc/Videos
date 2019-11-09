@@ -59,10 +59,11 @@ import kotlin.math.min
  * @author 刘振林
  */
 class LocalVideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefreshLayout.OnRefreshListener,
-        View.OnClickListener, View.OnLongClickListener {
+        View.OnClickListener, View.OnLongClickListener, OnBackPressedListener {
     private lateinit var mActivity: Activity
     private lateinit var mContext: Context
     private lateinit var mInteractionCallback: InteractionCallback
+    private var mLifecycleCallback: FragmentPartLifecycleCallback? = null
 
     private lateinit var mRecyclerView: SlidingItemMenuRecyclerView
     private val mAdapter = VideoListAdapter()
@@ -199,6 +200,13 @@ class LocalVideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefres
             else -> throw RuntimeException(
                     "$context must implement LocalVideoListFragment.InteractionCallback")
         }
+
+        if (parent is FragmentPartLifecycleCallback) {
+            mLifecycleCallback = parent
+        } else if (context is FragmentPartLifecycleCallback) {
+            mLifecycleCallback = context
+        }
+        mLifecycleCallback?.onFragmentAttached(this)
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
@@ -215,6 +223,8 @@ class LocalVideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefres
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        mLifecycleCallback?.onFragmentViewCreated(this)
+
         autoLoadVideos()
     }
 
@@ -236,6 +246,8 @@ class LocalVideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefres
 
     override fun onDestroyView() {
         super.onDestroyView()
+        mLifecycleCallback?.onFragmentViewDestroyed(this)
+
         mItemOptionsWindow?.dismiss()
         mDeleteItemsWindow?.dismiss()
         mDeleteItemDialog?.dismiss()
@@ -254,10 +266,15 @@ class LocalVideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefres
 //        notifyListenersOnReloadVideos()
     }
 
+    override fun onDetach() {
+        super.onDetach()
+        mLifecycleCallback?.onFragmentDetached(this)
+    }
+
     /**
      * @return 是否消费点按返回键事件
      */
-    fun onBackPressed(): Boolean {
+    override fun onBackPressed(): Boolean {
         mItemOptionsWindow?.dismiss() ?: return false
         return true
     }
@@ -290,7 +307,7 @@ class LocalVideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefres
             REQUEST_CODE_LOCAL_FOLDED_VIDEOS_FRAGMENT ->
                 if (resultCode == RESULT_CODE_LOCAL_FOLDED_VIDEOS_FRAGMENT) {
                     val dirPath = data?.getStringExtra(KEY_DIRECTORY_PATH) ?: return
-                    val videos = data.getParcelableArrayListExtra<Video>(KEY_VIDEOS)
+                    val videos = data.getParcelableArrayListExtra<Video>(KEY_VIDEOS) ?: return
                     loop@ for ((i, item) in mVideoListItems.withIndex()) {
                         if (item.path != dirPath) continue@loop
 

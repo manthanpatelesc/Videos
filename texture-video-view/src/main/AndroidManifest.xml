@@ -9,5 +9,17 @@
 
     <uses-permission android:name="android.permission.BLUETOOTH" />
 
-    <uses-sdk tools:overrideLibrary="com.google.android.exoplayer2.core" />
+    <uses-sdk tools:overrideLibrary="
+            com.google.android.exoplayer2.core,
+            com.google.android.exoplayer2.source.dash,
+            com.google.android.exoplayer2.source.hls,
+            com.google.android.exoplayer2.source.smoothstreaming" />
+
+    <application>
+        <receiver android:name=".receiver.MediaButtonEventReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.MEDIA_BUTTON" />
+            </intent-filter>
+        </receiver>
+    </application>
 </manifest>

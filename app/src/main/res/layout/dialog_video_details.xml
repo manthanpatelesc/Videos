@@ -19,7 +19,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="5dp"
-        android:drawableTop="@drawable/ic_default_image"
+        android:drawableTop="@drawable/ic_default_thumb"
         android:drawablePadding="5dp"
         android:text="@string/name"
         android:textSize="@dimen/primary_text_size"

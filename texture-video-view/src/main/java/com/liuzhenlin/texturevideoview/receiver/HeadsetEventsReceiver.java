@@ -83,9 +83,9 @@ public abstract class HeadsetEventsReceiver extends BroadcastReceiver {
         mContext.unregisterReceiver(this);
     }
 
-    public void onHeadsetPluggedIn() {}
-    public void onHeadsetPluggedOut() {}
-    public void onHeadsetPluggedOutOrBluetoothDisconnected() {}
-    public void onBluetoothConnected() {}
-    public void onBluetoothDisconnected() {}
+    protected void onHeadsetPluggedIn() {}
+    protected void onHeadsetPluggedOut() {}
+    protected void onHeadsetPluggedOutOrBluetoothDisconnected() {}
+    protected void onBluetoothConnected() {}
+    protected void onBluetoothDisconnected() {}
 }

@@ -122,13 +122,13 @@ public abstract class VolumeReceiver extends BroadcastReceiver {
         mContext.unregisterReceiver(this);
     }
 
-    public void onSystemVolumeChange(int prevolume, int volume) {}
-    public void onMusicVolumeChange(int prevolume, int volume) {}
-    public void onRingVolumeChange(int prevolume, int volume) {}
-    public void onVoiceCallVolumeChange(int prevolume, int volume) {}
-    public void onAlarmVolumeChange(int prevolume, int volume) {}
-    public void onNotificationVolumeChange(int prevolume, int volume) {}
-    public void onDtmfVolumeChange(int prevolume, int volume) {}
-    public void onAccessibilityVolumeChange(int prevolume, int volume) {}
-    public void onRingerModeChange(@RingerMode int mode) {}
+    protected void onSystemVolumeChange(int prevolume, int volume) {}
+    protected void onMusicVolumeChange(int prevolume, int volume) {}
+    protected void onRingVolumeChange(int prevolume, int volume) {}
+    protected void onVoiceCallVolumeChange(int prevolume, int volume) {}
+    protected void onAlarmVolumeChange(int prevolume, int volume) {}
+    protected void onNotificationVolumeChange(int prevolume, int volume) {}
+    protected void onDtmfVolumeChange(int prevolume, int volume) {}
+    protected void onAccessibilityVolumeChange(int prevolume, int volume) {}
+    protected void onRingerModeChange(@RingerMode int mode) {}
 }

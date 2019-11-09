@@ -26,7 +26,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.liuzhenlin.circularcheckbox.CircularCheckBox
 import com.liuzhenlin.floatingmenu.DensityUtils
 import com.liuzhenlin.simrv.SlidingItemMenuRecyclerView
-import com.liuzhenlin.slidingdrawerlayout.Utils
+import com.liuzhenlin.simrv.Utils
 import com.liuzhenlin.swipeback.SwipeBackFragment
 import com.liuzhenlin.swipeback.SwipeBackLayout
 import com.liuzhenlin.videos.*
@@ -47,7 +47,7 @@ import kotlin.math.min
  * @author 刘振林
  */
 class LocalFoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, View.OnLongClickListener,
-        OnReloadVideosListener, SwipeRefreshLayout.OnRefreshListener {
+        OnReloadVideosListener, SwipeRefreshLayout.OnRefreshListener, OnBackPressedListener {
 
     private lateinit var mActivity: Activity
     private lateinit var mContext: Context
@@ -65,7 +65,7 @@ class LocalFoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, Vie
     private inline val mVideos: MutableList<Video>
         get() {
             if (_mVideos == null) {
-                _mVideos = mVideoDir?.videos ?: arrayListOf()
+                _mVideos = mVideoDir?.videos ?: mutableListOf()
             }
             return _mVideos!!
         }
@@ -222,7 +222,7 @@ class LocalFoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, Vie
     /**
      * @return 是否消费点按返回键事件
      */
-    fun onBackPressed() =
+    override fun onBackPressed() =
             if (mVideoOptionsFrame.visibility == View.VISIBLE) {
                 hideMultiselectVideoControls()
                 true
@@ -562,13 +562,13 @@ class LocalFoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, Vie
                     if (toppedVideos == null) toppedVideos = LinkedList()
                     toppedVideos.add(video)
                 } else {
-                    if (videos == null) videos = LinkedList()
+                    if (videos == null) videos = ArrayList()
                     videos.add(video)
                 }
             }
             videoCursor.close()
             if (toppedVideos != null) {
-                if (videos == null) videos = LinkedList()
+                if (videos == null) videos = ArrayList()
                 videos.addAll(0, toppedVideos)
             }
 

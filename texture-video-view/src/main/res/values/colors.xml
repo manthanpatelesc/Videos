@@ -15,5 +15,6 @@
     <!-- the same as @android:color/lighter_gray -->
     <color name="lighter_gray">#DDDDDD</color>
 
-    <color name="colorAccent">?attr/colorAccent</color>
+    <!-- application module defined -->
+    <color name="colorAccent" />
 </resources>

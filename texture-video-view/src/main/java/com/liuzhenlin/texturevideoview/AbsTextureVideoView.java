@@ -6,16 +6,16 @@
 package com.liuzhenlin.texturevideoview;
 
 import android.annotation.SuppressLint;
+import android.content.ComponentName;
 import android.content.Context;
-import android.content.Intent;
 import android.content.res.Resources;
 import android.media.AudioManager;
 import android.net.Uri;
 import android.os.Build;
-import android.support.v4.media.session.MediaSessionCompat;
+import android.os.Handler;
+import android.os.Message;
 import android.util.AttributeSet;
 import android.view.Gravity;
-import android.view.KeyEvent;
 import android.view.Surface;
 import android.view.View;
 import android.view.ViewConfiguration;
@@ -24,6 +24,7 @@ import androidx.annotation.CallSuper;
 import androidx.annotation.ColorInt;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.Px;
 import androidx.annotation.VisibleForTesting;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.GravityCompat;
@@ -33,8 +34,13 @@ import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.audio.AudioAttributes;
 import com.google.android.exoplayer2.util.Util;
 import com.liuzhenlin.texturevideoview.receiver.HeadsetEventsReceiver;
+import com.liuzhenlin.texturevideoview.receiver.MediaButtonEventHandler;
+import com.liuzhenlin.texturevideoview.receiver.MediaButtonEventReceiver;
+import com.liuzhenlin.texturevideoview.utils.FileUtils;
 import com.liuzhenlin.texturevideoview.utils.Utils;
 
+import java.io.File;
+import java.lang.ref.WeakReference;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
@@ -67,6 +73,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout {
     /**
      * Distance in pixels a touch can wander before we think the user is scrolling.
      */
+    @Px
     protected final int mTouchSlop;
 
     /* package-private */
@@ -162,7 +169,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout {
     }
 
     /* package-private */
-    int getDrawerLockModeInternal(@NonNull View drawerView) {
+    final int getDrawerLockModeInternal(@NonNull View drawerView) {
         return getDrawerLockMode(
                 ((LayoutParams) drawerView.getLayoutParams()).gravity
                         & GravityCompat.RELATIVE_HORIZONTAL_GRAVITY_MASK);
@@ -176,7 +183,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout {
     }
 
     /* package-private */
-    void setDrawerLockModeInternal(int lockMode, @NonNull View drawerView) {
+    final void setDrawerLockModeInternal(int lockMode, @NonNull View drawerView) {
         setDrawerLockMode(lockMode,
                 ((LayoutParams) drawerView.getLayoutParams()).gravity
                         & GravityCompat.RELATIVE_HORIZONTAL_GRAVITY_MASK);
@@ -198,7 +205,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout {
      */
     public static abstract class VideoPlayer implements IVideoPlayer {
 
-        protected final Context mContext;
+        protected final Context mContext; // the Application Context
         protected final AbsTextureVideoView mVideoView;
 
         protected int mPrivateFlags;
@@ -282,6 +289,12 @@ public abstract class AbsTextureVideoView extends DrawerLayout {
         /** The amount of time we are stepping forward or backward for fast-forward and fast-rewind. */
         public static final int FAST_FORWARD_REWIND_INTERVAL = 15000; // ms
 
+        /**
+         * Maximum cache size in bytes.
+         * This is the limit on the size of all files that can be kept on disk.
+         */
+        protected static final long DEFAULT_MAXIMUM_CACHE_SIZE = 1024 * 1024 * 1024; // 1GB
+
         protected final AudioManager mAudioManager;
 
         /**
@@ -296,14 +309,27 @@ public abstract class AbsTextureVideoView extends DrawerLayout {
                         .setContentType(C.CONTENT_TYPE_MOVIE)
                         .build();
 
-        // Used for subclasses within the same package to avoid duplicate field declarations
-        /* package-private */ MediaSessionCompat mSession;
-        /* package-private */ HeadsetEventsReceiver mHeadsetEventsReceiver;
+        protected static ComponentName sMediaButtonEventReceiverComponent;
+
+        protected HeadsetEventsReceiver mHeadsetEventsReceiver;
 
         public VideoPlayer(@NonNull AbsTextureVideoView videoView) {
-            mContext = videoView.mContext;
+            mContext = videoView.mContext.getApplicationContext();
             mVideoView = videoView;
             mAudioManager = videoView.mAudioManager;
+            if (sMediaButtonEventReceiverComponent == null) {
+                sMediaButtonEventReceiverComponent =
+                        new ComponentName(mContext, MediaButtonEventReceiver.class);
+            }
+        }
+
+        /**
+         * @return Base directory for storing generated cache files of the video(s) that will be
+         * downloaded from HTTP server onto disk.
+         */
+        @NonNull
+        protected File getBaseVideoCacheDirectory() {
+            return new File(FileUtils.getAvailableCacheDir(mContext), "videos");
         }
 
         @Override
@@ -314,7 +340,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout {
 
         /** @see #openVideo(boolean) */
         @Override
-        public void openVideo() {
+        public final void openVideo() {
             openVideo(false);
         }
 
@@ -334,7 +360,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout {
          * @see #closeVideo()
          * @see #play(boolean)
          */
-        public void openVideo(boolean replayIfCompleted) {
+        public final void openVideo(boolean replayIfCompleted) {
             if (replayIfCompleted || mPlaybackState != PLAYBACK_STATE_COMPLETED) {
                 openVideoInternal();
             }
@@ -343,7 +369,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout {
         protected abstract void openVideoInternal();
 
         @Override
-        public void closeVideo() {
+        public final void closeVideo() {
             if (!isPureAudioPlayback()) {
                 closeVideoInternal(false /* ignored */);
             }
@@ -372,7 +398,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout {
             if ((mPrivateFlags & PFLAG_VIDEO_INFO_RESOLVED) != 0) {
                 return mVideoDuration;
             }
-            return INVALID_DURATION;
+            return UNKNOWN_DURATION;
         }
 
         @Override
@@ -494,7 +520,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout {
             }
         }
 
-        private boolean hasVideoListeners() {
+        private boolean hasVideoListener() {
             return mVideoListeners != null && !mVideoListeners.isEmpty();
         }
 
@@ -510,13 +536,13 @@ public abstract class AbsTextureVideoView extends DrawerLayout {
         }
 
         public void removeVideoListener(@Nullable VideoListener listener) {
-            if (listener != null && hasVideoListeners()) {
+            if (listener != null && hasVideoListener()) {
                 mVideoListeners.remove(listener);
             }
         }
 
         public void clearVideoListeners() {
-            if (hasVideoListeners()) {
+            if (hasVideoListener()) {
                 mVideoListeners.clear();
             }
         }
@@ -526,7 +552,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout {
 
             mVideoView.onVideoStarted();
 
-            if (hasVideoListeners()) {
+            if (hasVideoListener()) {
                 for (int i = mVideoListeners.size() - 1; i >= 0; i--) {
                     mVideoListeners.get(i).onVideoStarted();
                 }
@@ -553,7 +579,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout {
 
             mVideoView.onVideoStopped();
 
-            if (hasVideoListeners()) {
+            if (hasVideoListener()) {
                 for (int i = mVideoListeners.size() - 1; i >= 0; i--) {
                     mVideoListeners.get(i).onVideoStopped();
                 }
@@ -600,7 +626,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout {
                 mVideoWidth = width;
                 mVideoHeight = height;
 
-                if (hasVideoListeners()) {
+                if (hasVideoListener()) {
                     for (int i = mVideoListeners.size() - 1; i >= 0; i--) {
                         mVideoListeners.get(i).onVideoSizeChanged(oldWidth, oldHeight, width, height);
                     }
@@ -618,79 +644,35 @@ public abstract class AbsTextureVideoView extends DrawerLayout {
             return mVideoView.skipToPreviousIfPossible();
         }
 
-        protected class SessionCallback extends MediaSessionCompat.Callback {
-            private int playPauseKeyTappedTime;
+        protected static class MsgHandler extends Handler {
+            protected final WeakReference<VideoPlayer> mVideoPlayerRef;
 
-            private final Runnable playPauseKeyTimeoutRunnable =
-                    this::handlePlayPauseKeySingleOrDoubleTapAsNeeded;
-
-            @Override
-            public boolean onMediaButtonEvent(Intent mediaButtonEvent) {
-                KeyEvent keyEvent = mediaButtonEvent.getParcelableExtra(Intent.EXTRA_KEY_EVENT);
-                if (keyEvent == null || keyEvent.getAction() != KeyEvent.ACTION_DOWN) {
-                    return false;
-                }
-
-                final int keyCode = keyEvent.getKeyCode();
-                switch (keyCode) {
-                    case KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE:
-                    case KeyEvent.KEYCODE_HEADSETHOOK:
-                        if (keyEvent.getRepeatCount() > 0) {
-                            // Consider long-press as a single tap.
-                            handlePlayPauseKeySingleOrDoubleTapAsNeeded();
-
-                        } else switch (playPauseKeyTappedTime) {
-                            case 0:
-                                playPauseKeyTappedTime = 1;
-                                mVideoView.postDelayed(playPauseKeyTimeoutRunnable,
-                                        ViewConfiguration.getDoubleTapTimeout());
-                                break;
-
-                            case 1:
-                                playPauseKeyTappedTime = 2;
-                                mVideoView.removeCallbacks(playPauseKeyTimeoutRunnable);
-                                mVideoView.postDelayed(playPauseKeyTimeoutRunnable,
-                                        ViewConfiguration.getDoubleTapTimeout());
-                                break;
-
-                            case 2:
-                                playPauseKeyTappedTime = 0;
-                                mVideoView.removeCallbacks(playPauseKeyTimeoutRunnable);
-
-                                // Consider triple tap as the previous.
-                                skipToPreviousIfPossible();
-                                break;
-                        }
-                        return true;
-                    default:
-                        // If another key is pressed within double tap timeout, consider the pending
-                        // play/pause as a single/double tap to handle media keys in order.
-                        handlePlayPauseKeySingleOrDoubleTapAsNeeded();
-                        break;
-                }
-                switch (keyCode) {
-                    case KeyEvent.KEYCODE_MEDIA_PREVIOUS:
-                        return skipToPreviousIfPossible();
-                    case KeyEvent.KEYCODE_MEDIA_NEXT:
-                        return skipToNextIfPossible();
-                }
-                return false;
+            protected MsgHandler(VideoPlayer videoPlayer) {
+                mVideoPlayerRef = new WeakReference<>(videoPlayer);
             }
 
-            private void handlePlayPauseKeySingleOrDoubleTapAsNeeded() {
-                final int tappedTime = playPauseKeyTappedTime;
-                if (tappedTime == 0) return;
+            @Override
+            public void handleMessage(@NonNull Message msg) {
+                VideoPlayer videoPlayer = mVideoPlayerRef.get();
+                if (videoPlayer == null) return;
 
-                playPauseKeyTappedTime = 0;
-                mVideoView.removeCallbacks(playPauseKeyTimeoutRunnable);
+                if (!(videoPlayer.mVideoView.isInForeground() || videoPlayer.isPureAudioPlayback())) {
+                    return;
+                }
 
-                switch (tappedTime) {
-                    case 1:
-                        toggle(true);
+                switch (msg.what) {
+                    case MediaButtonEventHandler.MSG_PLAY_PAUSE_KEY_SINGLE_TAP:
+                        videoPlayer.toggle(true);
                         break;
                     // Consider double tap as the next.
-                    case 2:
-                        skipToNextIfPossible();
+                    case MediaButtonEventHandler.MSG_PLAY_PAUSE_KEY_DOUBLE_TAP:
+                    case MediaButtonEventHandler.MSG_MEDIA_NEXT:
+                        videoPlayer.skipToNextIfPossible();
+                        break;
+                    // Consider triple tap as the previous.
+                    case MediaButtonEventHandler.MSG_PLAY_PAUSE_KEY_TRIPLE_TAP:
+                    case MediaButtonEventHandler.MSG_MEDIA_PREVIOUS:
+                        videoPlayer.skipToPreviousIfPossible();
                         break;
                 }
             }

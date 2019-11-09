@@ -33,7 +33,7 @@
             android:layout_height="wrap_content"
             android:layout_marginRight="10dp"
             android:layout_marginEnd="10dp"
-            android:src="@drawable/ic_default_image"
+            android:src="@drawable/ic_default_thumb"
             android:contentDescription="@string/videodirThumbnail" />
 
         <RelativeLayout
@@ -80,7 +80,7 @@
             android:layout_height="wrap_content"
             android:layout_marginLeft="5dp"
             android:layout_marginStart="5dp"
-            app:srcCompat="@drawable/ic_chevron_right_lightgray_24dp"
+            app:srcCompat="@drawable/ic_chevron_end_lightgray_24dp"
             android:contentDescription="@string/unfold" />
     </LinearLayout>
 

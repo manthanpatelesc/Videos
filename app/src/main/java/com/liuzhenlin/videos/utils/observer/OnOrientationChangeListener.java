@@ -100,5 +100,5 @@ public abstract class OnOrientationChangeListener {
         return mOrientation;
     }
 
-    public abstract void onOrientationChange(@ScreenOrientation int orientation);
+    protected abstract void onOrientationChange(@ScreenOrientation int orientation);
 }

@@ -12,7 +12,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -37,12 +36,11 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatDialog;
 import androidx.core.content.ContextCompat;
-import androidx.core.graphics.drawable.DrawableCompat;
 
 import com.google.android.material.snackbar.Snackbar;
 import com.liuzhenlin.floatingmenu.DensityUtils;
 import com.liuzhenlin.galleryviewer.GalleryViewPager;
-import com.liuzhenlin.slidingdrawerlayout.Utils;
+import com.liuzhenlin.simrv.Utils;
 import com.liuzhenlin.swipeback.SwipeBackActivity;
 import com.liuzhenlin.swipeback.SwipeBackLayout;
 import com.liuzhenlin.texturevideoview.utils.BitmapUtils;
@@ -152,18 +150,6 @@ public class FeedbackActivity extends SwipeBackActivity implements View.OnClickL
         }
 
         TextView backButton = findViewById(R.id.btn_back);
-        Drawable temp = ContextCompat.getDrawable(this, R.drawable.ic_back);
-        assert temp != null;
-        Drawable backDrawable = DrawableCompat.wrap(temp);
-        DrawableCompat.setTintList(backDrawable,
-                ContextCompat.getColorStateList(this, R.color.color_selector_color_accent));
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
-            backButton.setCompoundDrawablesRelativeWithIntrinsicBounds(backDrawable,
-                    null, null, null);
-        } else {
-            backButton.setCompoundDrawablesWithIntrinsicBounds(backDrawable,
-                    null, null, null);
-        }
         backButton.setOnClickListener(this);
 
         TextView saveButton = findViewById(R.id.btn_saveFeedback);
@@ -250,7 +236,7 @@ public class FeedbackActivity extends SwipeBackActivity implements View.OnClickL
     }
 
     @Override
-    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+    protected void onRestoreInstanceState(@NonNull Bundle savedInstanceState) {
         super.onRestoreInstanceState(savedInstanceState);
         final String[] savedPicturePaths = (String[])
                 savedInstanceState.getSerializable(KEY_SAVED_PICTURE_PATHS);

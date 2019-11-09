@@ -41,7 +41,7 @@ public class VideoUtils2 {
         final int thumbHeight = height > maxHeight ? maxHeight : height;
 
         Bitmap bitmap = BitmapUtils.createScaledBitmap(
-                BitmapFactory.decodeResource(res, R.drawable.ic_default_image),
+                BitmapFactory.decodeResource(res, R.drawable.ic_default_thumb),
                 thumbWidth, thumbHeight, true);
         Glide.with(context)
                 .load(video.getPath())
@@ -52,7 +52,7 @@ public class VideoUtils2 {
     }
 
     @Nullable
-    public static Bitmap generateMiniThumbnail(@NonNull Context context, @Nullable String path) {
+    public static Bitmap generateMiniThumbnail(@NonNull Context context, @NonNull String path) {
         Bitmap thumb = ThumbnailUtils.createVideoThumbnail(path, MediaStore.Images.Thumbnails.MINI_KIND);
         if (thumb != null) {
             final float ratio = context.getResources().getDisplayMetrics().widthPixels / 1080f;

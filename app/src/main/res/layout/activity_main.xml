@@ -18,22 +18,10 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-        <FrameLayout
-            android:id="@+id/container_actionbar"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_weight="0"
-            android:background="?android:attr/windowBackground"
-            android:elevation="@dimen/actionbarElevationHeight"
-            tools:ignore="UnusedAttribute">
-
-            <include layout="@layout/actionbar" />
-        </FrameLayout>
-
         <com.liuzhenlin.videos.view.ScrollDisableViewPager
             android:id="@+id/viewpager_fragments"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="0dp"
             android:layout_weight="1" />
 
         <com.google.android.material.tabs.TabLayout

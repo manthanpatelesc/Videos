@@ -3,12 +3,31 @@
   ~ Copyright © 2019 刘振林. All rights reserved.
   -->
 
-<com.liuzhenlin.videos.view.swiperefresh.SwipeRefreshLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:orientation="vertical">
 
     <FrameLayout
-        android:id="@+id/container_child_fragments"
+        android:id="@+id/container_actionbar"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
-</com.liuzhenlin.videos.view.swiperefresh.SwipeRefreshLayout>
+        android:layout_height="wrap_content"
+        android:background="?android:attr/windowBackground"
+        android:elevation="@dimen/actionbarElevationHeight"
+        tools:ignore="UnusedAttribute">
+
+        <include layout="@layout/actionbar_local_video_list_fragment" />
+    </FrameLayout>
+
+    <com.liuzhenlin.videos.view.swiperefresh.SwipeRefreshLayout
+        android:id="@+id/swipeRefreshLayout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <FrameLayout
+            android:id="@+id/container_child_fragments"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+    </com.liuzhenlin.videos.view.swiperefresh.SwipeRefreshLayout>
+</LinearLayout>

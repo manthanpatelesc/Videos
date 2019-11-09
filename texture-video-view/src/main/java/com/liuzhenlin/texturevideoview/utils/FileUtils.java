@@ -91,6 +91,7 @@ public class FileUtils {
 
     public static void recordMediaFileToDatabaseAndScan(@NonNull Context context, @NonNull Uri mediaUri,
                                                         @NonNull File file, @Nullable String mimeType) {
+        context = context.getApplicationContext();
         final String fileName = file.getName();
         final String filePath = file.getAbsolutePath();
         if (mimeType == null) {
@@ -130,6 +131,16 @@ public class FileUtils {
             return MimeTypeMap.getSingleton().getMimeTypeFromExtension(filePath.substring(index + 1));
         }
         return defMineType;
+    }
+
+    @NonNull
+    public static File getAvailableCacheDir(@NonNull Context context) {
+        File dir;
+        dir = context.getExternalCacheDir();
+        if (dir == null) {
+            dir = context.getCacheDir();
+        }
+        return dir;
     }
 
     public static void shareFile(@NonNull Context context, @NonNull String authority,
