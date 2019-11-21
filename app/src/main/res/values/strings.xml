@@ -4,10 +4,10 @@
   -->
 <resources>
     <string name="aTotalOfSeveralVideos">%d videos in all</string>
-    <string name="aboutApp">About app</string>
+    <string name="aboutApp">About App</string>
     <string name="adviceAndFeedback">Advice &amp; Feedback</string>
     <string name="alias">Alias: %s</string>
-    <string name="appIcon">App Icon</string>
+    <string name="appIcon">App icon</string>
     <string name="appName">Videos</string>
     <string name="areYouSureToDelete">Are you sure to delete?</string>
     <string name="areYouSureToDeleteSomeVideoDir">
@@ -16,9 +16,9 @@
     <string name="areYouSureToDeleteThisPicture">Are you sure to delete this picture?</string>
     <string name="back">Back</string>
     <string name="cancel">Cancel</string>
-    <string name="cancelTop">Cancel top</string>
+    <string name="cancelTop">Cancel Top</string>
     <string name="cannotPlayThisVideo">Cannot play this video</string>
-    <string name="checkUpdate">Check update</string>
+    <string name="checkForUpdates">Check for Updates</string>
     <string name="colon">:</string>
     <string name="commit">Commit</string>
     <string name="complete">OK</string>
@@ -43,6 +43,7 @@
         <item quantity="one">Find a video</item>
         <item quantity="other">Find %d videos</item>
     </plurals>
+    <string name="goNow">Go Now</string>
     <string name="hasBeenPlacedInTheBackground">Has been placed in the background</string>
     <string name="illegalInputLink">Illegal input link!</string>
     <string name="isTheLatestVersion">Is the latest version</string>
@@ -53,10 +54,9 @@
     <string name="noNetworkConnection">No network is connected!</string>
     <string name="notHaveEnoughStorage">Device does not have enough storage.</string>
     <string name="notOpenYet">Not Open Yet</string>
-    <string name="notSave">Not save</string>
+    <string name="notSave">Not Save</string>
     <string name="ok">OK</string>
     <string name="onlineVideo">Online Video</string>
-    <string name="openNow">Open Now</string>
     <string name="openOrCloseSideDrawer">Open or close the side drawer</string>
     <string name="optionalForMeToContactWithYou">Optional, for me to contact with you</string>
     <string name="path">Path: %s</string>
@@ -98,13 +98,13 @@
     <string name="saveSuccessful">Save successful</string>
     <string name="screenshot">screenshot</string>
     <string name="searchVideos">Search videos</string>
-    <string name="selectAll">Select all</string>
-    <string name="selectNone">Select none</string>
+    <string name="selectAll">Select All</string>
+    <string name="selectNone">Select None</string>
     <string name="sendCanceled">Send canceled</string>
     <string name="sendFailed">Send failed</string>
     <string name="sendSuccessful">Send successful</string>
     <string name="sending">Sending…</string>
-    <string name="setBackground">Set background</string>
+    <string name="setBackground">Set Background</string>
     <string name="setDarkStatus">Set dark status</string>
     <string name="setDarkTexts">Set dark texts</string>
     <string name="setLightStatus">Set light status</string>
@@ -119,9 +119,9 @@
     <string name="unfold">Unfold</string>
     <string name="unlockScreenOrientation">Unlock screen orientation</string>
     <string name="updateLog">%1$sv%2$s update log: </string>
-    <string name="updateLogs">Update logs</string>
-    <string name="userFeedback">User feedback</string>
-    <string name="version">v1.8-beta02</string>
+    <string name="updateLogs">Update Logs</string>
+    <string name="userFeedback">User Feedback</string>
+    <string name="version">v1.8-beta03</string>
     <string name="videoCount">Video count: %d</string>
     <string name="videoDetails">Video Details</string>
     <string name="videoLink">Video Link</string>

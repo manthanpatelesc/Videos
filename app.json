@@ -9,7 +9,8 @@
     "appLink": "https://raw.githubusercontent.com/ApksHolder/Videos/master/app-release.apk",
     "updateLogs": [
       "1. 首页大改版，支持输入链接播放在线视频",
-      "2. 支持切换播放引擎以获取最佳视听体验"
+      "2. 支持切换播放引擎以获取最佳视听体验",
+      "3. 支持循环播放视频列表"
     ]
   },
   "author": "刘振林"

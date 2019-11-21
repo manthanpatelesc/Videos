@@ -15,7 +15,7 @@ import java.util.List;
 public class SwipeBackFragment extends Fragment implements ISwipeBackFragment {
 
     private SwipeBackLayout mSwipeBackLayout;
-    private Animation mNoTransition;
+    private static Animation sNoTransition;
 
     private boolean mTransitionEnabled = true;
 
@@ -31,13 +31,19 @@ public class SwipeBackFragment extends Fragment implements ISwipeBackFragment {
     }
 
     @Override
+    public void onDestroy() {
+        super.onDestroy();
+        mSwipeBackLayout = null;
+    }
+
+    @Override
     public Animation onCreateAnimation(int transit, boolean enter, int nextAnim) {
         if (mTransitionEnabled) {
             return super.onCreateAnimation(transit, enter, nextAnim);
         } else {
-            if (mNoTransition == null)
-                mNoTransition = AnimationUtils.loadAnimation(getContext(), R.anim.no_anim);
-            return mNoTransition;
+            if (sNoTransition == null)
+                sNoTransition = AnimationUtils.loadAnimation(getContext(), R.anim.no_anim);
+            return sNoTransition;
         }
     }
 
@@ -82,10 +88,10 @@ public class SwipeBackFragment extends Fragment implements ISwipeBackFragment {
     @Nullable
     @Override
     public ISwipeBackFragment getPreviousFragment() {
-        FragmentManager manager = getFragmentManager();
-        if (manager == null) return null;
+        FragmentManager fm = getFragmentManager();
+        if (fm == null) return null;
 
-        List<Fragment> fragments = manager.getFragments();
+        List<Fragment> fragments = fm.getFragments();
         if (fragments.size() > 1) {
             final int index = fragments.indexOf(this);
             for (int i = index - 1; i >= 0; i--) {

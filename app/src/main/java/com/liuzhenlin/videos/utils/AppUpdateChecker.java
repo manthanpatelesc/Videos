@@ -494,7 +494,9 @@ public final class AppUpdateChecker {
                         .setSmallIcon(R.mipmap.ic_launcher)
                         .setCustomContentView(nv)
                         .setCustomBigContentView(nv)
-                        .setDefaults(Notification.DEFAULT_LIGHTS);
+                        .setOnlyAlertOnce(true)
+                        .setDefaults(Notification.DEFAULT_LIGHTS)
+                        .setTicker(mContext.getString(R.string.downloadingUpdates));
                 mService.startForeground(ID_NOTIFICATION, mNotificationBuilder.build());
             }
 

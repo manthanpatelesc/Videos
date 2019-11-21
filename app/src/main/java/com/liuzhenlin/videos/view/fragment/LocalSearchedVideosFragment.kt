@@ -571,7 +571,7 @@ class LocalSearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLon
                 PAYLOAD_REFRESH_VIDEO_PROGRESS_DURATION shl 1
 
         private const val HEADER_COUNT = 1
-        private const val TAG = "LocalSearchedVideosFragment.DividerItemDecoration"
+        private const val TAG = "LocalSearchedVideosFragment\$DividerItemDecoration"
         @JvmStatic
         private val ATTRS = intArrayOf(android.R.attr.listDivider)
     }

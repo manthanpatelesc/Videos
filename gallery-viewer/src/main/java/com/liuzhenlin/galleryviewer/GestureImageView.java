@@ -5,7 +5,6 @@
 
 package com.liuzhenlin.galleryviewer;
 
-import android.animation.ObjectAnimator;
 import android.animation.PropertyValuesHolder;
 import android.animation.ValueAnimator;
 import android.annotation.SuppressLint;
@@ -844,7 +843,7 @@ public class GestureImageView extends AppCompatImageView {
         mImageScalingPivot = new PointF();
         mFromTranslations = new PointF();
         mToTranslations = new PointF();
-        mImageTransformer = ObjectAnimator.ofPropertyValuesHolder(
+        mImageTransformer = ValueAnimator.ofPropertyValuesHolder(
                 PropertyValuesHolder.ofObject(PROPERTY_IMAGE_SCALES,
                         new PointFEvaluator(), mFromScales, mToScales),
                 PropertyValuesHolder.ofObject(PROPERTY_IMAGE_TRANSLATIONS,

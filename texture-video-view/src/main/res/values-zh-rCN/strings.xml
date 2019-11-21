@@ -7,9 +7,9 @@
     <string name="share">分享</string>
     <string name="clickToShare">点击分享</string>
     <string name="more">更多</string>
-    <string name="brightness_progress">亮度：%.0f%%</string>
-    <string name="brightness_followsSystem">亮度：跟随系统</string>
-    <string name="volume_progress">音量：%.0f%%</string>
+    <string name="brightnessProgress">亮度：%.0f%%</string>
+    <string name="brightnessFollowsSystem">亮度：跟随系统</string>
+    <string name="volumeProgress">音量：%.0f%%</string>
     <string name="progress_duration">%s/%s</string>
     <string name="lock">锁定</string>
     <string name="unlock">不锁定</string>

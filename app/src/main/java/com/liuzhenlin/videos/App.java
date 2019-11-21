@@ -15,6 +15,7 @@ import android.os.Environment;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatDelegate;
+import androidx.collection.SimpleArrayMap;
 import androidx.multidex.MultiDex;
 
 import com.liuzhenlin.floatingmenu.DensityUtils;
@@ -24,7 +25,6 @@ import com.squareup.leakcanary.RefWatcher;
 
 import java.io.File;
 import java.lang.ref.WeakReference;
-import java.util.HashMap;
 
 /**
  * @author 刘振林
@@ -33,8 +33,8 @@ public class App extends Application implements Application.ActivityLifecycleCal
 
     private static App sApp;
 
-    private static final HashMap</* class name */ String, WeakReference<Activity>> sActivities =
-            new HashMap<>(3);
+    private static final SimpleArrayMap</* class name */ String, WeakReference<Activity>> sActivities
+            = new SimpleArrayMap<>(3);
 
     private static String sAppDirectory;
 

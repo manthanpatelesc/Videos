@@ -33,7 +33,8 @@ public class DemoActivity extends AppCompatActivity {
 
         // First, interrelates TextureVideoView with TextureVideoView.VideoPlayer
         mVideoView = findViewById(R.id.videoview);
-        mVideoPlayer = new TextureVideoView.MediaPlayer(mVideoView);
+        mVideoPlayer = new TextureVideoView.MediaPlayer(this);
+        mVideoPlayer.setVideoView(mVideoView);
         mVideoView.setVideoPlayer(mVideoPlayer);
 
         mVideoView.setTitle("Simplest Playback Demo for TextureVideoView");
@@ -58,12 +59,7 @@ public class DemoActivity extends AppCompatActivity {
                 // no-op
             }
         });
-        mVideoView.setEventListener(new TextureVideoView.EventListener() {
-            @Override
-            public void onPlayerChange(@Nullable TextureVideoView.VideoPlayer videoPlayer) {
-                mVideoPlayer = videoPlayer;
-            }
-
+        mVideoPlayer.setOnSkipPrevNextListener(new TextureVideoView.VideoPlayer.OnSkipPrevNextListener() {
             @Override
             public void onSkipToPrevious() {
                 // no-op
@@ -72,6 +68,12 @@ public class DemoActivity extends AppCompatActivity {
             @Override
             public void onSkipToNext() {
                 // no-op
+            }
+        });
+        mVideoView.setEventListener(new TextureVideoView.EventListener() {
+            @Override
+            public void onPlayerChange(@Nullable TextureVideoView.VideoPlayer videoPlayer) {
+                mVideoPlayer = videoPlayer;
             }
 
             @Override

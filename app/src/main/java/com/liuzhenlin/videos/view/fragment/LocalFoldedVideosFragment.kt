@@ -144,10 +144,6 @@ class LocalFoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, Vie
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         mLifecycleCallback?.onFragmentViewCreated(this)
-
-        if (Utils.isLayoutRtl(mActivity.window.decorView)) {
-            swipeBackLayout.enabledEdges = SwipeBackLayout.EDGE_RIGHT
-        }
     }
 
     override fun onDestroyView() {
@@ -217,6 +213,19 @@ class LocalFoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, Vie
         mRenameButton.setOnClickListener(this)
         mShareButton.setOnClickListener(this)
         mDetailsButton.setOnClickListener(this)
+
+        contentView.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
+            override fun onViewDetachedFromWindow(v: View) {
+            }
+
+            override fun onViewAttachedToWindow(v: View) {
+                if (Utils.isLayoutRtl(v)) {
+                    swipeBackLayout.enabledEdges = SwipeBackLayout.EDGE_RIGHT
+                }
+
+                v.removeOnAttachStateChangeListener(this)
+            }
+        })
     }
 
     /**

@@ -6,7 +6,7 @@ import androidx.annotation.NonNull;
 
 public class MenuItem {
 
-    private String text;
+    private CharSequence text;
     private int iconResId = View.NO_ID;
 
     public MenuItem() {
@@ -21,11 +21,11 @@ public class MenuItem {
         this.iconResId = iconResId;
     }
 
-    public String getText() {
+    public CharSequence getText() {
         return text;
     }
 
-    public void setText(String item) {
+    public void setText(CharSequence item) {
         this.text = item;
     }
 

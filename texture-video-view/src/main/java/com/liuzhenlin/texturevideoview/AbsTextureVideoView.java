@@ -18,21 +18,19 @@ import android.util.AttributeSet;
 import android.view.Gravity;
 import android.view.Surface;
 import android.view.View;
-import android.view.ViewConfiguration;
+import android.widget.Toast;
 
 import androidx.annotation.CallSuper;
-import androidx.annotation.ColorInt;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.Px;
 import androidx.annotation.VisibleForTesting;
-import androidx.core.content.ContextCompat;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.audio.AudioAttributes;
 import com.google.android.exoplayer2.util.Util;
+import com.google.android.material.snackbar.Snackbar;
 import com.liuzhenlin.texturevideoview.receiver.HeadsetEventsReceiver;
 import com.liuzhenlin.texturevideoview.receiver.MediaButtonEventHandler;
 import com.liuzhenlin.texturevideoview.receiver.MediaButtonEventReceiver;
@@ -49,12 +47,10 @@ import java.util.List;
 /**
  * @author 刘振林
  */
-public abstract class AbsTextureVideoView extends DrawerLayout {
+/* package-private */ abstract class AbsTextureVideoView extends DrawerLayout {
 
     protected final Context mContext;
     protected final Resources mResources;
-
-    /* package-private */ final AudioManager mAudioManager;
 
     /* package-private */ final String mAppName;
     /**
@@ -62,19 +58,6 @@ public abstract class AbsTextureVideoView extends DrawerLayout {
      * and the `exoplayer-core` library version.
      */
     /* package-private */ final String mUserAgent;
-
-    /**
-     * Bright complement to the primary branding color. By default, this is the color applied to
-     * framework controls (via colorControlActivated).
-     */
-    @ColorInt
-    protected final int mColorAccent;
-
-    /**
-     * Distance in pixels a touch can wander before we think the user is scrolling.
-     */
-    @Px
-    protected final int mTouchSlop;
 
     /* package-private */
     AbsTextureVideoView(@NonNull Context context) {
@@ -92,23 +75,18 @@ public abstract class AbsTextureVideoView extends DrawerLayout {
         mContext = context;
         mResources = getResources();
 
-        mAudioManager = (AudioManager) context.getApplicationContext()
-                .getSystemService(Context.AUDIO_SERVICE);
-
         mAppName = context.getApplicationInfo().loadLabel(context.getPackageManager()).toString();
         mUserAgent = Util.getUserAgent(context, mAppName);
-
-        mColorAccent = ContextCompat.getColor(context, R.color.colorAccent);
-
-        mTouchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
     }
 
-    /** @return the {@link Surface} onto which video will be rendered. */
+    /**
+     * @return the {@link Surface} onto which video will be rendered.
+     */
     @Nullable
     public abstract Surface getSurface();
 
     /**
-     * Sets whether to show the loading circle in the center of this view, normally set while
+     * Sets whether to show the loading indicator ring in the center of this view, normally set while
      * the player is loading the video content or paused to buffer more data through progressive
      * HTTP download.
      */
@@ -140,11 +118,11 @@ public abstract class AbsTextureVideoView extends DrawerLayout {
     /* package-private */
     abstract void onVideoSizeChanged(int width, int height);
 
-    /* package-private */
-    abstract boolean skipToPreviousIfPossible();
+    /** @return true if we can skip the video played to the previous one */
+    public abstract boolean canSkipToPrevious();
 
-    /* package-private */
-    abstract boolean skipToNextIfPossible();
+    /** @return true if we can skip the video played to the next one */
+    public abstract boolean canSkipToNext();
 
     /* package-private */
     abstract void onPureAudioPlaybackModeChanged(boolean audioOnly);
@@ -206,7 +184,9 @@ public abstract class AbsTextureVideoView extends DrawerLayout {
     public static abstract class VideoPlayer implements IVideoPlayer {
 
         protected final Context mContext; // the Application Context
-        protected final AbsTextureVideoView mVideoView;
+
+        @Nullable
+        protected AbsTextureVideoView mVideoView;
 
         protected int mPrivateFlags;
 
@@ -235,6 +215,13 @@ public abstract class AbsTextureVideoView extends DrawerLayout {
          */
         protected static final int PFLAG_VIDEO_IS_CLOSING = 1 << 5;
 
+        /**
+         * Listener to be notified whenever it is necessary to change the video played to
+         * the previous or the next one in the playlist.
+         */
+        @Nullable
+        /* package-private */ OnSkipPrevNextListener mOnSkipPrevNextListener;
+
         /** The set of listeners for all the events related to video we publish. */
         @Nullable
         /* package-private */ List<VideoListener> mVideoListeners;
@@ -247,7 +234,8 @@ public abstract class AbsTextureVideoView extends DrawerLayout {
          * Caches the listener that will be added to {@link #mOnPlaybackStateChangeListeners}
          * for debugging purpose while {@link PackageConsts#DEBUG_LISTENER} is turned on.
          */
-        /* package-private */ OnPlaybackStateChangeListener mOnPlaybackStateChangeDebuggingListener;
+        @Nullable
+        private OnPlaybackStateChangeListener mOnPlaybackStateChangeDebuggingListener;
 
         /** The current state of the player or the playback of the video. */
         @PlaybackState
@@ -313,13 +301,27 @@ public abstract class AbsTextureVideoView extends DrawerLayout {
 
         protected HeadsetEventsReceiver mHeadsetEventsReceiver;
 
-        public VideoPlayer(@NonNull AbsTextureVideoView videoView) {
-            mContext = videoView.mContext.getApplicationContext();
-            mVideoView = videoView;
-            mAudioManager = videoView.mAudioManager;
+        public VideoPlayer(@NonNull Context context) {
+            mContext = context.getApplicationContext();
+            mAudioManager = (AudioManager) mContext.getSystemService(Context.AUDIO_SERVICE);
             if (sMediaButtonEventReceiverComponent == null) {
                 sMediaButtonEventReceiverComponent =
-                        new ComponentName(mContext, MediaButtonEventReceiver.class);
+                        new ComponentName(context, MediaButtonEventReceiver.class);
+            }
+            if (PackageConsts.DEBUG_LISTENER) {
+                final String videoPlayerTextualRepresentation =
+                        getClass().getName() + "@" + Integer.toHexString(hashCode());
+                mOnPlaybackStateChangeDebuggingListener = (oldState, newState) -> {
+                    final String text = videoPlayerTextualRepresentation + ": "
+                            + Utils.playbackStateIntToString(oldState) + " -> "
+                            + Utils.playbackStateIntToString(newState);
+                    if (mVideoView != null) {
+                        Utils.showUserCancelableSnackbar(mVideoView, text, Snackbar.LENGTH_LONG);
+                    } else {
+                        Toast.makeText(context, text, Toast.LENGTH_LONG).show();
+                    }
+                };
+                addOnPlaybackStateChangeListener(mOnPlaybackStateChangeDebuggingListener);
             }
         }
 
@@ -332,10 +334,22 @@ public abstract class AbsTextureVideoView extends DrawerLayout {
             return new File(FileUtils.getAvailableCacheDir(mContext), "videos");
         }
 
+        /**
+         * Sets the {@link AbsTextureVideoView} on which the video will be displayed.
+         * <p>
+         * After setting it, you probably need to call {@link TextureVideoView#setVideoPlayer(VideoPlayer)}
+         * with this player object as the function argument so as to synchronize the UI state.
+         */
+        public void setVideoView(@Nullable AbsTextureVideoView videoView) {
+            mVideoView = videoView;
+        }
+
         @Override
         public void setVideoUri(@Nullable Uri uri) {
             mVideoUri = uri;
-            mVideoView.onVideoUriChanged();
+            if (mVideoView != null) {
+                mVideoView.onVideoUriChanged();
+            }
         }
 
         /** @see #openVideo(boolean) */
@@ -427,7 +441,9 @@ public abstract class AbsTextureVideoView extends DrawerLayout {
         public void setPureAudioPlayback(boolean audioOnly) {
             mPrivateFlags = mPrivateFlags & ~PFLAG_PURE_AUDIO_PLAYBACK
                     | (audioOnly ? PFLAG_PURE_AUDIO_PLAYBACK : 0);
-            mVideoView.onPureAudioPlaybackModeChanged(audioOnly);
+            if (mVideoView != null) {
+                mVideoView.onPureAudioPlaybackModeChanged(audioOnly);
+            }
         }
 
         @Override
@@ -447,7 +463,9 @@ public abstract class AbsTextureVideoView extends DrawerLayout {
         public void setSingleVideoLoopPlayback(boolean looping) {
             mPrivateFlags = mPrivateFlags & ~PFLAG_SINGLE_VIDEO_LOOP_PLAYBACK
                     | (looping ? PFLAG_SINGLE_VIDEO_LOOP_PLAYBACK : 0);
-            mVideoView.onSingleVideoLoopPlaybackModeChanged(looping);
+            if (mVideoView != null) {
+                mVideoView.onSingleVideoLoopPlaybackModeChanged(looping);
+            }
         }
 
         @Override
@@ -459,7 +477,9 @@ public abstract class AbsTextureVideoView extends DrawerLayout {
         @CallSuper
         @Override
         public void setPlaybackSpeed(float speed) {
-            mVideoView.onPlaybackSpeedChanged(speed);
+            if (mVideoView != null) {
+                mVideoView.onPlaybackSpeedChanged(speed);
+            }
         }
 
         @PlaybackState
@@ -550,7 +570,9 @@ public abstract class AbsTextureVideoView extends DrawerLayout {
         protected void onVideoStarted() {
             setPlaybackState(PLAYBACK_STATE_PLAYING);
 
-            mVideoView.onVideoStarted();
+            if (mVideoView != null) {
+                mVideoView.onVideoStarted();
+            }
 
             if (hasVideoListener()) {
                 for (int i = mVideoListeners.size() - 1; i >= 0; i--) {
@@ -577,7 +599,9 @@ public abstract class AbsTextureVideoView extends DrawerLayout {
                 currentState = oldState;
             }
 
-            mVideoView.onVideoStopped();
+            if (mVideoView != null) {
+                mVideoView.onVideoStopped();
+            }
 
             if (hasVideoListener()) {
                 for (int i = mVideoListeners.size() - 1; i >= 0; i--) {
@@ -608,7 +632,7 @@ public abstract class AbsTextureVideoView extends DrawerLayout {
         protected boolean onPlaybackCompleted() {
             setPlaybackState(PLAYBACK_STATE_COMPLETED);
 
-            if (mVideoView.willTurnOffWhenThisEpisodeEnds()) {
+            if (mVideoView != null && mVideoView.willTurnOffWhenThisEpisodeEnds()) {
                 mVideoView.onVideoTurnedOffWhenTheEpisodeEnds();
 
                 closeVideoInternal(true);
@@ -632,16 +656,50 @@ public abstract class AbsTextureVideoView extends DrawerLayout {
                     }
                 }
 
-                mVideoView.onVideoSizeChanged(width, height);
+                if (mVideoView != null) {
+                    mVideoView.onVideoSizeChanged(width, height);
+                }
             }
         }
 
-        protected boolean skipToNextIfPossible() {
-            return mVideoView.skipToNextIfPossible();
+        protected boolean skipToPreviousIfPossible() {
+            if (mVideoView != null && !mVideoView.canSkipToPrevious()) {
+                return false;
+            }
+
+            if (mOnSkipPrevNextListener != null) {
+                mOnSkipPrevNextListener.onSkipToPrevious();
+            }
+            return true;
         }
 
-        protected boolean skipToPreviousIfPossible() {
-            return mVideoView.skipToPreviousIfPossible();
+        protected boolean skipToNextIfPossible() {
+            if (mVideoView != null && !mVideoView.canSkipToNext()) {
+                return false;
+            }
+
+            if (mOnSkipPrevNextListener != null) {
+                mOnSkipPrevNextListener.onSkipToNext();
+            }
+            return true;
+        }
+
+        public void setOnSkipPrevNextListener(@Nullable OnSkipPrevNextListener listener) {
+            mOnSkipPrevNextListener = listener;
+        }
+
+        public interface OnSkipPrevNextListener {
+            /**
+             * Called when the previous video in the playlist (if any) needs to be played
+             */
+            default void onSkipToPrevious() {
+            }
+
+            /**
+             * Called when the next video in the playlist (if any) needs to be played
+             */
+            default void onSkipToNext() {
+            }
         }
 
         protected static class MsgHandler extends Handler {
@@ -656,7 +714,8 @@ public abstract class AbsTextureVideoView extends DrawerLayout {
                 VideoPlayer videoPlayer = mVideoPlayerRef.get();
                 if (videoPlayer == null) return;
 
-                if (!(videoPlayer.mVideoView.isInForeground() || videoPlayer.isPureAudioPlayback())) {
+                AbsTextureVideoView videoView = videoPlayer.mVideoView;
+                if (!(videoView != null && videoView.isInForeground() || videoPlayer.isPureAudioPlayback())) {
                     return;
                 }
 
@@ -681,15 +740,15 @@ public abstract class AbsTextureVideoView extends DrawerLayout {
         public static final class Factory {
             @Nullable
             public static <VP extends VideoPlayer> VP newInstance(
-                    @NonNull Class<VP> vpClass, @NonNull AbsTextureVideoView videoView) {
+                    @NonNull Class<VP> vpClass, @NonNull Context context) {
                 if (TextureVideoView.MediaPlayer.class == vpClass) {
                     //noinspection unchecked
-                    return (VP) new TextureVideoView.MediaPlayer(videoView);
+                    return (VP) new TextureVideoView.MediaPlayer(context);
                 }
                 if (TextureVideoView.ExoPlayer.class == vpClass) {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
                         //noinspection unchecked
-                        return (VP) new TextureVideoView.ExoPlayer(videoView);
+                        return (VP) new TextureVideoView.ExoPlayer(context);
                     }
                     return null;
                 }
@@ -697,15 +756,15 @@ public abstract class AbsTextureVideoView extends DrawerLayout {
                 for (Constructor<VP> constructor : (Constructor<VP>[]) vpClass.getConstructors()) {
                     Class<?>[] paramTypes = constructor.getParameterTypes();
                     // Try to find a constructor that takes a single parameter whose type is the
-                    // (super) type of the videoView.
+                    // (super) type of the context.
                     if (paramTypes.length == 1) {
                         try {
-                            videoView.getClass().asSubclass(paramTypes[0]);
+                            context.getClass().asSubclass(paramTypes[0]);
                         } catch (ClassCastException e) {
                             continue;
                         }
                         try {
-                            return constructor.newInstance(videoView);
+                            return constructor.newInstance(context);
                         } catch (IllegalAccessException e) {
                             e.printStackTrace();
                         } catch (InstantiationException e) {

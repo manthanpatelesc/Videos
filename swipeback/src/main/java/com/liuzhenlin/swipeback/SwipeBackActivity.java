@@ -17,16 +17,12 @@ public class SwipeBackActivity extends AppCompatActivity implements ISwipeBackAc
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        mSwipeBackLayout = (SwipeBackLayout) View.inflate(this, R.layout.swipeback, null);
 
         Window window = getWindow();
         window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
         window.setWindowAnimations(R.style.WindowAnimations_SwipeBackActivity);
-    }
 
-    @Override
-    protected void onPostCreate(@Nullable Bundle savedInstanceState) {
-        super.onPostCreate(savedInstanceState);
+        mSwipeBackLayout = (SwipeBackLayout) View.inflate(this, R.layout.swipeback, null);
         mSwipeBackLayout.attachToActivity(this);
     }
 

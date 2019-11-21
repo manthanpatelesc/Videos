@@ -12,11 +12,15 @@ import androidx.fragment.app.Fragment;
  * @author 刘振林
  */
 public interface FragmentPartLifecycleCallback {
-    void onFragmentAttached(@NonNull Fragment fragment);
+    default void onFragmentAttached(@NonNull Fragment fragment) {
+    }
 
-    void onFragmentViewCreated(@NonNull Fragment fragment);
+    default void onFragmentViewCreated(@NonNull Fragment fragment) {
+    }
 
-    void onFragmentViewDestroyed(@NonNull Fragment fragment);
+    default void onFragmentViewDestroyed(@NonNull Fragment fragment) {
+    }
 
-    void onFragmentDetached(@NonNull Fragment fragment);
+    default void onFragmentDetached(@NonNull Fragment fragment) {
+    }
 }

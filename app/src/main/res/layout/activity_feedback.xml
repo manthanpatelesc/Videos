@@ -22,7 +22,7 @@
             android:drawableStart="@drawable/ic_back"
             android:drawableLeft="@drawable/ic_back"
             app:drawableTint="@color/color_selector_color_accent"
-            android:drawablePadding="5dp"
+            android:drawablePadding="7.5dp"
             android:text="@string/back"
             android:textSize="@dimen/title_text_size"
             android:textColor="@color/color_selector_color_accent"

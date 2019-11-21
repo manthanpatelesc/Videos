@@ -72,7 +72,7 @@ public class FloatingWindowPermissionUtil {
         new AlertDialog.Builder(activity, R.style.DialogStyle_MinWidth_NoTitle)
                 .setMessage(R.string.rationale_askFloatingWindowPermission)
                 .setNegativeButton(R.string.notOpenYet, listener)
-                .setPositiveButton(R.string.openNow, listener)
+                .setPositiveButton(R.string.goNow, listener)
                 .show();
     }
 
@@ -103,7 +103,7 @@ public class FloatingWindowPermissionUtil {
         new AlertDialog.Builder(obtainFragmentContext(fragment), R.style.DialogStyle_MinWidth_NoTitle)
                 .setMessage(R.string.rationale_askFloatingWindowPermission)
                 .setNegativeButton(R.string.notOpenYet, listener)
-                .setPositiveButton(R.string.openNow, listener)
+                .setPositiveButton(R.string.goNow, listener)
                 .show();
     }
 

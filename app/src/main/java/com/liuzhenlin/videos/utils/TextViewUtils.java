@@ -24,9 +24,10 @@ public class TextViewUtils {
     }
 
     public static int getTextWidth(@NonNull TextView tv) {
+        CharSequence text = tv.getText();
         Rect bounds = new Rect();
         TextPaint paint = tv.getPaint();
-        paint.getTextBounds(tv.getText().toString(), 0, tv.getText().length(), bounds);
+        paint.getTextBounds(text, 0, text.length(), bounds);
         return bounds.width();
     }
 

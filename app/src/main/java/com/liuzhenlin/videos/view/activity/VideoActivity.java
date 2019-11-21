@@ -317,9 +317,10 @@ public class VideoActivity extends SwipeBackActivity {
         mVideoView = findViewById(R.id.videoview);
         final TextureVideoView.VideoPlayer videoPlayer =
                 Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN
-                        ? new TextureVideoView.ExoPlayer(mVideoView)
-                        : new TextureVideoView.MediaPlayer(mVideoView);
+                        ? new TextureVideoView.ExoPlayer(this)
+                        : new TextureVideoView.MediaPlayer(this);
         mVideoPlayer = videoPlayer;
+        videoPlayer.setVideoView(mVideoView);
         mVideoView.setVideoPlayer(videoPlayer);
 
         mLockUnlockOrientationButton = findViewById(R.id.btn_lockUnlockOrientation);
@@ -343,6 +344,8 @@ public class VideoActivity extends SwipeBackActivity {
 
         if (mVideos.length > 1) {
             mVideoView.setPlayListAdapter(new VideoEpisodesAdapter());
+            mVideoView.setCanSkipToPrevious(true);
+            mVideoView.setCanSkipToNext(true);
         }
         // 确保列表滚动到所播放视频的位置
         if (savedInstanceState == null && mVideoIndex != 0) {
@@ -425,25 +428,40 @@ public class VideoActivity extends SwipeBackActivity {
                 }
             }
         });
-        mVideoView.setEventListener(new TextureVideoView.EventListener() {
-
-            @Override
-            public void onPlayerChange(@Nullable TextureVideoView.VideoPlayer videoPlayer) {
-                mVideoPlayer = videoPlayer;
-            }
-
+        videoPlayer.setOnSkipPrevNextListener(new TextureVideoView.VideoPlayer.OnSkipPrevNextListener() {
             @Override
             public void onSkipToPrevious() {
                 recordCurrVideoProgress();
-                setVideoToPlay(--mVideoIndex);
-                notifyItemSelectionChanged(mVideoIndex + 1, mVideoIndex, true);
+
+                final int oldVideoIndex = mVideoIndex;
+                if (oldVideoIndex == 0) {
+                    mVideoIndex = mVideos.length - 1;
+                } else {
+                    --mVideoIndex;
+                }
+                setVideoToPlay(mVideoIndex);
+                notifyItemSelectionChanged(oldVideoIndex, mVideoIndex, true);
             }
 
             @Override
             public void onSkipToNext() {
                 recordCurrVideoProgress();
-                setVideoToPlay(++mVideoIndex);
-                notifyItemSelectionChanged(mVideoIndex - 1, mVideoIndex, true);
+
+                final int oldVideoIndex = mVideoIndex;
+                if (oldVideoIndex == mVideos.length - 1) {
+                    mVideoIndex = 0;
+                } else {
+                    ++mVideoIndex;
+                }
+                setVideoToPlay(mVideoIndex);
+                notifyItemSelectionChanged(oldVideoIndex, mVideoIndex, true);
+            }
+        });
+        mVideoView.setEventListener(new TextureVideoView.EventListener() {
+
+            @Override
+            public void onPlayerChange(@Nullable TextureVideoView.VideoPlayer videoPlayer) {
+                mVideoPlayer = videoPlayer;
             }
 
             @Override
@@ -507,8 +525,6 @@ public class VideoActivity extends SwipeBackActivity {
 
     private void setVideoToPlay(int videoIndex) {
         Video video = mVideos[videoIndex];
-        mVideoView.setCanSkipToPrevious(videoIndex > 0);
-        mVideoView.setCanSkipToNext(videoIndex < mVideos.length - 1);
         mVideoPlayer.setVideoPath(video.getPath());
         mVideoView.setTitle(FileUtils.getFileTitleFromFileName(video.getName()));
     }
@@ -1303,11 +1319,11 @@ public class VideoActivity extends SwipeBackActivity {
                         R.string.theVideoIsPlaying, Snackbar.LENGTH_SHORT);
             } else {
                 recordCurrVideoProgress();
-                setVideoToPlay(position);
 
-                final int oldIndex = mVideoIndex;
+                final int oldPosition = mVideoIndex;
                 mVideoIndex = position;
-                notifyItemSelectionChanged(oldIndex, position, false);
+                setVideoToPlay(position);
+                notifyItemSelectionChanged(oldPosition, position, false);
             }
         }
 

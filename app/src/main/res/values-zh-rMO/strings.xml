@@ -17,7 +17,7 @@
     <string name="cancel">取消</string>
     <string name="cancelTop">取消置顶</string>
     <string name="cannotPlayThisVideo">无法播放此视频</string>
-    <string name="checkUpdate">检查更新</string>
+    <string name="checkForUpdates">检查更新</string>
     <string name="colon">：</string>
     <string name="commit">提交</string>
     <string name="complete">完成</string>
@@ -41,6 +41,7 @@
     <plurals name="findSomeVideos">
         <item quantity="other">找到%d个视频</item>
     </plurals>
+    <string name="goNow">现在去开启</string>
     <string name="hasBeenPlacedInTheBackground">已放入后台</string>
     <string name="illegalInputLink">输入链接不合法！</string>
     <string name="isTheLatestVersion">已是最新版本</string>
@@ -54,7 +55,6 @@
     <string name="notSave">不保存</string>
     <string name="ok">确定</string>
     <string name="onlineVideo">在线视频</string>
-    <string name="openNow">现在开启</string>
     <string name="openOrCloseSideDrawer">打开或关闭侧边抽屉</string>
     <string name="optionalForMeToContactWithYou">选填，便于我与你联系</string>
     <string name="path">路径：%s</string>
@@ -113,7 +113,7 @@
     <string name="updateLog">%1$sv%2$s 更新日志：</string>
     <string name="updateLogs">更新日志</string>
     <string name="userFeedback">用户反馈</string>
-    <string name="version">v1.8-beta02</string>
+    <string name="version">v1.8-beta03</string>
     <string name="videoCount">视频数：%d</string>
     <string name="videoDetails">视频详情</string>
     <string name="videoLink">视频链接</string>

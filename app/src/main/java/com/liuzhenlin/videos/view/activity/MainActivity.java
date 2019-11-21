@@ -319,7 +319,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 public void run() {
                     mIsBackPressed = false;
                 }
-            }, 3000);
+            }, 1500);
             UiUtils.showUserCancelableSnackbar(mSlidingDrawerLayout,
                     R.string.pressAgainToExitApp, Snackbar.LENGTH_SHORT);
 
@@ -365,7 +365,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private static final int[] sDrawerListItemIDs = {
-            R.string.checkUpdate,
+            R.string.checkForUpdates,
             R.string.aboutApp,
             R.string.updateLogs,
             R.string.userFeedback,
@@ -492,7 +492,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     public void onItemClick(AdapterView<?> listview, View view, int position, long id) {
         switch ((int) id) {
-            case R.string.checkUpdate:
+            case R.string.checkForUpdates:
                 checkUpdate();
                 break;
             case R.string.aboutApp:
