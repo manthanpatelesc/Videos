@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?><!--
-  ~ Created on 5/10/19 12:11 AM.
+  ~ Created on 5/3/19 9:26 PM.
   ~ Copyright © 2019 刘振林. All rights reserved.
   -->
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
@@ -15,7 +15,12 @@
     <androidx.gridlayout.widget.GridLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="20dp"
+        android:paddingLeft="20dp"
+        android:paddingStart="20dp"
+        android:paddingRight="0dp"
+        android:paddingEnd="0dp"
+        android:paddingTop="20dp"
+        android:paddingBottom="20dp"
         app:rowCount="5"
         app:columnCount="2"
         app:orientation="horizontal">
@@ -25,6 +30,10 @@
             android:id="@+id/btn_stretchVideo"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:paddingLeft="0dp"
+            android:paddingStart="0dp"
+            android:paddingRight="20dp"
+            android:paddingEnd="20dp"
             android:text="@string/stretchVideoToFitFullscreen"
             android:textColor="@android:color/white"
             android:textSize="@dimen/widget_small_text_size"
@@ -39,6 +48,10 @@
             android:id="@+id/btn_loopSingleVideo"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:paddingLeft="0dp"
+            android:paddingStart="0dp"
+            android:paddingRight="20dp"
+            android:paddingEnd="20dp"
             android:layout_marginTop="15dp"
             android:text="@string/singleVideoLoopPlayback"
             android:textColor="@android:color/white"
@@ -54,6 +67,10 @@
             android:id="@+id/btn_pureAudioPlayback"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:paddingLeft="0dp"
+            android:paddingStart="0dp"
+            android:paddingRight="20dp"
+            android:paddingEnd="20dp"
             android:layout_marginTop="15dp"
             android:text="@string/pureAudioPlayback"
             android:textColor="@android:color/white"
@@ -74,60 +91,93 @@
             android:textSize="@dimen/widget_small_text_size"
             android:textAlignment="viewStart"
             android:gravity="start"
-            app:layout_columnWeight="3" />
+            app:layout_columnWeight="2" />
 
         <!-- row 4 column 2 -->
-        <LinearLayout
+        <HorizontalScrollView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="15dp"
-            android:orientation="vertical"
+            android:layout_marginTop="5dp"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp"
+            android:scrollbars="none"
+            android:overScrollMode="never"
             app:layout_columnWeight="5">
 
-            <TextView
-                android:id="@+id/text_whenThisEpisodeEnds"
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/whenThisEpisodeEnds"
-                android:textColor="@color/color_selector_white_color_accent"
-                android:textSize="@dimen/widget_small_text_size" />
+                android:orientation="horizontal">
 
-            <TextView
-                android:id="@+id/text_30Minutes"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="@string/_30Minutes"
-                android:textColor="@color/color_selector_white_color_accent"
-                android:textSize="@dimen/widget_small_text_size" />
+                <TextView
+                    android:id="@+id/text_whenThisEpisodeEnds"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="25dp"
+                    android:layout_marginRight="25dp"
+                    android:text="@string/whenThisEpisodeEnds"
+                    android:textColor="@color/color_selector_white_color_accent"
+                    android:textSize="@dimen/widget_small_text_size" />
 
-            <TextView
-                android:id="@+id/text_anHour"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="@string/anHour"
-                android:textColor="@color/color_selector_white_color_accent"
-                android:textSize="@dimen/widget_small_text_size" />
-        </LinearLayout>
+                <TextView
+                    android:id="@+id/text_30Minutes"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="25dp"
+                    android:layout_marginRight="25dp"
+                    android:text="@string/_30Minutes"
+                    android:textColor="@color/color_selector_white_color_accent"
+                    android:textSize="@dimen/widget_small_text_size" />
+
+                <TextView
+                    android:id="@+id/text_anHour"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="25dp"
+                    android:layout_marginRight="25dp"
+                    android:text="@string/anHour"
+                    android:textColor="@color/color_selector_white_color_accent"
+                    android:textSize="@dimen/widget_small_text_size" />
+
+                <TextView
+                    android:id="@+id/text_90Minutes"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="25dp"
+                    android:layout_marginRight="25dp"
+                    android:text="@string/_90Minutes"
+                    android:textColor="@color/color_selector_white_color_accent"
+                    android:textSize="@dimen/widget_small_text_size" />
+
+                <TextView
+                    android:id="@+id/text_2Hours"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="25dp"
+                    android:layout_marginRight="25dp"
+                    android:text="@string/_2Hours"
+                    android:textColor="@color/color_selector_white_color_accent"
+                    android:textSize="@dimen/widget_small_text_size" />
+            </LinearLayout>
+        </HorizontalScrollView>
 
         <!-- row 5 column 1 -->
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
+            android:layout_marginTop="10dp"
             android:text="@string/playerEngine"
             android:textColor="@android:color/white"
             android:textSize="@dimen/widget_small_text_size"
             android:textAlignment="viewStart"
             android:gravity="start"
-            app:layout_columnWeight="3" />
+            app:layout_columnWeight="2" />
 
         <!-- row 5 column 2 -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
+            android:layout_marginTop="10dp"
             android:orientation="vertical"
             app:layout_columnWeight="5">
 

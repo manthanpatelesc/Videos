@@ -214,18 +214,11 @@ class LocalFoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, Vie
         mShareButton.setOnClickListener(this)
         mDetailsButton.setOnClickListener(this)
 
-        contentView.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
-            override fun onViewDetachedFromWindow(v: View) {
+        contentView.post {
+            if (Utils.isLayoutRtl(contentView)) {
+                swipeBackLayout.enabledEdges = SwipeBackLayout.EDGE_RIGHT
             }
-
-            override fun onViewAttachedToWindow(v: View) {
-                if (Utils.isLayoutRtl(v)) {
-                    swipeBackLayout.enabledEdges = SwipeBackLayout.EDGE_RIGHT
-                }
-
-                v.removeOnAttachStateChangeListener(this)
-            }
-        })
+        }
     }
 
     /**

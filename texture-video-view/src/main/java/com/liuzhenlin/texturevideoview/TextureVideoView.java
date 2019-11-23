@@ -61,6 +61,7 @@ import android.webkit.URLUtil;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Checkable;
+import android.widget.HorizontalScrollView;
 import android.widget.ImageView;
 import android.widget.PopupWindow;
 import android.widget.ProgressBar;
@@ -641,6 +642,8 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                 TextView whenThisEpisodeEndsText = view.findViewById(R.id.text_whenThisEpisodeEnds);
                 TextView _30MinutesText = view.findViewById(R.id.text_30Minutes);
                 TextView anHourText = view.findViewById(R.id.text_anHour);
+                TextView _90MinutesText = view.findViewById(R.id.text_90Minutes);
+                TextView _2HoursText = view.findViewById(R.id.text_2Hours);
                 TextView mediaplayerText = view.findViewById(R.id.text_mediaplayer);
                 TextView exoplayerText = view.findViewById(R.id.text_exoplayer);
 
@@ -652,8 +655,21 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                 whenThisEpisodeEndsText.setSelected((mPrivateFlags & PFLAG_TURN_OFF_WHEN_THIS_EPISODE_ENDS) != 0);
                 _30MinutesText.setSelected(tor != null && tor.offTime == TimedOffRunnable.OFF_TIME_30_MINUTES);
                 anHourText.setSelected(tor != null && tor.offTime == TimedOffRunnable.OFF_TIME_AN_HOUR);
+                _90MinutesText.setSelected(tor != null && tor.offTime == TimedOffRunnable.OFF_TIME_90_MINUTES);
+                _2HoursText.setSelected(tor != null && tor.offTime == TimedOffRunnable.OFF_TIME_2_HOURS);
                 mediaplayerText.setSelected(videoPlayer instanceof MediaPlayer);
                 exoplayerText.setSelected(videoPlayer instanceof ExoPlayer);
+                // Scrolls to a proper horizontal position to make the selected text user-visible
+                HorizontalScrollView hsv = (HorizontalScrollView) anHourText.getParent().getParent();
+                if (_30MinutesText.isSelected()) {
+                    _30MinutesText.post(() -> hsv.scrollTo(_30MinutesText.getLeft(), 0));
+                } else if (anHourText.isSelected()) {
+                    anHourText.post(() -> hsv.scrollTo(anHourText.getLeft(), 0));
+                } else if (_90MinutesText.isSelected()) {
+                    _90MinutesText.post(() -> hsv.scrollTo(_90MinutesText.getLeft(), 0));
+                } else if (_2HoursText.isSelected()) {
+                    _2HoursText.post(() -> hsv.scrollTo(_2HoursText.getLeft(), 0));
+                }
 
                 svb.setOnClickListener(this);
                 lsvb.setOnClickListener(this);
@@ -661,6 +677,8 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                 whenThisEpisodeEndsText.setOnClickListener(this);
                 _30MinutesText.setOnClickListener(this);
                 anHourText.setOnClickListener(this);
+                _90MinutesText.setOnClickListener(this);
+                _2HoursText.setOnClickListener(this);
                 mediaplayerText.setOnClickListener(this);
                 exoplayerText.setOnClickListener(this);
 
@@ -723,6 +741,8 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                     v.setSelected(selected);
                     mMoreView.findViewById(R.id.text_30Minutes).setSelected(false);
                     mMoreView.findViewById(R.id.text_anHour).setSelected(false);
+                    mMoreView.findViewById(R.id.text_90Minutes).setSelected(false);
+                    mMoreView.findViewById(R.id.text_2Hours).setSelected(false);
 
                     updateTimedOffSchedule(selected, -1);
 
@@ -731,6 +751,8 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                     v.setSelected(selected);
                     mMoreView.findViewById(R.id.text_whenThisEpisodeEnds).setSelected(false);
                     mMoreView.findViewById(R.id.text_anHour).setSelected(false);
+                    mMoreView.findViewById(R.id.text_90Minutes).setSelected(false);
+                    mMoreView.findViewById(R.id.text_2Hours).setSelected(false);
 
                     updateTimedOffSchedule(selected, TimedOffRunnable.OFF_TIME_30_MINUTES);
 
@@ -739,8 +761,30 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                     v.setSelected(selected);
                     mMoreView.findViewById(R.id.text_whenThisEpisodeEnds).setSelected(false);
                     mMoreView.findViewById(R.id.text_30Minutes).setSelected(false);
+                    mMoreView.findViewById(R.id.text_90Minutes).setSelected(false);
+                    mMoreView.findViewById(R.id.text_2Hours).setSelected(false);
 
                     updateTimedOffSchedule(selected, TimedOffRunnable.OFF_TIME_AN_HOUR);
+
+                } else if (id == R.id.text_90Minutes) {
+                    final boolean selected = !v.isSelected();
+                    v.setSelected(selected);
+                    mMoreView.findViewById(R.id.text_whenThisEpisodeEnds).setSelected(false);
+                    mMoreView.findViewById(R.id.text_30Minutes).setSelected(false);
+                    mMoreView.findViewById(R.id.text_anHour).setSelected(false);
+                    mMoreView.findViewById(R.id.text_2Hours).setSelected(false);
+
+                    updateTimedOffSchedule(selected, TimedOffRunnable.OFF_TIME_90_MINUTES);
+
+                } else if (id == R.id.text_2Hours) {
+                    final boolean selected = !v.isSelected();
+                    v.setSelected(selected);
+                    mMoreView.findViewById(R.id.text_whenThisEpisodeEnds).setSelected(false);
+                    mMoreView.findViewById(R.id.text_30Minutes).setSelected(false);
+                    mMoreView.findViewById(R.id.text_anHour).setSelected(false);
+                    mMoreView.findViewById(R.id.text_90Minutes).setSelected(false);
+
+                    updateTimedOffSchedule(selected, TimedOffRunnable.OFF_TIME_2_HOURS);
 
                 } else if (id == R.id.text_mediaplayer) {
                     if (!v.isSelected()) {
@@ -782,6 +826,8 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                     break;
                 case TimedOffRunnable.OFF_TIME_30_MINUTES:
                 case TimedOffRunnable.OFF_TIME_AN_HOUR:
+                case TimedOffRunnable.OFF_TIME_90_MINUTES:
+                case TimedOffRunnable.OFF_TIME_2_HOURS:
                     mPrivateFlags &= ~PFLAG_TURN_OFF_WHEN_THIS_EPISODE_ENDS;
                     if (selected) {
                         if (mTimedOffRunnable == null) {
@@ -1377,7 +1423,6 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
 
             @Override
             public void onDrawerOpened(@NonNull View drawerView) {
-                setDrawerLockModeInternal(LOCK_MODE_UNLOCKED, drawerView);
             }
 
             @Override
@@ -1387,7 +1432,6 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                     mDrawerView.removeView(mMoreView);
                     mMoreView = null;
                 }
-                setDrawerLockModeInternal(LOCK_MODE_LOCKED_CLOSED, drawerView);
             }
         });
 
@@ -3511,7 +3555,9 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
     private final class TimedOffRunnable implements Runnable {
         int offTime;
         static final int OFF_TIME_30_MINUTES = 30 * 60 * 1000; // ms
-        static final int OFF_TIME_AN_HOUR = 60 * 60 * 1000; // ms
+        static final int OFF_TIME_AN_HOUR = 2 * OFF_TIME_30_MINUTES;
+        static final int OFF_TIME_90_MINUTES = 3 * OFF_TIME_30_MINUTES;
+        static final int OFF_TIME_2_HOURS = 4 * OFF_TIME_30_MINUTES;
 
         @Override
         public void run() {
@@ -3523,6 +3569,12 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                         break;
                     case OFF_TIME_AN_HOUR:
                         mMoreView.findViewById(R.id.text_anHour).setSelected(false);
+                        break;
+                    case OFF_TIME_90_MINUTES:
+                        mMoreView.findViewById(R.id.text_90Minutes).setSelected(false);
+                        break;
+                    case OFF_TIME_2_HOURS:
+                        mMoreView.findViewById(R.id.text_2Hours).setSelected(false);
                         break;
                 }
             }

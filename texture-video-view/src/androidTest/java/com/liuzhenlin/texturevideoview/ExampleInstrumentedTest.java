@@ -1,17 +1,12 @@
-/*
- * Created on 18-9-28 下午11:30.
- * Copyright © 2018 刘振林. All rights reserved.
- */
-
 package com.liuzhenlin.texturevideoview;
 
 import android.content.Context;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
-
 import androidx.test.InstrumentationRegistry;
 import androidx.test.runner.AndroidJUnit4;
+
+import org.junit.Test;
+import org.junit.runner.RunWith;
 
 import static org.junit.Assert.assertEquals;
 

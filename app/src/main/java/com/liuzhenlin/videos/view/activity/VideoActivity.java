@@ -358,17 +358,17 @@ public class VideoActivity extends SwipeBackActivity {
                 Video video = mVideos[mVideoIndex];
                 final int progress = video.getProgress();
                 if (progress > 0 && progress < video.getDuration()) {
-                    videoPlayer.seekTo(progress, false); // 恢复上次关闭此页面时播放到的位置
+                    mVideoPlayer.seekTo(progress, false); // 恢复上次关闭此页面时播放到的位置
                     video.setProgress(0);
                 }
 
                 if (mVideoWidth == 0 && mVideoHeight == 0) {
-                    mVideoWidth = videoPlayer.getVideoWidth();
-                    mVideoHeight = videoPlayer.getVideoHeight();
+                    mVideoWidth = mVideoPlayer.getVideoWidth();
+                    mVideoHeight = mVideoPlayer.getVideoHeight();
                 }
 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    mVideoProgressInPiP.setMax(videoPlayer.getVideoDuration());
+                    mVideoProgressInPiP.setMax(mVideoPlayer.getVideoDuration());
 
                     if (isInPictureInPictureMode()) {
                         // This Activity is recreated after killed by the System
@@ -395,7 +395,7 @@ public class VideoActivity extends SwipeBackActivity {
                 // action items to fast rewind, play and fast forward the video.
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && isInPictureInPictureMode()) {
                     int actions = PIP_ACTION_FAST_REWIND | PIP_ACTION_PLAY;
-                    if (!(videoPlayer.getPlaybackState() == IVideoPlayer.PLAYBACK_STATE_COMPLETED
+                    if (!(mVideoPlayer.getPlaybackState() == IVideoPlayer.PLAYBACK_STATE_COMPLETED
                             && !mVideoView.canSkipToNext())) {
                         actions |= PIP_ACTION_FAST_FORWARD;
                     }
@@ -466,7 +466,11 @@ public class VideoActivity extends SwipeBackActivity {
 
             @Override
             public void onReturnClicked() {
-                finish();
+                if (mVideoView.isInFullscreenMode()) {
+                    setFullscreenModeManually(false);
+                } else {
+                    finish();
+                }
             }
 
             public void onViewModeChange(int oldMode, int newMode, boolean layoutMatches) {

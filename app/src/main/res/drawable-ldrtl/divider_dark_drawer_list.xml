@@ -10,7 +10,7 @@
     </item>
     <item
         android:gravity="start"
-        android:left="10dp">
+        android:right="10dp">
         <shape>
             <solid android:color="#1F000000" />
             <size android:height="1dp" />

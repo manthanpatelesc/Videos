@@ -22,9 +22,9 @@ import android.text.style.TextAppearanceSpan;
 import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.SubMenu;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewStub;
 import android.view.Window;
 import android.widget.AdapterView;
 import android.widget.ImageView;
@@ -76,8 +76,8 @@ import java.io.InputStreamReader;
  * @author 刘振林
  */
 public class MainActivity extends AppCompatActivity implements View.OnClickListener,
-        AdapterView.OnItemClickListener, AdapterView.OnItemLongClickListener,
-        SlidingDrawerLayout.OnDrawerScrollListener, LocalVideosFragment.InteractionCallback {
+        AdapterView.OnItemClickListener, SlidingDrawerLayout.OnDrawerScrollListener,
+        LocalVideosFragment.InteractionCallback {
 
     private LocalVideosFragment mLocalVideosFragment;
     private OnlineVideoFragment mOnlineVideoFragment;
@@ -157,13 +157,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 parent.removeOnDrawerScrollListener(this);
 
                 mDrawerList = drawer.findViewById(R.id.list_drawer);
-                mDrawerListAdapter = new DrawerListAdapter();
-                View divider = new ViewStub(app);
-                mDrawerList.addHeaderView(divider);
-                mDrawerList.addFooterView(divider);
-                mDrawerList.setAdapter(mDrawerListAdapter);
+                mDrawerList.setDivider(null);
+//                View divider = new ViewStub(app);
+//                mDrawerList.addHeaderView(divider);
+//                mDrawerList.addFooterView(divider);
+                mDrawerList.setAdapter(mDrawerListAdapter = new DrawerListAdapter());
                 mDrawerList.setOnItemClickListener(MainActivity.this);
-                mDrawerList.setOnItemLongClickListener(MainActivity.this);
                 mDrawerList.setScrollEnabled(false);
 
                 mDrawerImage = findViewById(R.id.image_drawer);
@@ -265,39 +264,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     @Override
-    public void onDrawerOpened(@NonNull SlidingDrawerLayout parent, @NonNull View drawer) {
-    }
-
-    @Override
-    public void onDrawerClosed(@NonNull SlidingDrawerLayout parent, @NonNull View drawer) {
-    }
-
-    @Override
-    public void onScrollPercentChange(@NonNull SlidingDrawerLayout parent,
-                                      @NonNull View drawer, float percent) {
-        final boolean light = percent >= 0.5f;
-        if ((light && mOldDrawerScrollPercent < 0.5f || !light && mOldDrawerScrollPercent >= 0.5f)
-                && AppSharedPreferences.getInstance(this).isLightDrawerStatus()) {
-            setLightStatus(light);
-        }
-        mOldDrawerScrollPercent = percent;
-    }
-
-    @Override
-    public void onScrollStateChange(@NonNull SlidingDrawerLayout parent,
-                                    @NonNull View drawer, int state) {
-        switch (state) {
-            case SlidingDrawerLayout.SCROLL_STATE_TOUCH_SCROLL:
-            case SlidingDrawerLayout.SCROLL_STATE_AUTO_SCROLL:
-                mFragmentTabLayout.setLayerType(View.LAYER_TYPE_HARDWARE, null);
-                break;
-            case SlidingDrawerLayout.SCROLL_STATE_IDLE:
-                mFragmentTabLayout.setLayerType(View.LAYER_TYPE_NONE, null);
-                break;
-        }
-    }
-
-    @Override
     protected void onPostCreate(@Nullable Bundle savedInstanceState) {
         super.onPostCreate(savedInstanceState);
         // 打开应用时自动检测更新（有悬浮窗权限时才去检查，不然弹不出更新提示对话框）
@@ -369,7 +335,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             R.string.aboutApp,
             R.string.updateLogs,
             R.string.userFeedback,
-            R.string.setBackground
+            R.string.drawerSettings,
     };
 
     private final class DrawerListAdapter extends BaseAdapter2 {
@@ -384,10 +350,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         static final int SUBTEXT_HIGHLIGHT_COLOR = Color.RED;
 
         final Drawable mForwardDrawable;
-        final Drawable mLightDrawerListDivider = ContextCompat.getDrawable(
-                MainActivity.this, R.drawable.divider_light_drawer_list);
-        final Drawable mDarkDrawerListDivider = ContextCompat.getDrawable(
-                MainActivity.this, R.drawable.divider_dark_drawer_list);
+//        final Drawable mLightDrawerListDivider = ContextCompat.getDrawable(
+//                MainActivity.this, R.drawable.divider_light_drawer_list);
+//        final Drawable mDarkDrawerListDivider = ContextCompat.getDrawable(
+//                MainActivity.this, R.drawable.divider_dark_drawer_list);
 
         DrawerListAdapter() {
             mDrawerListItems = new String[sDrawerListItemIDs.length];
@@ -399,6 +365,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             assert temp != null;
             mForwardDrawable = DrawableCompat.wrap(temp);
             DrawableCompat.setTintList(mForwardDrawable, null);
+
+//            mDrawerList.setDivider(mDarkDrawerListDivider);
         }
 
         void setLightDrawerListForeground(boolean light) {
@@ -418,11 +386,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 }
                 notifyDataSetChanged();
 
-                if (light) {
-                    mDrawerList.setDivider(mLightDrawerListDivider);
-                } else {
-                    mDrawerList.setDivider(mDarkDrawerListDivider);
-                }
+//                if (light) {
+//                    mDrawerList.setDivider(mLightDrawerListDivider);
+//                } else {
+//                    mDrawerList.setDivider(mDarkDrawerListDivider);
+//                }
             }
         }
 
@@ -504,45 +472,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             case R.string.userFeedback:
                 startActivity(new Intent(this, FeedbackActivity.class));
                 break;
-            case R.string.setBackground:
-                Intent it = new Intent(Intent.ACTION_GET_CONTENT).setType("image/*");
-                startActivityForResult(it, REQUEST_CODE_CHOSE_DRAWER_BACKGROUND_PICTURE);
+            case R.string.drawerSettings:
+                showDrawerSettingsMenu(view);
                 break;
         }
-    }
-
-    @Override
-    public boolean onItemLongClick(AdapterView<?> parent, final View view, int position, long id) {
-        if (id == R.string.setBackground) {
-            PopupMenu ppm = new PopupMenu(this, view);
-            Menu menu = ppm.getMenu();
-            menu.add(Menu.NONE, R.id.changeTextColor, Menu.NONE,
-                    mIsDrawerListForegroundLight ? R.string.setDarkTexts : R.string.setLightTexts);
-            if (Build.VERSION.SDK_INT > Build.VERSION_CODES.KITKAT) {
-                menu.add(Menu.NONE, R.id.changeStatusTextColor, Menu.NONE,
-                        mIsDrawerStatusLight ? R.string.setLightStatus : R.string.setDarkStatus);
-            }
-            ppm.setGravity(Gravity.END);
-            ppm.show();
-            ppm.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
-                @Override
-                public boolean onMenuItemClick(MenuItem item) {
-                    switch (item.getItemId()) {
-                        case R.id.changeTextColor:
-                            mDrawerListAdapter.setLightDrawerListForeground(
-                                    !mIsDrawerListForegroundLight);
-                            return true;
-                        case R.id.changeStatusTextColor:
-                            setLightDrawerStatus(!mIsDrawerStatusLight);
-                            return true;
-                        default:
-                            return false;
-                    }
-                }
-            });
-            return true;
-        }
-        return false;
     }
 
     private void checkUpdate() {
@@ -652,6 +585,76 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         View button = view.findViewById(R.id.btn_ok_updateLogsDialog);
         button.setOnClickListener(this);
         button.setTag(dialog);
+    }
+
+    private void showDrawerSettingsMenu(View anchor) {
+        PopupMenu ppm = new PopupMenu(this, anchor);
+
+        Menu menu = ppm.getMenu();
+        menu.add(Menu.NONE, R.id.setBackground, Menu.NONE, R.string.setBackground);
+        SubMenu subMenu = menu.addSubMenu(Menu.NONE, R.id.setForeground, Menu.NONE, R.string.setForeground);
+
+        subMenu.add(R.id.setForeground, R.id.changeTextColor, Menu.NONE,
+                mIsDrawerListForegroundLight ? R.string.setDarkTexts : R.string.setLightTexts);
+        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.KITKAT) {
+            subMenu.add(R.id.setForeground, R.id.changeStatusTextColor, Menu.NONE,
+                    mIsDrawerStatusLight ? R.string.setLightStatus : R.string.setDarkStatus);
+        }
+
+        ppm.setGravity(Gravity.END);
+        ppm.show();
+        ppm.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+            @Override
+            public boolean onMenuItemClick(MenuItem item) {
+                switch (item.getItemId()) {
+                    case R.id.setBackground:
+                        Intent it = new Intent(Intent.ACTION_GET_CONTENT).setType("image/*");
+                        startActivityForResult(it, REQUEST_CODE_CHOSE_DRAWER_BACKGROUND_PICTURE);
+                        return true;
+                    case R.id.changeTextColor:
+                        mDrawerListAdapter.setLightDrawerListForeground(!mIsDrawerListForegroundLight);
+                        return true;
+                    case R.id.changeStatusTextColor:
+                        setLightDrawerStatus(!mIsDrawerStatusLight);
+                        return true;
+                    default:
+                        return false;
+                }
+            }
+        });
+    }
+
+    @Override
+    public void onDrawerOpened(@NonNull SlidingDrawerLayout parent, @NonNull View drawer) {
+    }
+
+    @Override
+    public void onDrawerClosed(@NonNull SlidingDrawerLayout parent, @NonNull View drawer) {
+    }
+
+    @Override
+    public void onScrollPercentChange(@NonNull SlidingDrawerLayout parent,
+                                      @NonNull View drawer, float percent) {
+        final boolean light = percent >= 0.5f;
+        if ((light && mOldDrawerScrollPercent < 0.5f || !light && mOldDrawerScrollPercent >= 0.5f)
+                && AppSharedPreferences.getInstance(this).isLightDrawerStatus()) {
+            setLightStatus(light);
+        }
+        mOldDrawerScrollPercent = percent;
+    }
+
+    @Override
+    public void onScrollStateChange(@NonNull SlidingDrawerLayout parent,
+                                    @NonNull View drawer, int state) {
+        switch (state) {
+            case SlidingDrawerLayout.SCROLL_STATE_TOUCH_SCROLL:
+            case SlidingDrawerLayout.SCROLL_STATE_AUTO_SCROLL:
+                mFragmentTabLayout.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+                break;
+            case SlidingDrawerLayout.SCROLL_STATE_IDLE:
+                mFragmentTabLayout.setLayerType(View.LAYER_TYPE_NONE, null);
+                break;
+        }
     }
 
     @Override

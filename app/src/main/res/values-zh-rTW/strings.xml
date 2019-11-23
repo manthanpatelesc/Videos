@@ -96,7 +96,9 @@
     <string name="sendFailed">发送失败</string>
     <string name="sendSuccessful">发送成功</string>
     <string name="sending">正在发送…</string>
+    <string name="drawerSettings">抽屉设置</string>
     <string name="setBackground">设置背景</string>
+    <string name="setForeground">设置前景</string>
     <string name="setDarkStatus">设置暗色状态栏</string>
     <string name="setDarkTexts">设置暗色字体</string>
     <string name="setLightStatus">设置亮色状态栏</string>
@@ -113,7 +115,7 @@
     <string name="updateLog">%1$sv%2$s 更新日志：</string>
     <string name="updateLogs">更新日志</string>
     <string name="userFeedback">用户反馈</string>
-    <string name="version">v1.8-beta03</string>
+    <string name="version">v1.8-beta04</string>
     <string name="videoCount">视频数：%d</string>
     <string name="videoDetails">视频详情</string>
     <string name="videoLink">视频链接</string>

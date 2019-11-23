@@ -9,6 +9,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.text.TextUtils
 import android.util.Patterns
@@ -46,10 +47,12 @@ class OnlineVideoFragment : Fragment(), SlidingDrawerLayout.OnDrawerScrollListen
     }
 
     private fun initViews(contentView: View) {
-        val statusHeight = App.getInstance(mContext).statusHeightInPortrait
-        val statusbarView = contentView.findViewById<View>(R.id.view_statusBar)
-        if (statusbarView.layoutParams.height != statusHeight) {
-            statusbarView.layoutParams.height = statusHeight
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            val statusHeight = App.getInstance(mContext).statusHeightInPortrait
+            val statusbarView = contentView.findViewById<View>(R.id.view_statusBar)
+            if (statusbarView.layoutParams.height != statusHeight) {
+                statusbarView.layoutParams.height = statusHeight
+            }
         }
 
         val til: TextInputLayout = contentView.findViewById(R.id.textinput_videolink)

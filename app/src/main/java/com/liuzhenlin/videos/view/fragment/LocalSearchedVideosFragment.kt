@@ -13,7 +13,6 @@ import android.graphics.Canvas
 import android.graphics.Rect
 import android.graphics.drawable.Drawable
 import android.os.AsyncTask
-import android.os.Build
 import android.os.Bundle
 import android.text.SpannableString
 import android.text.Spanned
@@ -129,9 +128,6 @@ class LocalSearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLon
             val searchSrcText = findViewById<SearchView.SearchAutoComplete>(R.id.search_src_text)
             searchSrcText.setTextSize(
                     TypedValue.COMPLEX_UNIT_PX, resources.getDimension(R.dimen.subtitle_text_size))
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
-                searchSrcText.textAlignment = View.TEXT_ALIGNMENT_VIEW_START
-            }
 
             onActionViewExpanded()
             setOnQueryTextListener(object : SearchView.OnQueryTextListener {

@@ -104,7 +104,9 @@
     <string name="sendFailed">Send failed</string>
     <string name="sendSuccessful">Send successful</string>
     <string name="sending">Sending…</string>
-    <string name="setBackground">Set Background</string>
+    <string name="drawerSettings">Drawer Settings</string>
+    <string name="setBackground">Set background</string>
+    <string name="setForeground">Set foreground</string>
     <string name="setDarkStatus">Set dark status</string>
     <string name="setDarkTexts">Set dark texts</string>
     <string name="setLightStatus">Set light status</string>
@@ -121,7 +123,7 @@
     <string name="updateLog">%1$sv%2$s update log: </string>
     <string name="updateLogs">Update Logs</string>
     <string name="userFeedback">User Feedback</string>
-    <string name="version">v1.8-beta03</string>
+    <string name="version">v1.8-beta04</string>
     <string name="videoCount">Video count: %d</string>
     <string name="videoDetails">Video Details</string>
     <string name="videoLink">Video Link</string>

@@ -22,7 +22,7 @@
         android:paddingTop="20dp"
         android:paddingBottom="20dp"
         app:rowCount="5"
-        app:columnCount="4"
+        app:columnCount="2"
         app:orientation="horizontal">
 
         <!-- row 1 -->
@@ -41,7 +41,7 @@
             android:gravity="start"
             android:thumb="@drawable/selector_switch_thumb"
             app:track="@drawable/selector_switch_track"
-            app:layout_columnSpan="4" />
+            app:layout_columnSpan="2" />
 
         <!-- row 2 -->
         <androidx.appcompat.widget.SwitchCompat
@@ -60,7 +60,7 @@
             android:gravity="start"
             android:thumb="@drawable/selector_switch_thumb"
             app:track="@drawable/selector_switch_track"
-            app:layout_columnSpan="4" />
+            app:layout_columnSpan="2" />
 
         <!-- row 3 -->
         <androidx.appcompat.widget.SwitchCompat
@@ -79,7 +79,7 @@
             android:gravity="start"
             android:thumb="@drawable/selector_switch_thumb"
             app:track="@drawable/selector_switch_track"
-            app:layout_columnSpan="4" />
+            app:layout_columnSpan="2" />
 
         <!-- row 4 column 1 -->
         <TextView
@@ -94,65 +94,92 @@
             app:layout_columnWeight="2" />
 
         <!-- row 4 column 2 -->
-        <TextView
-            android:id="@+id/text_whenThisEpisodeEnds"
+        <HorizontalScrollView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="15dp"
-            android:text="@string/whenThisEpisodeEnds"
-            android:textColor="@color/color_selector_white_color_accent"
-            android:textSize="@dimen/widget_small_text_size"
-            android:textAlignment="viewStart"
-            android:gravity="start"
-            app:layout_columnWeight="1.7" />
+            android:layout_marginTop="5dp"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp"
+            android:scrollbars="none"
+            android:overScrollMode="never"
+            app:layout_columnWeight="5">
 
-        <!-- row 4 column 3 -->
-        <TextView
-            android:id="@+id/text_30Minutes"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="15dp"
-            android:text="@string/_30Minutes"
-            android:textColor="@color/color_selector_white_color_accent"
-            android:textSize="@dimen/widget_small_text_size"
-            android:textAlignment="center"
-            android:gravity="center"
-            app:layout_columnWeight="1.7" />
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
 
-        <!-- row 4 column 4 -->
-        <TextView
-            android:id="@+id/text_anHour"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="15dp"
-            android:text="@string/anHour"
-            android:textColor="@color/color_selector_white_color_accent"
-            android:textSize="@dimen/widget_small_text_size"
-            android:textAlignment="center"
-            android:gravity="center"
-            app:layout_columnWeight="1.7" />
+                <TextView
+                    android:id="@+id/text_whenThisEpisodeEnds"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="25dp"
+                    android:layout_marginRight="25dp"
+                    android:text="@string/whenThisEpisodeEnds"
+                    android:textColor="@color/color_selector_white_color_accent"
+                    android:textSize="@dimen/widget_small_text_size" />
+
+                <TextView
+                    android:id="@+id/text_30Minutes"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="25dp"
+                    android:layout_marginRight="25dp"
+                    android:text="@string/_30Minutes"
+                    android:textColor="@color/color_selector_white_color_accent"
+                    android:textSize="@dimen/widget_small_text_size" />
+
+                <TextView
+                    android:id="@+id/text_anHour"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="25dp"
+                    android:layout_marginRight="25dp"
+                    android:text="@string/anHour"
+                    android:textColor="@color/color_selector_white_color_accent"
+                    android:textSize="@dimen/widget_small_text_size" />
+
+                <TextView
+                    android:id="@+id/text_90Minutes"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="25dp"
+                    android:layout_marginRight="25dp"
+                    android:text="@string/_90Minutes"
+                    android:textColor="@color/color_selector_white_color_accent"
+                    android:textSize="@dimen/widget_small_text_size" />
+
+                <TextView
+                    android:id="@+id/text_2Hours"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="25dp"
+                    android:layout_marginRight="25dp"
+                    android:text="@string/_2Hours"
+                    android:textColor="@color/color_selector_white_color_accent"
+                    android:textSize="@dimen/widget_small_text_size" />
+            </LinearLayout>
+        </HorizontalScrollView>
 
         <!-- row 5 column 1 -->
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
+            android:layout_marginTop="10dp"
             android:text="@string/playerEngine"
             android:textColor="@android:color/white"
             android:textSize="@dimen/widget_small_text_size"
             android:textAlignment="viewStart"
             android:gravity="start"
-            app:layout_columnSpan="1"
             app:layout_columnWeight="2" />
 
         <!-- row 5 column 2 -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
+            android:layout_marginTop="10dp"
             android:orientation="vertical"
-            app:layout_columnSpan="3"
-            app:layout_columnWeight="5.1">
+            app:layout_columnWeight="5">
 
             <TextView
                 android:id="@+id/text_mediaplayer"
