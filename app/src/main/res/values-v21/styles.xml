@@ -4,7 +4,7 @@
     <style name="ActivityStyle_Translucent" parent="AppTheme">
         <!--状态栏透明-->
         <item name="android:statusBarColor">@android:color/transparent</item>
-        <!--虚拟按键半透明-->
+        <!--虚拟按键透明-->
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <!--背景透明-->
         <item name="android:windowIsTranslucent">true</item>

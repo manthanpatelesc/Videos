@@ -14,8 +14,6 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 
-import com.liuzhenlin.videos.BuildConfig;
-
 /**
  * @author 刘振林
  */
@@ -61,11 +59,9 @@ public class TextViewUtils {
             return;
         }
         if (tv.getMeasuredWidth() == 0) {
-            if (BuildConfig.DEBUG) {
-                Log.e("TextViewUtils", "Failed to set hanging intents for the TextView " + tv
-                        + " because its width has not been determined yet."
-                        + " Probably you need to call this method after its layout is done.");
-            }
+            Log.e("TextViewUtils", "Failed to set hanging intents for the TextView " + tv
+                    + " because its width has not been determined yet."
+                    + " Probably you need to call this method after its layout is done.");
             return;
         }
 

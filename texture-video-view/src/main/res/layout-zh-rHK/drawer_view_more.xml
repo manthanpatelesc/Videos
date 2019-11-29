@@ -38,7 +38,7 @@
             android:textColor="@android:color/white"
             android:textSize="@dimen/widget_small_text_size"
             android:textAlignment="viewStart"
-            android:gravity="start"
+            android:gravity="start|center_vertical"
             android:thumb="@drawable/selector_switch_thumb"
             app:track="@drawable/selector_switch_track"
             app:layout_columnSpan="2" />
@@ -57,7 +57,7 @@
             android:textColor="@android:color/white"
             android:textSize="@dimen/widget_small_text_size"
             android:textAlignment="viewStart"
-            android:gravity="start"
+            android:gravity="start|center_vertical"
             android:thumb="@drawable/selector_switch_thumb"
             app:track="@drawable/selector_switch_track"
             app:layout_columnSpan="2" />
@@ -76,7 +76,7 @@
             android:textColor="@android:color/white"
             android:textSize="@dimen/widget_small_text_size"
             android:textAlignment="viewStart"
-            android:gravity="start"
+            android:gravity="start|center_vertical"
             android:thumb="@drawable/selector_switch_thumb"
             app:track="@drawable/selector_switch_track"
             app:layout_columnSpan="2" />
@@ -194,7 +194,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:text="@string/google_exoplayer_v2_10_6"
+                android:text="@string/google_exoplayer_v2_10_8"
                 android:textColor="@color/color_selector_white_color_accent"
                 android:textSize="@dimen/widget_small_text_size" />
         </LinearLayout>

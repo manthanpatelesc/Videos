@@ -416,13 +416,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         @Override
         public View getView(int position, View convertView, ViewGroup listview) {
-            DrawerListViewHolder vh;
+            ViewHolder vh;
             if (convertView == null) {
-                vh = new DrawerListViewHolder(listview.getContext());
+                vh = new ViewHolder(listview.getContext());
                 convertView = vh.convertView;
                 convertView.setTag(vh);
             } else {
-                vh = (DrawerListViewHolder) convertView.getTag();
+                vh = (ViewHolder) convertView.getTag();
             }
             vh.text.setText(mDrawerListItems[position]);
             vh.text.setTextColor(mTextColor);
@@ -444,12 +444,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             return super.getView(position, convertView, mDrawerList);
         }
 
-        final class DrawerListViewHolder {
+        final class ViewHolder {
             final View convertView;
             final TextView text;
             final TextView subText;
 
-            DrawerListViewHolder(Context context) {
+            ViewHolder(Context context) {
                 convertView = View.inflate(context, R.layout.item_drawer_list, null);
                 text = convertView.findViewById(R.id.text_list);
                 subText = convertView.findViewById(R.id.subtext_list);
@@ -515,7 +515,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         View view = View.inflate(this, R.layout.dialog_about_app, null);
         TextView button = view.findViewById(R.id.btn_ok_aboutAppDialog);
 
-        Dialog dialog = new AppCompatDialog(this);
+        Dialog dialog = new AppCompatDialog(this, R.style.DialogStyle_NoTitle);
         dialog.setContentView(view);
         dialog.show();
 

@@ -6,7 +6,6 @@
 package com.liuzhenlin.videos.view.fragment
 
 import android.annotation.SuppressLint
-import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.graphics.Canvas
@@ -23,6 +22,7 @@ import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.widget.EditText
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.widget.SearchView
@@ -54,15 +54,14 @@ import kotlin.math.roundToInt
 class LocalSearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLongClickListener,
         View.OnTouchListener, OnReloadVideosListener, SwipeRefreshLayout.OnRefreshListener {
 
-    private lateinit var mActivity: Activity
-    private lateinit var mContext: Context
     private lateinit var mInteractionCallback: InteractionCallback
     private var mLifecycleCallback: FragmentPartLifecycleCallback? = null
 
-    private var mVideoOpCallback: VideoOpCallback? = null
+    private var mVideoOpCallback: VideoListItemOpCallback<Video>? = null
 
     private var mSearchText = EMPTY_STRING
-    private lateinit var mSearchResultText: TextView
+    private lateinit var mSearchSrcEditText: EditText
+    private lateinit var mSearchResultTextView: TextView
     private lateinit var mRecyclerView: RecyclerView
     private val mAdapterWrapper = HeaderAndFooterWrapper(SearchedVideoListAdapter())
     private val mSearchedVideos = mutableListOf<Video>()
@@ -73,7 +72,7 @@ class LocalSearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLon
     private inline val mVideos: ArrayList<Video>
         get() {
             if (_mVideos == null) {
-                _mVideos = arguments?.getParcelableArrayList(KEY_VIDEOS) ?: arrayListOf()
+                _mVideos = arguments?.getParcelableArrayList(KEY_VIDEOS) ?: ArrayList(0)
             }
             return _mVideos!!
         }
@@ -82,14 +81,12 @@ class LocalSearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLon
     private var mDownX = 0
     private var mDownY = 0
 
-    fun setVideoOpCallback(callback: VideoOpCallback) {
+    fun setVideoOpCallback(callback: VideoListItemOpCallback<Video>?) {
         mVideoOpCallback = callback
     }
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
-        mActivity = context as Activity
-        mContext = context.applicationContext
 
         val parent = parentFragment
 
@@ -125,8 +122,8 @@ class LocalSearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLon
 
             findViewById<View>(R.id.search_plate).setBackgroundResource(R.drawable.bg_search_view_plate)
 
-            val searchSrcText = findViewById<SearchView.SearchAutoComplete>(R.id.search_src_text)
-            searchSrcText.setTextSize(
+            mSearchSrcEditText = findViewById<SearchView.SearchAutoComplete>(R.id.search_src_text)
+            mSearchSrcEditText.setTextSize(
                     TypedValue.COMPLEX_UNIT_PX, resources.getDimension(R.dimen.subtitle_text_size))
 
             onActionViewExpanded()
@@ -144,15 +141,15 @@ class LocalSearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLon
         actionbar.findViewById<View>(R.id.btn_cancelSearch).setOnClickListener(this)
 
         mRecyclerView = contentView.findViewById(R.id.recycler_searchedVideoList)
-        mRecyclerView.layoutManager = LinearLayoutManager(mActivity)
+        mRecyclerView.layoutManager = LinearLayoutManager(contentView.context)
         mRecyclerView.adapter = mAdapterWrapper.also {
-            mSearchResultText = LayoutInflater.from(mActivity)
+            mSearchResultTextView = LayoutInflater.from(contentView.context)
                     .inflate(R.layout.text_search_result, mRecyclerView, false) as TextView
-            it.addHeaderView(mSearchResultText)
+            it.addHeaderView(mSearchResultTextView)
         }
-        mRecyclerView.addItemDecoration(DividerItemDecoration(mActivity))
+        mRecyclerView.addItemDecoration(DividerItemDecoration(contentView.context))
         mRecyclerView.setHasFixedSize(true)
-//        mRecyclerView.setOnTouchListener(this) // not work
+//        mRecyclerView.setOnTouchListener(this) // 无效
         mInteractionCallback.setOnRefreshLayoutChildScrollUpCallback { _, _ ->
             if (mSearchText == EMPTY_STRING) {
                 true
@@ -166,7 +163,7 @@ class LocalSearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLon
     override fun onTouch(v: View, event: MotionEvent) = when {
         v === view -> {
             if (event.action == MotionEvent.ACTION_UP) {
-                UiUtils.hideSoftInput(mActivity.window)
+                UiUtils.hideSoftInput(mSearchSrcEditText)
                 requireFragmentManager().popBackStackImmediate()
             }
             false
@@ -176,7 +173,7 @@ class LocalSearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLon
                 mDownX = event.rawX.toInt()
                 mDownY = event.rawY.toInt()
 
-                UiUtils.hideSoftInput(mActivity.window)
+                UiUtils.hideSoftInput(mSearchSrcEditText)
                 mRecyclerView.requestFocus()
             }
             false
@@ -186,12 +183,12 @@ class LocalSearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLon
 
     override fun onClick(v: View) = when {
         v.id == R.id.btn_cancelSearch -> {
-            UiUtils.hideSoftInput(mActivity.window)
+            UiUtils.hideSoftInput(mSearchSrcEditText)
             requireFragmentManager().popBackStackImmediate()
             Unit
         }
         v.parent === mRecyclerView -> {
-                playVideo(mSearchedVideos[v.tag as Int])
+            playVideo(mSearchedVideos[v.tag as Int])
         }
         else -> Unit
     }
@@ -208,7 +205,7 @@ class LocalSearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLon
         mVideoOptionsMenu!!.inflate(R.menu.floatingmenu_video_ops)
         mVideoOptionsMenu!!.setOnItemClickListener { menuItem, _ ->
             when (menuItem.iconResId) {
-                R.drawable.ic_delete_24dp_menu -> mVideoOpCallback?.showDeleteVideoDialog(video) {
+                R.drawable.ic_delete_24dp_menu -> mVideoOpCallback?.showDeleteItemDialog(video) {
                     mVideos.remove(video)
 
                     mSearchedVideos.removeAt(index)
@@ -216,7 +213,7 @@ class LocalSearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLon
                     mAdapterWrapper.notifyItemRangeChanged(position, itemCount - 1)
                     updateSearchResult()
                 }
-                R.drawable.ic_edit_24dp_menu -> mVideoOpCallback?.showRenameVideoDialog(video) {
+                R.drawable.ic_edit_24dp_menu -> mVideoOpCallback?.showRenameItemDialog(video) {
                     mVideos.sortByElementName()
 
                     if (mSearchText.length == AlgorithmUtils.LCS(
@@ -240,7 +237,7 @@ class LocalSearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLon
                     }
                 }
                 R.drawable.ic_share_24dp_menu -> shareVideo(video)
-                R.drawable.ic_info_24dp_menu -> mVideoOpCallback?.showVideoDetailsDialog(video)
+                R.drawable.ic_info_24dp_menu -> mVideoOpCallback?.showItemDetailsDialog(video)
             }
         }
         mVideoOptionsMenu!!.setOnDismissListener {
@@ -282,7 +279,7 @@ class LocalSearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLon
 
     override fun onDestroy() {
         super.onDestroy()
-        App.getInstance(mContext).refWatcher.watch(this)
+        App.getInstanceUnsafe()?.refWatcher?.watch(this)
     }
 
     override fun onDetach() {
@@ -375,12 +372,12 @@ class LocalSearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLon
             mRecyclerView.visibility = View.GONE
         } else {
             mRecyclerView.visibility = View.VISIBLE
-            mSearchResultText.text = resources.getQuantityString(R.plurals.findSomeVideos, size, size)
+            mSearchResultTextView.text = resources.getQuantityString(R.plurals.findSomeVideos, size, size)
         }
     }
 
     override fun onRefresh() {
-        if (mVideoOpCallback?.isAsyncDeletingVideos == true) {
+        if (mVideoOpCallback?.isAsyncDeletingItems == true) {
             mInteractionCallback.isRefreshLayoutRefreshing = false
             return
         }
@@ -393,15 +390,15 @@ class LocalSearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLon
     @SuppressLint("StaticFieldLeak")
     private inner class LoadVideosTask : AsyncTask<Void, Void, List<Video>?>() {
         override fun doInBackground(vararg voids: Void): List<Video>? {
-            val helper = VideoDaoHelper.getInstance(mContext)
-
-            val videoCursor = helper.queryAllVideos() ?: return null
+            val daoHelper = VideoDaoHelper.getInstance(contextRequired)
 
             var videos: MutableList<Video>? = null
+
+            val videoCursor = daoHelper.queryAllVideos() ?: return null
             while (!isCancelled && videoCursor.moveToNext()) {
-                val video = helper.buildVideo(videoCursor)
+                val video = daoHelper.buildVideo(videoCursor)
                 if (video != null) {
-                    if (videos == null) videos = LinkedList()
+                    if (videos == null) videos = mutableListOf()
                     videos.add(video)
                 }
             }
@@ -426,8 +423,9 @@ class LocalSearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLon
         override fun getItemCount() = mSearchedVideos.size
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
-                ViewHolder(LayoutInflater.from(mActivity)
-                        .inflate(R.layout.item_searched_video_list, parent, false))
+                ViewHolder(
+                        LayoutInflater.from(parent.context)
+                                .inflate(R.layout.item_searched_video_list, parent, false))
 
         override fun onBindViewHolder(holder: ViewHolder, position: Int, payloads: MutableList<Any>) {
             if (payloads.isEmpty()) {
@@ -510,7 +508,7 @@ class LocalSearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLon
         init {
             val a = context.obtainStyledAttributes(ATTRS)
             mDivider = a.getDrawable(0)
-            if (mDivider == null && BuildConfig.DEBUG) {
+            if (mDivider == null) {
                 Log.w(TAG, "@android:attr/listDivider was not set in the theme used for this "
                         + "DividerItemDecoration. Please set that attribute all call setDivider()")
             }

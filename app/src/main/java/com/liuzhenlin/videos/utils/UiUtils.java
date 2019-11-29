@@ -77,12 +77,19 @@ public class UiUtils {
     }
 
     public static void hideSoftInput(@NonNull Window window) {
-        InputMethodManager imm = (InputMethodManager)
-                window.getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
         View focus = window.getCurrentFocus();
-        if (imm != null && focus != null
-                && imm.hideSoftInputFromWindow(focus.getWindowToken(), 0)) {
-            focus.clearFocus();
+        if (focus != null) {
+            hideSoftInput(focus);
+        }
+    }
+
+    public static void hideSoftInput(@NonNull View focus) {
+        if (focus.hasFocus()) {
+            InputMethodManager imm = (InputMethodManager)
+                    focus.getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+            if (imm != null && imm.hideSoftInputFromWindow(focus.getWindowToken(), 0)) {
+                focus.clearFocus();
+            }
         }
     }
 

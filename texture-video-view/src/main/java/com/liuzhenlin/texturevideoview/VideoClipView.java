@@ -885,13 +885,13 @@ public class VideoClipView extends FrameLayout {
         final float frameLeft = mFrameLeftOffset * mThumbGalleryWidth;
         final float frameRight = getWidth() - mFrameRightOffset * mThumbGalleryWidth;
         if (mDownX >= frameLeft && mDownX <= frameRight) {
-            if (mDownX <= frameLeft + mDrawableWidth /* leftDrawableRight */) {
+            if (mDownX <= /* leftDrawableRight */ frameLeft + mDrawableWidth) {
                 if (checkTouchSlop()) {
                     mTouchFlags |= TFLAG_FRAME_LEFT_BEING_DRAGGED;
                     requestParentDisallowInterceptTouchEvent();
                     return true;
                 }
-            } else if (mDownX >= frameRight - mDrawableWidth /* rightDrawableLeft */) {
+            } else if (mDownX >= /* rightDrawableLeft */ frameRight - mDrawableWidth) {
                 if (checkTouchSlop()) {
                     mTouchFlags |= TFLAG_FRAME_RIGHT_BEING_DRAGGED;
                     requestParentDisallowInterceptTouchEvent();
@@ -1018,8 +1018,9 @@ public class VideoClipView extends FrameLayout {
         @NonNull
         @Override
         public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            return new ViewHolder(LayoutInflater.from(parent.getContext())
-                    .inflate(R.layout.item_rv_videoclip_thumbs, parent, false));
+            return new ViewHolder(
+                    LayoutInflater.from(parent.getContext())
+                            .inflate(R.layout.item_rv_videoclip_thumbs, parent, false));
         }
 
         @Override

@@ -7,6 +7,7 @@ import com.liuzhenlin.videos.deepCopy
 /**
  * @author 刘振林
  */
+
 abstract class VideoListItem(open var name: String,
                              open var path: String,
                              open var size: Long,

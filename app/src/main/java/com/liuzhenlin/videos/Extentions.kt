@@ -6,6 +6,7 @@
 package com.liuzhenlin.videos
 
 import androidx.collection.ArrayMap
+import androidx.fragment.app.Fragment
 import com.liuzhenlin.texturevideoview.utils.FileUtils
 import com.liuzhenlin.videos.dao.VideoDaoHelper
 import com.liuzhenlin.videos.model.Video
@@ -17,6 +18,7 @@ import java.util.*
 /**
  * @author 刘振林
  */
+
 private val sVideoListItemComparator = Comparator<VideoListItem> { item, item2 ->
     if (item is Video) {
         if (item2 !is Video) {
@@ -39,8 +41,8 @@ fun <T : VideoListItem> List<T>?.sortByElementName() {
     Collections.sort(this ?: return, sVideoListItemComparator)
 }
 
-@JvmName("reorderVideoListItems")
-fun <T : VideoListItem> List<T>.reorder(): MutableList<T> {
+@JvmName("reorderedVideoListItems")
+fun <T : VideoListItem> List<T>.reordered(): MutableList<T> {
     val items = toMutableList()
     items.sortByElementName()
 
@@ -94,20 +96,17 @@ fun <T : VideoListItem> MutableList<T>.deepCopy(src: List<T>) {
     }
 }
 
-fun VideoDaoHelper.queryVideoDirByPathOrInsert(path: String): VideoDirectory {
-    var videodir = queryVideoDirByPath(path)
-    if (videodir == null) {
-        videodir = VideoDirectory()
-        videodir.name = FileUtils.getFileNameFromFilePath(path)
-        videodir.path = path
+fun VideoDaoHelper.insertVideoDir(directory: String): VideoDirectory {
+    val videodir = VideoDirectory()
+    videodir.name = FileUtils.getFileNameFromFilePath(directory)
+    videodir.path = directory
 
-        insertVideoDir(videodir)
-    }
+    insertVideoDir(videodir)
+
     return videodir
 }
 
-@JvmName("classifyVideosByDirectories")
-fun List<Video>?.classifyByDirectories(): MutableList<VideoListItem>? {
+fun List<Video>?.asVideoListItems(): MutableList<VideoListItem>? {
     this ?: return null
     if (size == 0) return null
 
@@ -138,13 +137,26 @@ fun List<Video>?.classifyByDirectories(): MutableList<VideoListItem>? {
         if (videos.size == 1) {
             videosMap.setValueAt(index, videos[0])
         } else {
-            val videodir = VideoDaoHelper.getInstance(App.getInstanceUnsafe()!!)
-                    .queryVideoDirByPathOrInsert(videosMap.keyAt(index))
-            videodir.size = videos.countAllVideoSize()
+            val daoHelper = VideoDaoHelper.getInstance(App.getInstanceUnsafe()!!)
+
+            val dirPath = videosMap.keyAt(index)
+            var videodir = daoHelper.queryVideoDirByPath(dirPath)
+            val videodirAlreadyExists = videodir != null
+            if (!videodirAlreadyExists) {
+                videodir = daoHelper.insertVideoDir(dirPath)
+            }
+            videodir!!.size = videos.allVideoSize()
             videodir.videos =
-                    if (videos.any { it.isTopped }) {
-                        videos.reorder()
+                    if (videodirAlreadyExists && videos.any { it.isTopped }) {
+                        videos.reordered()
                     } else {
+                        if (!videodirAlreadyExists) {
+                            for (video in videos)
+                                if (video.isTopped) {
+                                    video.isTopped = false
+                                    daoHelper.setVideoListItemTopped(video, false)
+                                }
+                        }
                         videos.sortByElementName()
                         videos
                     }
@@ -181,10 +193,13 @@ fun List<Video>?.classifyByDirectories(): MutableList<VideoListItem>? {
     return items
 }
 
-fun List<Video>?.countAllVideoSize(): Long {
+fun List<Video>?.allVideoSize(): Long {
     var size = 0L
     for (video in this ?: return size) {
         size += video.size
     }
     return size
 }
+
+inline val Fragment.contextThemedFirst get() = activity ?: contextRequired
+inline val Fragment.contextRequired get() = requireContext()

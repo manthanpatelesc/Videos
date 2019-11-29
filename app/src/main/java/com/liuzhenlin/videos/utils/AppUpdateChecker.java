@@ -66,7 +66,7 @@ public final class AppUpdateChecker {
     }
 
     private static final int TIMEOUT_CONNECTION = 10 * 1000; // ms
-    private static final int TIMEOUT_READ = 30 * 1000; // ms
+    private static final int TIMEOUT_READ = 60 * 1000; // ms
 
     private static final String LINK_APP_INFOS =
             "https://raw.githubusercontent.com/freeze-frames/Videos/release/app.json";
@@ -212,7 +212,7 @@ public final class AppUpdateChecker {
                 Gson gson = new Gson();
                 Map<String, Object> infos = gson.fromJson(json.toString(),  //@formatter:off
                             new TypeToken<Map<String, Object>>() {}.getType()); //@formatter:on
-                // noinspection unchecked
+                //noinspection unchecked
                 Map<String, Object> appInfos = (Map<String, Object>) infos.get("appInfos");
 
                 //noinspection ConstantConditions

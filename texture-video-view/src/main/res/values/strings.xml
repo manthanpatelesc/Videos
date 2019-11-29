@@ -47,7 +47,7 @@
     <string name="_2Hours">2 hours</string>
     <string name="playerEngine">Player Engine：</string>
     <string name="android_system_mediaplayer" translatable="false">Android System MediaPlayer</string>
-    <string name="google_exoplayer_v2_10_6">Google ExoPlayer v2.10.6 (recommended)</string>
+    <string name="google_exoplayer_v2_10_8">Google ExoPlayer v2.10.8 (recommended)</string>
     <string name="videoIsLoading">Video is loading…</string>
     <string name="failedToLoadThisVideo">Failed to load this video!</string>
     <string name="loadTimeout">Load timeout</string>

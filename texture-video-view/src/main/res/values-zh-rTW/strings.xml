@@ -46,7 +46,7 @@
     <string name="_90Minutes">90分钟</string>
     <string name="_2Hours">2小时</string>
     <string name="playerEngine">播放引擎：</string>
-    <string name="google_exoplayer_v2_10_6">Google ExoPlayer v2.10.6（推荐）</string>
+    <string name="google_exoplayer_v2_10_8">Google ExoPlayer v2.10.8（推荐）</string>
     <string name="videoIsLoading">载入视频…</string>
     <string name="failedToLoadThisVideo">无法加载此视频！</string>
     <string name="loadTimeout">加载超时！</string>

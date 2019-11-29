@@ -34,7 +34,6 @@ import androidx.core.view.get
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.google.android.material.snackbar.Snackbar
 import com.liuzhenlin.circularcheckbox.CircularCheckBox
 import com.liuzhenlin.floatingmenu.DensityUtils
 import com.liuzhenlin.simrv.SlidingItemMenuRecyclerView
@@ -58,10 +57,10 @@ import kotlin.math.min
 /**
  * @author 刘振林
  */
-class LocalVideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefreshLayout.OnRefreshListener,
+class LocalVideoListFragment : SwipeBackFragment(),
+        VideoListItemOpCallback<VideoListItem>, SwipeRefreshLayout.OnRefreshListener,
         View.OnClickListener, View.OnLongClickListener, OnBackPressedListener {
-    private lateinit var mActivity: Activity
-    private lateinit var mContext: Context
+
     private lateinit var mInteractionCallback: InteractionCallback
     private var mLifecycleCallback: FragmentPartLifecycleCallback? = null
 
@@ -175,23 +174,11 @@ class LocalVideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefres
         }
     }
 
-    override fun showDeleteVideoDialog(video: Video, onDeleteAction: () -> Unit) =
-            showDeleteItemDialog(video, onDeleteAction)
-
-    override fun showDeleteVideosPopupWindow(vararg videos: Video, onDeleteAction: () -> Unit) =
-            showDeleteItemWindow(videos, onDeleteAction)
-
-    override fun showRenameVideoDialog(video: Video, onRenameAction: () -> Unit) =
-            showRenameItemDialog(video, onRenameAction)
-
-    override fun showVideoDetailsDialog(video: Video) = showItemDetailsDialog(video)
-
     override fun onAttach(context: Context) {
         super.onAttach(context)
-        mActivity = context as Activity
-        mContext = context.applicationContext
 
         val parent = parentFragment
+
         mInteractionCallback = when {
             parent is InteractionCallback -> parent
             context is InteractionCallback -> context
@@ -212,9 +199,10 @@ class LocalVideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefres
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         val contentView = inflater.inflate(R.layout.fragment_local_video_list, container, false)
         mRecyclerView = contentView.findViewById(R.id.simrv_videoList)
-        mRecyclerView.layoutManager = LinearLayoutManager(mActivity)
+        mRecyclerView.layoutManager = LinearLayoutManager(contentView.context)
         mRecyclerView.adapter = mAdapter
-        mRecyclerView.addItemDecoration(DividerItemDecoration(mActivity, DividerItemDecoration.VERTICAL))
+        mRecyclerView.addItemDecoration(
+                DividerItemDecoration(contentView.context, DividerItemDecoration.VERTICAL))
         mRecyclerView.setHasFixedSize(true)
 
         isSwipeBackEnabled = false
@@ -239,8 +227,9 @@ class LocalVideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefres
 
     override fun onStop() {
         super.onStop()
-        if (!mActivity.isFinishing && !isRemoving && !isDetached) {
-            (mVideoObserver ?: VideoObserver(mActivity.window.decorView.handler)).startWatching()
+        val activity = contextThemedFirst as? Activity
+        if (activity?.isFinishing == false && !isRemoving && !isDetached) {
+            (mVideoObserver ?: VideoObserver(view!!.rootView.handler)).startWatching()
         }
     }
 
@@ -271,9 +260,6 @@ class LocalVideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefres
         mLifecycleCallback?.onFragmentDetached(this)
     }
 
-    /**
-     * @return 是否消费点按返回键事件
-     */
     override fun onBackPressed(): Boolean {
         mItemOptionsWindow?.dismiss() ?: return false
         return true
@@ -300,8 +286,8 @@ class LocalVideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefres
             REQUEST_CODE_LOCAL_SEARCHED_VIDEOS_FRAGMENT ->
                 if (resultCode == RESULT_CODE_LOCAL_SEARCHED_VIDEOS_FRAGMENT) {
                     val videos = data?.getParcelableArrayListExtra<Video>(KEY_VIDEOS) ?: return
-                    if (!videos.allEquals(allVideos)) { //XXX: 更加高效的局部刷新
-                        onReloadVideoListItems(videos.classifyByDirectories())
+                    if (!videos.allEquals(allVideos)) {
+                        autoLoadVideos()
                     }
                 }
             REQUEST_CODE_LOCAL_FOLDED_VIDEOS_FRAGMENT ->
@@ -311,21 +297,34 @@ class LocalVideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefres
                     loop@ for ((i, item) in mVideoListItems.withIndex()) {
                         if (item.path != dirPath) continue@loop
 
+                        val daoHelper = VideoDaoHelper.getInstance(contextRequired)
                         when (videos.size) {
                             0 -> {
+                                if (item is VideoDirectory) {
+                                    daoHelper.deleteVideoDir(item.path)
+                                }
+
                                 mVideoListItems.removeAt(i)
                                 mAdapter.notifyItemRemoved(i)
                                 mAdapter.notifyItemRangeChanged(i, mAdapter.itemCount - i)
                             }
                             1 -> {
+                                if (item is VideoDirectory) {
+                                    daoHelper.deleteVideoDir(item.path)
+                                }
+
                                 val video = videos[0]
-                                video.isTopped = false
+                                if (video.isTopped) {
+                                    video.isTopped = false
+                                    daoHelper.setVideoListItemTopped(video, false)
+                                }
+
                                 mVideoListItems[i] = video
-                                mVideoListItems.sortByElementName()
-                                val newIndex = mVideoListItems.indexOf(video)
+                                val newIndex = mVideoListItems.reordered().indexOf(video)
                                 if (newIndex == i) {
                                     mAdapter.notifyItemChanged(i) // without payload
                                 } else {
+                                    mVideoListItems.add(newIndex, mVideoListItems.removeAt(i))
                                     mAdapter.notifyItemRemoved(i)
                                     mAdapter.notifyItemInserted(newIndex)
                                     mAdapter.notifyItemRangeChanged(min(i, newIndex),
@@ -334,16 +333,23 @@ class LocalVideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefres
                             }
                             else -> {
                                 if (item is Video) {
-                                    val vd = VideoDaoHelper.getInstance(mContext).queryVideoDirByPathOrInsert(dirPath)
-                                    vd.videos = videos
-                                    vd.size = videos.countAllVideoSize()
+                                    var videodir = daoHelper.queryVideoDirByPath(dirPath)
+                                    if (videodir == null) {
+                                        videodir = daoHelper.insertVideoDir(dirPath)
+                                    } else
+                                        if (videodir.isTopped) {
+                                            videodir.isTopped = false
+                                            daoHelper.setVideoListItemTopped(videodir, false)
+                                        }
+                                    videodir.videos = videos
+                                    videodir.size = videos.allVideoSize()
 
-                                    mVideoListItems[i] = vd
-                                    mVideoListItems.sortByElementName()
-                                    val newIndex = mVideoListItems.indexOf(vd)
+                                    mVideoListItems[i] = videodir
+                                    val newIndex = mVideoListItems.reordered().indexOf(videodir)
                                     if (newIndex == i) {
-                                        mAdapter.notifyItemChanged(i)
+                                        mAdapter.notifyItemChanged(i) // without payload
                                     } else {
+                                        mVideoListItems.add(newIndex, mVideoListItems.removeAt(i))
                                         mAdapter.notifyItemRemoved(i)
                                         mAdapter.notifyItemInserted(newIndex)
                                         mAdapter.notifyItemRangeChanged(min(i, newIndex),
@@ -355,7 +361,7 @@ class LocalVideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefres
                                     val oldVideoCount = oldVideos.size
                                     if (!oldVideos.allEquals(videos)) {
                                         item.videos = videos
-                                        item.size = videos.countAllVideoSize()
+                                        item.size = videos.allVideoSize()
 
                                         var payloads = 0
                                         if (!oldVideos[0].allEquals(videos[0])) {
@@ -377,33 +383,32 @@ class LocalVideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefres
         }
     }
 
-    private fun onReloadVideoListItems(items: List<VideoListItem>?, notifyListeners: Boolean = false) {
+    private fun onReloadVideoListItems(items: List<VideoListItem>?) {
         if (items == null || items.isEmpty()) {
             if (mVideoListItems.isNotEmpty()) {
                 mVideoListItems.clear()
                 mAdapter.notifyDataSetChanged()
-                if (notifyListeners) notifyListenersOnReloadVideos()
             }
-        } else
-            if (items.size == mVideoListItems.size) {
-                var changedIndices: MutableList<Int>? = null
-                for (i in items.indices) {
-                    if (!items[i].allEquals(mVideoListItems[i])) {
-                        if (changedIndices == null) changedIndices = LinkedList()
-                        changedIndices.add(i)
-                    }
+        } else if (items.size == mVideoListItems.size) {
+            var changedIndices: MutableList<Int>? = null
+            for (i in items.indices) {
+                if (!items[i].allEquals(mVideoListItems[i])) {
+                    if (changedIndices == null) changedIndices = LinkedList()
+                    changedIndices.add(i)
                 }
-                if (changedIndices != null)
-                    for (index in changedIndices) {
-                        mVideoListItems[index] = items[index]
-                        mAdapter.notifyItemChanged(index) // without payload
-                    }
-                if (notifyListeners) notifyListenersOnReloadVideos()
-            } else {
-                mVideoListItems.set(items)
-                mAdapter.notifyDataSetChanged()
-                if (notifyListeners) notifyListenersOnReloadVideos()
             }
+            if (changedIndices != null) {
+                for (index in changedIndices) {
+                    mVideoListItems[index] = items[index]
+                    mAdapter.notifyItemChanged(index) // without payload
+                }
+            }
+        } else {
+            mVideoListItems.set(items)
+            mAdapter.notifyDataSetChanged()
+        }
+
+        notifyListenersOnReloadVideos()
     }
 
     private fun autoLoadVideos() {
@@ -414,7 +419,7 @@ class LocalVideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefres
     override fun onRefresh() = queryAllVideos()
 
     private fun queryAllVideos() {
-        if (isAsyncDeletingVideos) { // 页面自动刷新或用户手动刷新时，还有视频在被异步删除...
+        if (isAsyncDeletingItems) { // 页面自动刷新或用户手动刷新时，还有视频在被异步删除...
             mInteractionCallback.isRefreshLayoutRefreshing = false
             return
         }
@@ -441,13 +446,13 @@ class LocalVideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefres
         }
 
         override fun doInBackground(vararg voids: Void): List<VideoListItem>? {
-            val helper = VideoDaoHelper.getInstance(mContext)
-
-            val videoCursor = helper.queryAllVideos() ?: return null
+            val daoHelper = VideoDaoHelper.getInstance(contextRequired)
 
             var videos: MutableList<Video>? = null
+
+            val videoCursor = daoHelper.queryAllVideos() ?: return null
             while (!isCancelled && videoCursor.moveToNext()) {
-                val video = helper.buildVideo(videoCursor)
+                val video = daoHelper.buildVideo(videoCursor)
                 if (video != null) {
                     if (videos == null) videos = LinkedList()
                     videos.add(video)
@@ -455,11 +460,22 @@ class LocalVideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefres
             }
             videoCursor.close()
 
-            return videos.classifyByDirectories()
+            val items = videos.asVideoListItems() ?: return null
+
+            val videodirCursor = daoHelper.queryAllVideoDirs() ?: return items
+            while (!isCancelled && videodirCursor.moveToNext()) {
+                val videodir = daoHelper.buildVideoDir(videodirCursor)
+                if (!items.contains(videodir)) {
+                    daoHelper.deleteVideoDir(videodir.path)
+                }
+            }
+            videodirCursor.close()
+
+            return items
         }
 
         override fun onPostExecute(items: List<VideoListItem>?) {
-            onReloadVideoListItems(items, true)
+            onReloadVideoListItems(items)
             mRecyclerView.isItemDraggable = true
             mInteractionCallback.isRefreshLayoutRefreshing = false
             mLoadVideosTask = null
@@ -483,13 +499,13 @@ class LocalVideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefres
 
         fun startWatching() {
             mVideoObserver = this
-            mContext.contentResolver.registerContentObserver(
-                    IVideoDao.VIDEO_URI, false, this)
+            contextRequired.applicationContext.contentResolver
+                    .registerContentObserver(IVideoDao.VIDEO_URI, false, this)
         }
 
         fun stopWatching() {
             mVideoObserver = null
-            mContext.contentResolver.unregisterContentObserver(this)
+            contextRequired.applicationContext.contentResolver.unregisterContentObserver(this)
         }
     }
 
@@ -498,17 +514,20 @@ class LocalVideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefres
         override fun getItemCount() = mVideoListItems.size
 
         override fun getItemViewType(position: Int) =
-                if (mVideoListItems[position] is Video)
-                    VIEW_TYPE_VIDEO
-                else /* if (item is VideoDirectory) */
-                    VIEW_TYPE_VIDEODIR
+                when (mVideoListItems[position]) {
+                    is Video -> VIEW_TYPE_VIDEO
+                    is VideoDirectory -> VIEW_TYPE_VIDEODIR
+                    else -> throw IllegalArgumentException("Unknown itemView type")
+                }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VideoListViewHolder =
                 when (viewType) {
-                    VIEW_TYPE_VIDEO -> VideoViewHolder(LayoutInflater.from(mActivity)
-                            .inflate(R.layout.video_list_item_video, parent, false))
-                    VIEW_TYPE_VIDEODIR -> VideoDirViewHolder(LayoutInflater.from(mActivity)
-                            .inflate(R.layout.video_list_item_videodir, parent, false))
+                    VIEW_TYPE_VIDEO -> VideoViewHolder(
+                            LayoutInflater.from(parent.context)
+                                    .inflate(R.layout.video_list_item_video, parent, false))
+                    VIEW_TYPE_VIDEODIR -> VideoDirViewHolder(
+                            LayoutInflater.from(parent.context)
+                                    .inflate(R.layout.video_list_item_videodir, parent, false))
                     else -> throw IllegalArgumentException("Unknown itemView type")
                 }
 
@@ -598,20 +617,21 @@ class LocalVideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefres
         }
 
         private fun separateToppedItemsFromUntoppedOnes(holder: VideoListViewHolder, position: Int) {
+            val context = contextThemedFirst
             val lp = holder.topButton.layoutParams
 
             if (mVideoListItems[position].isTopped) {
                 ViewCompat.setBackground(holder.itemVisibleFrame,
-                        ContextCompat.getDrawable(mActivity, R.drawable.selector_topped_recycler_item))
+                        ContextCompat.getDrawable(context, R.drawable.selector_topped_recycler_item))
 
-                lp.width = DensityUtils.dp2px(mContext, 120f)
+                lp.width = DensityUtils.dp2px(context, 120f)
                 holder.topButton.layoutParams = lp
                 holder.topButton.text = CANCEL_TOP
             } else {
                 ViewCompat.setBackground(holder.itemVisibleFrame,
-                        ContextCompat.getDrawable(mActivity, R.drawable.default_selector_recycler_item))
+                        ContextCompat.getDrawable(context, R.drawable.default_selector_recycler_item))
 
-                lp.width = DensityUtils.dp2px(mContext, 90f)
+                lp.width = DensityUtils.dp2px(context, 90f)
                 holder.topButton.layoutParams = lp
                 holder.topButton.text = TOP
             }
@@ -683,9 +703,9 @@ class LocalVideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefres
 
                 val topped = !item.isTopped
                 item.isTopped = topped
-                VideoDaoHelper.getInstance(mContext).setVideoListItemTopped(item, topped)
+                VideoDaoHelper.getInstance(v.context).setVideoListItemTopped(item, topped)
 
-                val newPosition = mVideoListItems.reorder().indexOf(item)
+                val newPosition = mVideoListItems.reordered().indexOf(item)
                 if (newPosition == position) {
                     mAdapter.notifyItemChanged(position, PAYLOAD_CHANGE_ITEM_LPS_AND_BG)
                 } else {
@@ -708,10 +728,7 @@ class LocalVideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefres
 
                 mDeleteItemDialog!!.cancel()
 
-                when (item) {
-                    is Video -> deleteVideos(item)
-                    is VideoDirectory -> deleteVideos(*item.videos.toTypedArray())
-                }
+                deleteItems(item)
 
                 if (onDeleteAction != null) {
                     onDeleteAction()
@@ -729,9 +746,9 @@ class LocalVideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefres
             // 删除（多个）视频
             R.id.btn_delete_vlow -> {
                 val items = checkedItems ?: return
-                showDeleteItemWindow(items.toTypedArray())
+                showDeleteItemsPopupWindow(*items.toTypedArray())
             }
-            R.id.btn_confirm_deleteVideosWindow -> {
+            R.id.btn_confirm_deleteItemsWindow -> {
                 val view = mDeleteItemsWindow!!.contentView as ViewGroup
                 @Suppress("UNCHECKED_CAST")
                 val items = view.tag as Array<VideoListItem>
@@ -743,10 +760,8 @@ class LocalVideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefres
 
                 if (items.size == 1) {
                     val item = items[0]
-                    when (item) {
-                        is Video -> deleteVideos(item)
-                        is VideoDirectory -> deleteVideos(*item.videos.toTypedArray())
-                    }
+
+                    deleteItems(item)
 
                     if (onDeleteAction != null) {
                         onDeleteAction()
@@ -759,14 +774,7 @@ class LocalVideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefres
                         }
                     }
                 } else {
-                    val videos = LinkedList<Video>()
-                    for (item in items) {
-                        when (item) {
-                            is Video -> videos.add(item)
-                            is VideoDirectory -> videos.addAll(item.videos)
-                        }
-                    }
-                    deleteVideos(*videos.toTypedArray())
+                    deleteItems(*items)
 
                     if (onDeleteAction != null) {
                         onDeleteAction()
@@ -789,7 +797,7 @@ class LocalVideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefres
                     }
                 }
             }
-            R.id.btn_cancel_deleteVideosWindow -> mDeleteItemsWindow!!.dismiss()
+            R.id.btn_cancel_deleteItemsWindow -> mDeleteItemsWindow!!.dismiss()
 
             // 重命名视频或给视频目录取别名
             R.id.btn_rename -> {
@@ -800,7 +808,7 @@ class LocalVideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefres
                 val editText = v.tag as EditText
                 val text = editText.text.toString().trim()
                 val newName =
-                        if (text.isEmpty()) editText.hint as String
+                        if (text.isEmpty()) editText.hint.toString()
                         else text + editText.tag as String
 
                 val window = mRenameItemDialog!!.window!!
@@ -811,13 +819,13 @@ class LocalVideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefres
 
                 mRenameItemDialog!!.cancel()
 
-                if (renameVideoListItem(item, newName)) {
+                if (renameItem(item, newName, view)) {
                     if (onRenameAction != null) {
                         onRenameAction()
                     } else {
                         val position = mVideoListItems.indexOf(item)
                         if (position != -1) {
-                            val newPosition = mVideoListItems.reorder().indexOf(item)
+                            val newPosition = mVideoListItems.reordered().indexOf(item)
                             if (newPosition == position) {
                                 mAdapter.notifyItemChanged(position, PAYLOAD_REFRESH_ITEM_NAME)
                             } else {
@@ -878,7 +886,7 @@ class LocalVideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefres
                     return false
                 }
 
-                mTitleWindowFrame = View.inflate(mActivity,
+                mTitleWindowFrame = View.inflate(v.context,
                         R.layout.popup_window_main_title, null) as FrameLayout
                 mTitleWindowFrame!!.post(object : Runnable {
                     init {
@@ -890,7 +898,7 @@ class LocalVideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefres
                     }
 
                     override fun run() = mTitleWindowFrame?.run {
-                        val statusHeight = App.getInstance(mContext).statusHeightInPortrait
+                        val statusHeight = App.getInstance(v.context).statusHeightInPortrait
                         layoutParams.height = height + statusHeight
                         setPadding(paddingLeft, paddingTop + statusHeight, paddingRight, paddingBottom)
                     } ?: Unit
@@ -901,8 +909,7 @@ class LocalVideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefres
                 titleWindow.animationStyle = R.style.WindowAnimations_TopPopupWindow
                 titleWindow.showAtLocation(v, Gravity.TOP, 0, 0)
 
-                val iowcv = View.inflate(mActivity,
-                        R.layout.popup_window_videolist_options, null)
+                val iowcv = View.inflate(v.context, R.layout.popup_window_videolist_options, null)
                 mTitleText_IOW = iowcv.findViewById(R.id.text_title)
                 mDeleteButton_IOW = iowcv.findViewById(R.id.btn_delete_vlow)
                 mDeleteButton_IOW!!.setOnClickListener(this)
@@ -1040,8 +1047,9 @@ class LocalVideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefres
         mDetailsButton_IOW!!.isEnabled = enabled
     }
 
-    private fun showDeleteItemDialog(item: VideoListItem, onDeleteAction: (() -> Unit)? = null) {
-        val view = View.inflate(mActivity, R.layout.dialog_message, null)
+    override fun showDeleteItemDialog(item: VideoListItem, onDeleteAction: (() -> Unit)?) {
+        val context = contextThemedFirst
+        val view = View.inflate(context, R.layout.dialog_message, null)
 
         view.findViewById<TextView>(R.id.text_message).text = when (item) {
             is Video -> getString(R.string.areYouSureToDeleteSth, item.name)
@@ -1062,7 +1070,7 @@ class LocalVideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefres
         confirm.id = R.id.btn_confirm_deleteVideoListItemDialog
         confirm.setOnClickListener(this)
 
-        mDeleteItemDialog = AppCompatDialog(mActivity, R.style.DialogStyle_MinWidth_NoTitle)
+        mDeleteItemDialog = AppCompatDialog(context, R.style.DialogStyle_MinWidth_NoTitle)
         mDeleteItemDialog!!.setContentView(view)
         mDeleteItemDialog!!.setOnDismissListener { mDeleteItemDialog = null }
         mDeleteItemDialog!!.show()
@@ -1073,10 +1081,11 @@ class LocalVideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefres
         decorView[0].tag = onDeleteAction
     }
 
-    private fun showDeleteItemWindow(items: Array<out VideoListItem>, onDeleteAction: (() -> Unit)? = null) {
+    override fun showDeleteItemsPopupWindow(vararg items: VideoListItem, onDeleteAction: (() -> Unit)?) {
         if (items.isEmpty()) return
 
-        val view = View.inflate(mActivity, R.layout.popup_window_delete_videos, null) as ViewGroup
+        val view = View.inflate(contextThemedFirst,
+                R.layout.popup_window_delete_video_list_items, null) as ViewGroup
         view.findViewById<TextView>(R.id.text_message).text = if (items.size == 1) {
             when (items[0]) {
                 is Video -> getString(R.string.areYouSureToDeleteSth, items[0].name)
@@ -1085,12 +1094,12 @@ class LocalVideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefres
         } else {
             getString(R.string.areYouSureToDelete)
         }
-        view.findViewById<View>(R.id.btn_confirm_deleteVideosWindow).setOnClickListener(this)
-        view.findViewById<View>(R.id.btn_cancel_deleteVideosWindow).setOnClickListener(this)
+        view.findViewById<View>(R.id.btn_confirm_deleteItemsWindow).setOnClickListener(this)
+        view.findViewById<View>(R.id.btn_cancel_deleteItemsWindow).setOnClickListener(this)
         view.tag = items
         view[0].tag = onDeleteAction
 
-        val fadedContentView = mActivity.window.decorView as FrameLayout
+        val fadedContentView = this.view!!.rootView as FrameLayout // DecorView
 
         mDeleteItemsWindow = PopupWindow(view,
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
@@ -1112,7 +1121,7 @@ class LocalVideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefres
         fadedContentView.foreground = ColorDrawable(0x7F000000)
     }
 
-    private fun showRenameItemDialog(item: VideoListItem, onRenameAction: (() -> Unit)? = null) {
+    override fun showRenameItemDialog(item: VideoListItem, onRenameAction: (() -> Unit)?) {
         val name = item.name
         val postfix: String = when (item) {
             is Video -> {
@@ -1122,12 +1131,15 @@ class LocalVideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefres
             else /* is VideoDirectory */ -> EMPTY_STRING
         }
 
-        val view = View.inflate(mActivity, R.layout.dialog_rename_video_list_item, null)
+        val context = contextThemedFirst
+        val view = View.inflate(context, R.layout.dialog_rename_video_list_item, null)
 
         val titleText = view.findViewById<TextView>(R.id.text_title)
-        titleText.setText(if (item is Video) R.string.renameVideo else R.string.renameDirectory)
+        titleText.setText(
+                if (item is Video) R.string.renameVideo
+                else /* if (item is VideoDirectory) */ R.string.renameDirectory)
 
-        val thumb = VideoUtils2.generateMiniThumbnail(mContext,
+        val thumb = VideoUtils2.generateMiniThumbnail(context,
                 (item as? Video)?.path ?: (item as VideoDirectory).videos[0].path)
         view.findViewById<ImageView>(R.id.image_videoListItem).setImageBitmap(thumb)
 
@@ -1145,7 +1157,7 @@ class LocalVideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefres
         completeButton.setOnClickListener(this)
         completeButton.tag = editText
 
-        mRenameItemDialog = AppCompatDialog(mActivity, R.style.DialogStyle_MinWidth_NoTitle)
+        mRenameItemDialog = AppCompatDialog(context, R.style.DialogStyle_MinWidth_NoTitle)
         mRenameItemDialog!!.setContentView(view)
         mRenameItemDialog!!.show()
         mRenameItemDialog!!.setCancelable(true)
@@ -1161,37 +1173,16 @@ class LocalVideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefres
         decorView[0].tag = onRenameAction
     }
 
-    private fun renameVideoListItem(item: VideoListItem, newName: String) = when (item) {
-        is Video -> renameVideo(item, newName, view)
-        is VideoDirectory -> {
-            // 如果名称没有变化
-            if (newName == item.name) {
-                false
-            } else {
-                item.name = newName
-                if (VideoDaoHelper.getInstance(mContext).updateVideoDir(item)) {
-                    UiUtils.showUserCancelableSnackbar(view!!,
-                            R.string.renameSuccessful, Snackbar.LENGTH_SHORT)
-                    true
-                } else {
-                    UiUtils.showUserCancelableSnackbar(view!!,
-                            R.string.renameFailed, Snackbar.LENGTH_SHORT)
-                    false
-                }
-            }
-        }
-        else -> false
-    }
-
-    private fun showItemDetailsDialog(item: VideoListItem) {
+    override fun showItemDetailsDialog(item: VideoListItem) {
+        val context = contextThemedFirst
         val view: View
         val thumb: Bitmap?
         val colon = getString(R.string.colon)
         var ss: SpannableString
         if (item is Video) {
-            view = View.inflate(mActivity, R.layout.dialog_video_details, null)
+            view = View.inflate(context, R.layout.dialog_video_details, null)
 
-            thumb = VideoUtils2.generateMiniThumbnail(mContext, item.path)
+            thumb = VideoUtils2.generateMiniThumbnail(context, item.path)
 
             val videoNameText = view.findViewById<TextView>(R.id.text_videoName)
             videoNameText.setCompoundDrawablesWithIntrinsicBounds(
@@ -1221,11 +1212,11 @@ class LocalVideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefres
                     0, ss.indexOf(colon) + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
             videoPathText.text = ss
         } else /* if (item is VideoDirectory) */ {
-            view = View.inflate(mActivity, R.layout.dialog_videodir_details, null)
+            view = View.inflate(context, R.layout.dialog_videodir_details, null)
 
             val videos = (item as VideoDirectory).videos
 
-            thumb = VideoUtils2.generateMiniThumbnail(mContext, videos[0].path)
+            thumb = VideoUtils2.generateMiniThumbnail(context, videos[0].path)
 
             val path = item.path
             val dirname = FileUtils.getFileNameFromFilePath(path)
@@ -1263,7 +1254,7 @@ class LocalVideoListFragment : SwipeBackFragment(), VideoOpCallback, SwipeRefres
         val okButton = view.findViewById<TextView>(R.id.btn_ok_videoListItemDetailsDialog)
         okButton.setOnClickListener(this)
 
-        mItemDetailsDialog = AppCompatDialog(mActivity, R.style.DialogStyle_MinWidth_NoTitle)
+        mItemDetailsDialog = AppCompatDialog(context, R.style.DialogStyle_MinWidth_NoTitle)
         mItemDetailsDialog!!.setContentView(view)
         mItemDetailsDialog!!.show()
         mItemDetailsDialog!!.setOnDismissListener {

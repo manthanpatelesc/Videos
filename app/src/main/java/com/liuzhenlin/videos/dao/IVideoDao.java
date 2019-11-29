@@ -9,7 +9,6 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.provider.MediaStore;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.liuzhenlin.videos.model.Video;
@@ -27,20 +26,23 @@ public interface IVideoDao {
     String VIDEO_DURATION = MediaStore.Video.Media.DURATION;
     String VIDEO_RESOLUTION = MediaStore.Video.Media.RESOLUTION;
 
-    boolean insertVideo(@NonNull Video video);
+    boolean insertVideo(@Nullable Video video);
     boolean deleteVideo(long id);
-    boolean updateVideo(@NonNull Video video);
+    boolean updateVideo(@Nullable Video video);
+    @Nullable
+    Video queryVideoById(long id);
     @Nullable
     Video queryVideoByPath(@Nullable String path);
     @Nullable
-    Video queryVideoById(long id);
     Cursor queryAllVideos();
     @Nullable
     Cursor queryAllVideosInDirectory(@Nullable String directory /* directory path */);
 
-    boolean insertVideoDir(@NonNull VideoDirectory videodir);
+    boolean insertVideoDir(@Nullable VideoDirectory videodir);
     boolean deleteVideoDir(@Nullable String directory /* directory path */);
-    boolean updateVideoDir(@NonNull VideoDirectory videodir);
+    boolean updateVideoDir(@Nullable VideoDirectory videodir);
     @Nullable
     VideoDirectory queryVideoDirByPath(@Nullable String path);
+    @Nullable
+    Cursor queryAllVideoDirs();
 }

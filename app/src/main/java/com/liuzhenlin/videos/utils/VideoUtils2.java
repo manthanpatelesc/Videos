@@ -20,6 +20,7 @@ import androidx.annotation.Nullable;
 import com.bumptech.glide.Glide;
 import com.liuzhenlin.texturevideoview.utils.BitmapUtils;
 import com.liuzhenlin.videos.App;
+import com.liuzhenlin.videos.Consts;
 import com.liuzhenlin.videos.R;
 import com.liuzhenlin.videos.model.Video;
 
@@ -106,7 +107,7 @@ public class VideoUtils2 {
         final String slong = chinese ? "时长" : "long";
         final String lessThanAMinute = chinese ? "小于1分钟" : "Less than a minute";
 
-        if (progress >= duration) {
+        if (progress >= duration - Consts.TOLERANCE_VIDEO_DURATION) {
             result.append(haveFinishedWatching).append(separator);
         } else {
             final int totalSeconds = progress / 1000;

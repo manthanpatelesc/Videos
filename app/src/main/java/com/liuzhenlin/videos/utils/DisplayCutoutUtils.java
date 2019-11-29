@@ -109,7 +109,7 @@ public class DisplayCutoutUtils {
      * 获取OPPO手机刘海的 宽、高
      */
     public static int[] getNotchSizeForColorOS() {
-        final String notchLocation = getNotchLocationOnScreenForColorOS(); // e.g. 378,0:702,80
+        final String notchLocation = getNotchLocationOnScreenForColorOS();
         if (!TextUtils.isEmpty(notchLocation)) {
             final int firstCommaIndex = notchLocation.indexOf(",");
             final int lastCommaIndex = notchLocation.lastIndexOf(",");
@@ -127,6 +127,9 @@ public class DisplayCutoutUtils {
         return new int[]{0, 0};
     }
 
+    /**
+     * 获取OPPO手机刘海在屏幕中的位置，例如 378,0:702,80
+     */
     public static String getNotchLocationOnScreenForColorOS() {
         return SystemProperties.getString("ro.oppo.screen.heteromorphism");
     }
@@ -207,6 +210,9 @@ public class DisplayCutoutUtils {
         }
     }
 
+    /**
+     * 设置应用窗口是否在搭载 Android P 系统的刘海屏手机中使用刘海区
+     */
     @RequiresApi(api = Build.VERSION_CODES.P)
     public static void setLayoutInDisplayCutoutSinceP(@NonNull Window window, boolean in) {
         WindowManager.LayoutParams lp = window.getAttributes();

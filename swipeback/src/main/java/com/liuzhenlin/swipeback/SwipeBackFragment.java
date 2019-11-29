@@ -22,7 +22,7 @@ public class SwipeBackFragment extends Fragment implements ISwipeBackFragment {
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        mSwipeBackLayout = (SwipeBackLayout) View.inflate(getActivity(), R.layout.swipeback, null);
+        mSwipeBackLayout = (SwipeBackLayout) View.inflate(getContext(), R.layout.swipeback, null);
     }
 
     protected final SwipeBackLayout attachViewToSwipeBackLayout(@NonNull View view) {

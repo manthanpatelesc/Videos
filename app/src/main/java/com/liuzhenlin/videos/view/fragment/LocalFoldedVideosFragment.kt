@@ -6,7 +6,6 @@
 package com.liuzhenlin.videos.view.fragment
 
 import android.annotation.SuppressLint
-import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.os.AsyncTask
@@ -49,12 +48,10 @@ import kotlin.math.min
 class LocalFoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, View.OnLongClickListener,
         OnReloadVideosListener, SwipeRefreshLayout.OnRefreshListener, OnBackPressedListener {
 
-    private lateinit var mActivity: Activity
-    private lateinit var mContext: Context
     private lateinit var mInteractionCallback: InteractionCallback
     private var mLifecycleCallback: FragmentPartLifecycleCallback? = null
 
-    private var mVideoOpCallback: VideoOpCallback? = null
+    private var mVideoOpCallback: VideoListItemOpCallback<Video>? = null
 
     private lateinit var mRecyclerView: SlidingItemMenuRecyclerView
     private val mAdapter = VideoListAdapter()
@@ -113,14 +110,12 @@ class LocalFoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, Vie
             return _SELECT_NONE!!
         }
 
-    fun setVideoOpCallback(callback: VideoOpCallback?) {
+    fun setVideoOpCallback(callback: VideoListItemOpCallback<Video>?) {
         mVideoOpCallback = callback
     }
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
-        mActivity = context as Activity
-        mContext = context.applicationContext
 
         val parent = parentFragment
 
@@ -165,7 +160,7 @@ class LocalFoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, Vie
 
     override fun onDestroy() {
         super.onDestroy()
-        App.getInstance(mContext).refWatcher.watch(this)
+        App.getInstanceUnsafe()?.refWatcher?.watch(this)
     }
 
     override fun onDetach() {
@@ -191,10 +186,10 @@ class LocalFoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, Vie
         titleText.text = mVideoDir?.name
 
         mRecyclerView = contentView.findViewById(R.id.simrv_foldedVideoList)
-        mRecyclerView.layoutManager = LinearLayoutManager(mActivity)
+        mRecyclerView.layoutManager = LinearLayoutManager(contentView.context)
         mRecyclerView.adapter = mAdapter
         mRecyclerView.addItemDecoration(
-                DividerItemDecoration(mActivity, DividerItemDecoration.VERTICAL))
+                DividerItemDecoration(contentView.context, DividerItemDecoration.VERTICAL))
         mRecyclerView.setHasFixedSize(true)
 
         mBackButton = actionbar.findViewById(R.id.btn_back)
@@ -221,9 +216,6 @@ class LocalFoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, Vie
         }
     }
 
-    /**
-     * @return 是否消费点按返回键事件
-     */
     override fun onBackPressed() =
             if (mVideoOptionsFrame.visibility == View.VISIBLE) {
                 hideMultiselectVideoControls()
@@ -292,9 +284,9 @@ class LocalFoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, Vie
                 val topped = !video.isTopped
                 video.isTopped = topped
 
-                VideoDaoHelper.getInstance(mContext).setVideoListItemTopped(video, topped)
+                VideoDaoHelper.getInstance(v.context).setVideoListItemTopped(video, topped)
 
-                val newIndex = mVideos.reorder().indexOf(video)
+                val newIndex = mVideos.reordered().indexOf(video)
                 if (newIndex == index) {
                     mAdapter.notifyItemChanged(index, PAYLOAD_CHANGE_ITEM_LPS_AND_BG)
                 } else {
@@ -307,7 +299,7 @@ class LocalFoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, Vie
             }
             R.id.btn_delete -> {
                 val video = mVideos[v.tag as Int]
-                mVideoOpCallback?.showDeleteVideoDialog(video) {
+                mVideoOpCallback?.showDeleteItemDialog(video) {
                     onVideoDeleted(video)
                 }
             }
@@ -330,12 +322,12 @@ class LocalFoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, Vie
             R.id.btn_delete_videoListOptions -> {
                 val videos = checkedVideos ?: return
                 if (videos.size == 1) {
-                    mVideoOpCallback?.showDeleteVideosPopupWindow(videos[0]) {
+                    mVideoOpCallback?.showDeleteItemsPopupWindow(videos[0]) {
                         hideMultiselectVideoControls()
                         onVideoDeleted(videos[0])
                     }
                 } else {
-                    mVideoOpCallback?.showDeleteVideosPopupWindow(*videos.toTypedArray()) {
+                    mVideoOpCallback?.showDeleteItemsPopupWindow(*videos.toTypedArray()) {
                         hideMultiselectVideoControls()
 
                         var start = -1
@@ -360,9 +352,9 @@ class LocalFoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, Vie
                 val video = checkedVideos?.get(0) ?: return
 
                 hideMultiselectVideoControls()
-                mVideoOpCallback?.showRenameVideoDialog(video) {
+                mVideoOpCallback?.showRenameItemDialog(video) {
                     val index = mVideos.indexOf(video)
-                    val newIndex = mVideos.reorder().indexOf(video)
+                    val newIndex = mVideos.reordered().indexOf(video)
                     if (newIndex == index) {
                         mAdapter.notifyItemChanged(index, PAYLOAD_REFRESH_ITEM_NAME)
                     } else {
@@ -384,7 +376,7 @@ class LocalFoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, Vie
                 val video = checkedVideos?.get(0) ?: return
 
                 hideMultiselectVideoControls()
-                mVideoOpCallback?.showVideoDetailsDialog(video)
+                mVideoOpCallback?.showItemDetailsDialog(video)
             }
         }
     }
@@ -488,7 +480,7 @@ class LocalFoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, Vie
                         videos.filter {
                             it.path.substring(0, it.path.lastIndexOf(File.separatorChar))
                                     .equals(mVideoDir?.path, ignoreCase = true)
-                        }.reorder())
+                        }.reordered())
             }
 
     private fun onReloadDirectoryVideos(videos: List<Video>?) {
@@ -528,7 +520,7 @@ class LocalFoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, Vie
     }
 
     override fun onRefresh() {
-        if (mVideoOpCallback?.isAsyncDeletingVideos == true) { // 用户下拉刷新时，还有视频在被异步删除...
+        if (mVideoOpCallback?.isAsyncDeletingItems == true) { // 用户下拉刷新时，还有视频在被异步删除...
             mInteractionCallback.isRefreshLayoutRefreshing = false
             return
         }
@@ -552,29 +544,20 @@ class LocalFoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, Vie
         }
 
         override fun doInBackground(vararg params: Void?): List<Video>? {
-            val helper = VideoDaoHelper.getInstance(mContext)
-
-            val videoCursor = helper.queryAllVideosInDirectory(mVideoDir?.path) ?: return null
+            val daoHelper = VideoDaoHelper.getInstance(contextRequired)
 
             var videos: MutableList<Video>? = null
-            var toppedVideos: MutableList<Video>? = null
+
+            val videoCursor = daoHelper.queryAllVideosInDirectory(mVideoDir?.path) ?: return null
             while (!isCancelled && videoCursor.moveToNext()) {
-                val video = helper.buildVideo(videoCursor) ?: continue
-                if (video.isTopped) {
-                    if (toppedVideos == null) toppedVideos = LinkedList()
-                    toppedVideos.add(video)
-                } else {
-                    if (videos == null) videos = ArrayList()
-                    videos.add(video)
-                }
+                val video = daoHelper.buildVideo(videoCursor) ?: continue
+                if (videos == null)
+                    videos = LinkedList()
+                videos.add(video)
             }
             videoCursor.close()
-            if (toppedVideos != null) {
-                if (videos == null) videos = ArrayList()
-                videos.addAll(0, toppedVideos)
-            }
 
-            return videos
+            return videos?.reordered()
         }
 
         override fun onPostExecute(videos: List<Video>?) {
@@ -592,15 +575,16 @@ class LocalFoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, Vie
         }
     }
 
-    private inner class VideoListAdapter : RecyclerView.Adapter<VideoListAdapter.VideoListViewHolder>() {
+    private inner class VideoListAdapter : RecyclerView.Adapter<VideoListAdapter.ViewHolder>() {
 
         override fun getItemCount() = mVideos.size
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
-                VideoListViewHolder(LayoutInflater.from(mActivity)
-                        .inflate(R.layout.video_list_item_video, parent, false))
+                ViewHolder(
+                        LayoutInflater.from(parent.context)
+                                .inflate(R.layout.video_list_item_video, parent, false))
 
-        override fun onBindViewHolder(holder: VideoListViewHolder, position: Int, payloads: List<Any>) {
+        override fun onBindViewHolder(holder: ViewHolder, position: Int, payloads: List<Any>) {
             if (payloads.isEmpty()) {
                 onBindViewHolder(holder, position)
             } else {
@@ -629,7 +613,7 @@ class LocalFoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, Vie
             }
         }
 
-        override fun onBindViewHolder(holder: VideoListViewHolder, position: Int) {
+        override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             holder.itemVisibleFrame.tag = position
             holder.checkBox.tag = position
             holder.topButton.tag = position
@@ -649,27 +633,28 @@ class LocalFoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, Vie
                     VideoUtils2.concatVideoProgressAndDuration(video.progress, video.duration)
         }
 
-        private fun separateToppedItemsFromUntoppedOnes(holder: VideoListViewHolder, position: Int) {
+        private fun separateToppedItemsFromUntoppedOnes(holder: ViewHolder, position: Int) {
+            val context = contextThemedFirst
             val lp = holder.topButton.layoutParams
 
             if (mVideos[position].isTopped) {
                 ViewCompat.setBackground(holder.itemVisibleFrame,
-                        ContextCompat.getDrawable(mActivity, R.drawable.selector_topped_recycler_item))
+                        ContextCompat.getDrawable(context, R.drawable.selector_topped_recycler_item))
 
-                lp.width = DensityUtils.dp2px(mContext, 120f)
+                lp.width = DensityUtils.dp2px(context, 120f)
                 holder.topButton.layoutParams = lp
                 holder.topButton.text = CANCEL_TOP
             } else {
                 ViewCompat.setBackground(holder.itemVisibleFrame,
-                        ContextCompat.getDrawable(mActivity, R.drawable.default_selector_recycler_item))
+                        ContextCompat.getDrawable(context, R.drawable.default_selector_recycler_item))
 
-                lp.width = DensityUtils.dp2px(mContext, 90f)
+                lp.width = DensityUtils.dp2px(context, 90f)
                 holder.topButton.layoutParams = lp
                 holder.topButton.text = TOP
             }
         }
 
-        inner class VideoListViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
             val itemVisibleFrame: ViewGroup = itemView.findViewById(R.id.itemVisibleFrame)
             val checkBox: CircularCheckBox = itemView.findViewById(R.id.checkbox)
             val videoImage: ImageView = itemView.findViewById(R.id.image_video)

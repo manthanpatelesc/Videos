@@ -13,5 +13,7 @@ package com.liuzhenlin.texturevideoview;
     private PackageConsts() {
     }
 
-    static final boolean DEBUG_LISTENER = BuildConfig.DEBUG && false;
+    static final boolean DEBUG = false;
+
+    static final boolean DEBUG_LISTENER = DEBUG && false;
 }

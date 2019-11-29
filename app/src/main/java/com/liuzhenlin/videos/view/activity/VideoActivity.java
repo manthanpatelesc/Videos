@@ -49,8 +49,11 @@ import com.google.android.material.snackbar.Snackbar;
 import com.liuzhenlin.simrv.Utils;
 import com.liuzhenlin.swipeback.SwipeBackActivity;
 import com.liuzhenlin.swipeback.SwipeBackLayout;
+import com.liuzhenlin.texturevideoview.ExoVideoPlayer;
 import com.liuzhenlin.texturevideoview.IVideoPlayer;
+import com.liuzhenlin.texturevideoview.SystemVideoPlayer;
 import com.liuzhenlin.texturevideoview.TextureVideoView;
+import com.liuzhenlin.texturevideoview.VideoPlayer;
 import com.liuzhenlin.texturevideoview.utils.FileUtils;
 import com.liuzhenlin.texturevideoview.utils.SystemBarUtils;
 import com.liuzhenlin.videos.App;
@@ -66,7 +69,7 @@ import com.liuzhenlin.videos.utils.VideoUtils2;
 import com.liuzhenlin.videos.utils.observer.OnOrientationChangeListener;
 import com.liuzhenlin.videos.utils.observer.RotationObserver;
 import com.liuzhenlin.videos.utils.observer.ScreenNotchSwitchObserver;
-import com.liuzhenlin.videos.view.fragment.VideoOpsKt;
+import com.liuzhenlin.videos.view.fragment.VideoListItemOpsKt;
 
 import java.io.File;
 import java.lang.ref.WeakReference;
@@ -89,22 +92,16 @@ public class VideoActivity extends SwipeBackActivity {
     private TextureVideoView mVideoView;
     private ImageView mLockUnlockOrientationButton;
 
-    private IVideoPlayer mVideoPlayer;
-
     private RecyclerView mPlayList;
     private static final Object sRefreshVideoProgressPayload = new Object();
     private static final Object sHighlightSelectedItemIfExistsPayload = new Object();
+
+    private IVideoPlayer mVideoPlayer;
 
     private Video[] mVideos;
     private int mVideoIndex = -1;
     private int mVideoWidth;
     private int mVideoHeight;
-
-    private final int mStatusHeight = App.getInstanceUnsafe().getStatusHeightInPortrait();
-    private int mStatusHeightInLandscapeOfNotchSupportDevices;
-    private int mNotchHeight;
-    @Nullable
-    private ScreenNotchSwitchObserver mNotchSwitchObserver;
 
     private int mPrivateFlags;
 
@@ -118,6 +115,14 @@ public class VideoActivity extends SwipeBackActivity {
     private static final int PFLAG_SCREEN_ORIENTATION_PORTRAIT_IMMUTABLE = 1 << 6;
 
     private static final int PFLAG_LAST_VIDEO_LAYOUT_IS_FULLSCREEN = 1 << 7;
+
+    private static final int PFLAG_STOPPED = 1 << 8;
+
+    private final int mStatusHeight = App.getInstanceUnsafe().getStatusHeightInPortrait();
+    private int mStatusHeightInLandscapeOfNotchSupportDevices;
+    private int mNotchHeight;
+    @Nullable
+    private ScreenNotchSwitchObserver mNotchSwitchObserver;
 
     private RotationObserver mRotationObserver;
     private OnOrientationChangeListener mOnOrientationChangeListener;
@@ -173,12 +178,8 @@ public class VideoActivity extends SwipeBackActivity {
     private String mWatching;
 
     private View.OnLayoutChangeListener mOnPipLayoutChangeListener;
-    private static final float RATIO_TOLERANCE_PIP_LAYOUT_SIZE = 5.0f / 3.0f;
-    private static float sPipRatioOfProgressHeightToVideoSize;
 
     private ProgressBar mVideoProgressInPiP;
-    private static int sPipProgressMinHeight;
-    private static int sPipProgressMaxHeight;
 
     @RequiresApi(api = Build.VERSION_CODES.O)
     private RefreshVideoProgressInPiPTask mRefreshVideoProgressInPiPTask;
@@ -231,6 +232,7 @@ public class VideoActivity extends SwipeBackActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if (canInitVideos(savedInstanceState)) {
+            setRequestedOrientation(mScreenOrientation);
             setContentView(R.layout.activity_video);
             initViews(savedInstanceState);
         } else {
@@ -273,7 +275,6 @@ public class VideoActivity extends SwipeBackActivity {
         } else {
             Video video = intent.getParcelableExtra(Consts.KEY_VIDEO);
             if (video == null) {
-                // 解析视频地址
                 Uri uri = intent.getData();
                 if (uri != null) {
                     final String path = FileUtils.UriResolver.getPath(this, uri);
@@ -315,10 +316,9 @@ public class VideoActivity extends SwipeBackActivity {
         }
 
         mVideoView = findViewById(R.id.videoview);
-        final TextureVideoView.VideoPlayer videoPlayer =
-                Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN
-                        ? new TextureVideoView.ExoPlayer(this)
-                        : new TextureVideoView.MediaPlayer(this);
+        VideoPlayer videoPlayer =
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN ?
+                        new ExoVideoPlayer(this) : new SystemVideoPlayer(this);
         mVideoPlayer = videoPlayer;
         videoPlayer.setVideoView(mVideoView);
         mVideoView.setVideoPlayer(videoPlayer);
@@ -330,24 +330,13 @@ public class VideoActivity extends SwipeBackActivity {
                 setScreenOrientationLocked((mPrivateFlags & PFLAG_SCREEN_ORIENTATION_LOCKED) == 0);
             }
         });
-        if (savedInstanceState != null) {
-            if (savedInstanceState.getBoolean(KEY_IS_SCREEN_ORIENTATION_LOCKED, false)) {
-                setScreenOrientationLocked(true);
-            }
-            mDeviceOrientation = savedInstanceState.getInt(
-                    KEY_DEVICE_ORIENTATION, SCREEN_ORIENTATION_PORTRAIT);
-            mScreenOrientation = savedInstanceState.getInt(
-                    KEY_SCREEN_ORIENTATION, SCREEN_ORIENTATION_PORTRAIT);
-            mStatusHeightInLandscapeOfNotchSupportDevices = savedInstanceState.getInt(
-                    KEY_STATUS_HEIGHT_IN_LANDSCAPE_OF_NOTCH_SUPPORT_DEVICES, 0);
-        }
 
         if (mVideos.length > 1) {
             mVideoView.setPlayListAdapter(new VideoEpisodesAdapter());
             mVideoView.setCanSkipToPrevious(true);
             mVideoView.setCanSkipToNext(true);
         }
-        // 确保列表滚动到所播放视频的位置
+        // Ensures the list scrolls to the position of the video to be played
         if (savedInstanceState == null && mVideoIndex != 0) {
             notifyItemSelectionChanged(0, mVideoIndex, true);
         }
@@ -357,8 +346,10 @@ public class VideoActivity extends SwipeBackActivity {
             public void onVideoStarted() {
                 Video video = mVideos[mVideoIndex];
                 final int progress = video.getProgress();
-                if (progress > 0 && progress < video.getDuration()) {
-                    mVideoPlayer.seekTo(progress, false); // 恢复上次关闭此页面时播放到的位置
+                if (progress > 0 && progress < video.getDuration() - Consts.TOLERANCE_VIDEO_DURATION) {
+                    // Restores the playback position saved when the VideoActivity for
+                    // the same video was closed
+                    mVideoPlayer.seekTo(progress, false);
                     video.setProgress(0);
                 }
 
@@ -371,19 +362,13 @@ public class VideoActivity extends SwipeBackActivity {
                     mVideoProgressInPiP.setMax(mVideoPlayer.getVideoDuration());
 
                     if (isInPictureInPictureMode()) {
-                        // This Activity is recreated after killed by the System
-                        if (mPipParamsBuilder == null) {
-                            mPipParamsBuilder = new PictureInPictureParams.Builder();
-                            onPictureInPictureModeChanged(true);
-                        } else {
-                            // We are playing the video now. In PiP mode, we want to show several
-                            // action items to fast rewind, pause and fast forward the video.
-                            updatePictureInPictureActions(PIP_ACTION_FAST_REWIND
-                                    | PIP_ACTION_PAUSE | PIP_ACTION_FAST_FORWARD);
+                        // We are playing the video now. In PiP mode, we want to show several
+                        // action items to fast rewind, pause and fast forward the video.
+                        updatePictureInPictureActions(PIP_ACTION_FAST_REWIND
+                                | PIP_ACTION_PAUSE | PIP_ACTION_FAST_FORWARD);
 
-                            if (mRefreshVideoProgressInPiPTask != null) {
-                                mRefreshVideoProgressInPiPTask.execute();
-                            }
+                        if (mRefreshVideoProgressInPiPTask != null) {
+                            mRefreshVideoProgressInPiPTask.execute();
                         }
                     }
                 }
@@ -428,7 +413,7 @@ public class VideoActivity extends SwipeBackActivity {
                 }
             }
         });
-        videoPlayer.setOnSkipPrevNextListener(new TextureVideoView.VideoPlayer.OnSkipPrevNextListener() {
+        videoPlayer.setOnSkipPrevNextListener(new VideoPlayer.OnSkipPrevNextListener() {
             @Override
             public void onSkipToPrevious() {
                 recordCurrVideoProgress();
@@ -460,7 +445,7 @@ public class VideoActivity extends SwipeBackActivity {
         mVideoView.setEventListener(new TextureVideoView.EventListener() {
 
             @Override
-            public void onPlayerChange(@Nullable TextureVideoView.VideoPlayer videoPlayer) {
+            public void onPlayerChange(@Nullable VideoPlayer videoPlayer) {
                 mVideoPlayer = videoPlayer;
             }
 
@@ -502,7 +487,7 @@ public class VideoActivity extends SwipeBackActivity {
 
             @Override
             public void onShareVideo() {
-                VideoOpsKt.shareVideo(VideoActivity.this, mVideos[mVideoIndex]);
+                VideoListItemOpsKt.shareVideo(VideoActivity.this, mVideos[mVideoIndex]);
             }
 
             @Override
@@ -537,13 +522,17 @@ public class VideoActivity extends SwipeBackActivity {
     protected void onStart() {
         super.onStart();
         if (sActivityInPiP != null) {
-            final VideoActivity activity = sActivityInPiP.get();
-            if (activity != null && activity != this) {
-                activity.unregisterReceiver(activity.mReceiver);
-                activity.finish();
-                // Clear reference
+            VideoActivity activity = sActivityInPiP.get();
+            if (activity != this) {
                 sActivityInPiP.clear();
                 sActivityInPiP = null;
+                if (activity != null) {
+                    // We need to unregister the receiver registered for it when it entered pip mode
+                    // first, since its onPictureInPictureModeChanged() method will not be called
+                    // (we are still in picture-in-picture mode).
+                    activity.unregisterReceiver(activity.mReceiver);
+                    activity.finish();
+                }
             }
         }
     }
@@ -551,19 +540,23 @@ public class VideoActivity extends SwipeBackActivity {
     @Override
     protected void onRestart() {
         super.onRestart();
+        mPrivateFlags &= ~PFLAG_STOPPED;
+
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !isInPictureInPictureMode()) {
             if (mNotchSwitchObserver != null) {
                 mNotchSwitchObserver.startObserver();
             }
             setAutoRotationEnabled(true);
         }
+
         mVideoPlayer.openVideo();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        // Android 4.4及以上版本，重新显示页面时状态栏会显示出来且不会自动隐藏
+        // In Android 4.4 and above, the status bar is displayed and will not be automatically hidden
+        // when the Activity is redisplayed
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT
                 && mVideoView.isInFullscreenMode()) {
             showSystemBars(false);
@@ -614,7 +607,6 @@ public class VideoActivity extends SwipeBackActivity {
         if (Utils.isLayoutRtl(decorView)) {
             getSwipeBackLayout().setEnabledEdges(SwipeBackLayout.EDGE_RIGHT);
         }
-        // 初始化布局
         setFullscreenMode(mVideoView.isInFullscreenMode());
 
         mHandler = decorView.getHandler();
@@ -663,7 +655,9 @@ public class VideoActivity extends SwipeBackActivity {
     @Override
     protected void onStop() {
         super.onStop();
-        // 当前页面放入后台时保存视频进度
+        mPrivateFlags |= PFLAG_STOPPED;
+
+        // Saves the video progress when current Activity is put into background
         if (!isFinishing()) {
             recordCurrVideoProgress();
         }
@@ -674,6 +668,7 @@ public class VideoActivity extends SwipeBackActivity {
             }
             setAutoRotationEnabled(false);
         }
+
         mVideoPlayer.closeVideo();
     }
 
@@ -749,7 +744,7 @@ public class VideoActivity extends SwipeBackActivity {
             mPrivateFlags &= ~PFLAG_SCREEN_ORIENTATION_LOCKED;
             mLockUnlockOrientationButton.setImageResource(R.drawable.ic_lock);
             mLockUnlockOrientationButton.setContentDescription(mLockOrientation);
-            // 取消锁定则将屏幕方向设为当前设备方向
+            // Unlock to set the screen orientation to the current device orientation
             changeScreenOrientationIfNeeded(mDeviceOrientation);
         }
     }
@@ -845,7 +840,7 @@ public class VideoActivity extends SwipeBackActivity {
     }
 
     private void setFullscreenMode(boolean fullscreen) {
-        // 全屏时禁用“滑动返回”
+        // Disable 'swipe back' in full screen mode
         getSwipeBackLayout().setGestureEnabled(!fullscreen);
 
         showSystemBars(!fullscreen);
@@ -904,7 +899,7 @@ public class VideoActivity extends SwipeBackActivity {
                             ViewGroup.LayoutParams.MATCH_PARENT);
                     if ((mPrivateFlags & PFLAG_SCREEN_NOTCH_SUPPORT) != 0) {
                         /*
-                         * setPadding()对DrawerLayout无效，如：
+                         * setPadding () has no effect on DrawerLayout, such as:
                          *
                          * mVideoView.setPadding(0, mNotchHeight, 0, 0);
                          */
@@ -973,7 +968,8 @@ public class VideoActivity extends SwipeBackActivity {
         if (show) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
                 mStatusBarView.setVisibility(View.VISIBLE);
-                // 状态栏透明
+
+                // Status bar is set to transparent
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                     SystemBarUtils.setStatusBackgroundColor(window, Color.TRANSPARENT);
                 } else {
@@ -981,10 +977,10 @@ public class VideoActivity extends SwipeBackActivity {
                 }
                 View decorView = window.getDecorView();
                 int visibility = decorView.getVisibility();
-                // 使view显示在状态栏底层
+                // Makes the content view appear under the status bar
                 visibility |= View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                         | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN;
-                // 状态栏、导航栏显现
+                // Status bar and navigation bar appear
                 visibility &= ~(View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
                         | View.SYSTEM_UI_FLAG_FULLSCREEN
                         | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
@@ -997,6 +993,7 @@ public class VideoActivity extends SwipeBackActivity {
             if (mStatusBarView != null) {
                 mStatusBarView.setVisibility(View.GONE);
             }
+
             SystemBarUtils.showSystemBars(window, false);
         }
     }
@@ -1007,7 +1004,6 @@ public class VideoActivity extends SwipeBackActivity {
     @RequiresApi(api = Build.VERSION_CODES.O)
     private void updatePictureInPictureActions(int pipActions) {
         final List<RemoteAction> actions = new LinkedList<>();
-
         if ((pipActions & PIP_ACTION_FAST_REWIND) != 0) {
             actions.add(createPipAction(R.drawable.ic_fast_rewind_white_24dp,
                     mFastRewind, PIP_ACTION_FAST_REWIND, REQUEST_FAST_REWIND));
@@ -1029,7 +1025,6 @@ public class VideoActivity extends SwipeBackActivity {
             action.setEnabled(false);
             actions.add(action);
         }
-
         mPipParamsBuilder.setActions(actions);
 
         // This is how you can update action items (or aspect ratio) for Picture-in-Picture mode.
@@ -1066,7 +1061,9 @@ public class VideoActivity extends SwipeBackActivity {
     @Override
     public void onPictureInPictureModeChanged(boolean isInPictureInPictureMode) {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode);
+
         mVideoView.onMinimizationModeChange(isInPictureInPictureMode);
+
         if (isInPictureInPictureMode) {
             int actions = PIP_ACTION_FAST_REWIND;
             final int playbackState = mVideoPlayer.getPlaybackState();
@@ -1116,11 +1113,12 @@ public class VideoActivity extends SwipeBackActivity {
 
             sActivityInPiP = new WeakReference<>(this);
 
-            mStatusBarView.setVisibility(View.GONE);
             if (mNotchSwitchObserver != null) {
                 mNotchSwitchObserver.stopObserver();
             }
             setAutoRotationEnabled(false);
+
+            mStatusBarView.setVisibility(View.GONE);
             showLockUnlockOrientationButton(false);
             mVideoProgressInPiP.setVisibility(View.VISIBLE);
             mRefreshVideoProgressInPiPTask = new RefreshVideoProgressInPiPTask();
@@ -1131,23 +1129,27 @@ public class VideoActivity extends SwipeBackActivity {
             resizeVideoView();
 
             mOnPipLayoutChangeListener = new View.OnLayoutChangeListener() {
+                static final float RATIO_TOLERANCE_PIP_LAYOUT_SIZE = 5.0f / 3.0f;
+
+                final float ratioOfProgressHeightToVideoSize;
+                final int progressMinHeight;
+                final int progressMaxHeight;
+
                 float cachedVideoAspectRatio;
                 int cachedSize = -1;
 
                 static final String TAG = "VideoActivityInPIP";
 
                 /* anonymous class initializer */ {
-                    if (sPipRatioOfProgressHeightToVideoSize == 0) {
-                        // 1dp -> 2.75px (5.5inch  w * h = 1080 * 1920)
-                        final float dp = getResources().getDisplayMetrics().density;
-                        sPipRatioOfProgressHeightToVideoSize = 1.0f / (12121.2f * dp); // 1 : 33333.3 (px)
-                        sPipProgressMinHeight = (int) (dp * 1.8f + 0.5f); // 5.45px -> 5px
-                        sPipProgressMaxHeight = (int) (dp * 2.5f + 0.5f); // 7.375px -> 7px
-                        if (BuildConfig.DEBUG) {
-                            Log.i(TAG, "sPipRatioOfProgressHeightToVideoSize = " + sPipRatioOfProgressHeightToVideoSize
-                                    + "    " + "sPipProgressMinHeight = " + sPipProgressMinHeight
-                                    + "    " + "sPipProgressMaxHeight = " + sPipProgressMaxHeight);
-                        }
+                    // 1dp -> 2.75px (5.5inch  w * h = 1080 * 1920)
+                    final float dp = getResources().getDisplayMetrics().density;
+                    ratioOfProgressHeightToVideoSize = 1.0f / (12121.2f * dp); // 1 : 33333.3 (px)
+                    progressMinHeight = (int) (dp * 1.8f + 0.5f); // 5.45px -> 5px
+                    progressMaxHeight = (int) (dp * 2.5f + 0.5f); // 7.375px -> 7px
+                    if (BuildConfig.DEBUG) {
+                        Log.i(TAG, "ratioOfProgressHeightToVideoSize = " + ratioOfProgressHeightToVideoSize
+                                + "    " + "progressMinHeight = " + progressMinHeight
+                                + "    " + "progressMaxHeight = " + progressMaxHeight);
                     }
                 }
 
@@ -1165,14 +1167,14 @@ public class VideoActivity extends SwipeBackActivity {
                     if (videoAspectRatio != cachedVideoAspectRatio
                             || sizeRatio > RATIO_TOLERANCE_PIP_LAYOUT_SIZE
                             || sizeRatio < 1.0f / RATIO_TOLERANCE_PIP_LAYOUT_SIZE) {
-                        final int progressHeight = Math.max(sPipProgressMinHeight,
-                                Math.min(sPipProgressMaxHeight,
-                                        (int) (size * sPipRatioOfProgressHeightToVideoSize + 0.5f)));
+                        final int progressHeight = Math.max(progressMinHeight,
+                                Math.min(progressMaxHeight,
+                                        (int) (size * ratioOfProgressHeightToVideoSize + 0.5f)));
                         if (BuildConfig.DEBUG) {
                             Log.i(TAG, "sizeRatio = " + sizeRatio
                                     + "    " + "progressHeight = " + progressHeight
-                                    + "    " + "size / 1.8dp = " + size / sPipProgressMinHeight
-                                    + "    " + "size / 2.5dp = " + size / sPipProgressMaxHeight);
+                                    + "    " + "size / 1.8dp = " + size / progressMinHeight
+                                    + "    " + "size / 2.5dp = " + size / progressMaxHeight);
                         }
 
                         mPipParamsBuilder.setAspectRatio(
@@ -1193,26 +1195,29 @@ public class VideoActivity extends SwipeBackActivity {
             sActivityInPiP.clear();
             sActivityInPiP = null;
 
+            mRefreshVideoProgressInPiPTask.cancel();
+            mRefreshVideoProgressInPiPTask = null;
+
             mVideoView.removeOnLayoutChangeListener(mOnPipLayoutChangeListener);
             mOnPipLayoutChangeListener = null;
+
+            // We closed the picture-in-picture window by clicking the 'close' button
+            if ((mPrivateFlags & PFLAG_STOPPED) != 0) {
+                finish();
+                return;
+            }
 
             mVideoView.showControls(true);
             mVideoView.setClipViewBounds(false);
             resizeVideoView();
 
             mStatusBarView.setVisibility(View.VISIBLE);
-            if (mNotchSwitchObserver != null) {
-                mNotchSwitchObserver.startObserver();
-            }
-            setAutoRotationEnabled(true);
             mVideoProgressInPiP.setVisibility(View.GONE);
-            mRefreshVideoProgressInPiPTask.cancel();
-            mRefreshVideoProgressInPiPTask = null;
         }
     }
 
     /**
-     * 跳转到系统默认的播放器进行播放
+     * Jumps to the system default player app for playback purpose
      */
     private void playVideoByDefault() {
         final String path = mVideos[mVideoIndex].getPath();
@@ -1262,8 +1267,9 @@ public class VideoActivity extends SwipeBackActivity {
         @NonNull
         @Override
         public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            return new ViewHolder(LayoutInflater.from(VideoActivity.this)
-                    .inflate(R.layout.item_video_play_list, parent, false));
+            return new ViewHolder(
+                    LayoutInflater.from(VideoActivity.this)
+                            .inflate(R.layout.item_video_play_list, parent, false));
         }
 
         @Override
@@ -1347,21 +1353,11 @@ public class VideoActivity extends SwipeBackActivity {
 
     // --------------- Saved Instance State ------------------------
 
-    private static final String KEY_IS_SCREEN_ORIENTATION_LOCKED = "kisol";
-    private static final String KEY_DEVICE_ORIENTATION = "kdo";
-    private static final String KEY_SCREEN_ORIENTATION = "kso";
-    private static final String KEY_STATUS_HEIGHT_IN_LANDSCAPE_OF_NOTCH_SUPPORT_DEVICES = "kshilonsd";
     private static final String KEY_VIDEO_INDEX = "kvi";
 
     @Override
     protected void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
-        outState.putBoolean(KEY_IS_SCREEN_ORIENTATION_LOCKED,
-                (mPrivateFlags & PFLAG_SCREEN_ORIENTATION_LOCKED) != 0);
-        outState.putInt(KEY_DEVICE_ORIENTATION, mDeviceOrientation);
-        outState.putInt(KEY_SCREEN_ORIENTATION, mScreenOrientation);
-        outState.putInt(KEY_STATUS_HEIGHT_IN_LANDSCAPE_OF_NOTCH_SUPPORT_DEVICES,
-                mStatusHeightInLandscapeOfNotchSupportDevices);
         outState.putInt(KEY_VIDEO_INDEX, mVideoIndex);
     }
 }

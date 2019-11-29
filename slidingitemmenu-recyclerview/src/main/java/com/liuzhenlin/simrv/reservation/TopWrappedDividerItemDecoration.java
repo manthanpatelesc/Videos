@@ -14,8 +14,6 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.liuzhenlin.simrv.BuildConfig;
-
 public class TopWrappedDividerItemDecoration extends RecyclerView.ItemDecoration {
     public static final int HORIZONTAL = LinearLayout.HORIZONTAL;
     public static final int VERTICAL = LinearLayout.VERTICAL;
@@ -43,7 +41,7 @@ public class TopWrappedDividerItemDecoration extends RecyclerView.ItemDecoration
     public TopWrappedDividerItemDecoration(Context context, int orientation) {
         final TypedArray a = context.obtainStyledAttributes(ATTRS);
         mDivider = a.getDrawable(0);
-        if (mDivider == null && BuildConfig.DEBUG) {
+        if (mDivider == null) {
             Log.w(TAG, "@android:attr/listDivider was not set in the theme used for this "
                     + "DividerItemDecoration. Please set that attribute all call setDivider()");
         }

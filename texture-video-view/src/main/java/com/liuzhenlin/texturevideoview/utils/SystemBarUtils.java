@@ -86,6 +86,7 @@ public class SystemBarUtils {
 
     /**
      * 设置显示或隐藏状态栏和虚拟按键
+     * <p>
      * {@link View#SYSTEM_UI_FLAG_LAYOUT_STABLE}：使View的布局不变，隐藏状态栏或导航栏后，View不会被拉伸。
      * {@link View#SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN}：让decorView全屏显示，
      * 但状态栏不会被隐藏覆盖，状态栏依然可见，decorView顶端布局部分会被状态遮住。
@@ -98,15 +99,13 @@ public class SystemBarUtils {
             int flags = View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                     | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
                     | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                    // The above 3 flags make the content appear
-                    // under the system bars so that the content doesn't resize
-                    // when the system bars hide and show.
+                    // The above 3 flags make the content appear under the system bars
+                    // so that the content doesn't resize when the system bars hide and show.
                     | View.SYSTEM_UI_FLAG_FULLSCREEN // hide status bar
                     | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION // hide navigation bar
                     | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
-            // The IMMERSIVE_STICKY flag to prevent the flags of
-            // hiding navigation bar and hiding status bar from being force-cleared
-            // by the system on any user interaction.
+            // The IMMERSIVE_STICKY flag to prevent the flags of hiding navigation bar and
+            // hiding status bar from being force-cleared by the system on any user interaction.
             if (show) {
                 // This snippet shows the system bars.
                 // It does this by removing all the flags.
@@ -217,11 +216,14 @@ public class SystemBarUtils {
         setNavigationBackgroundColor(window, ContextCompat.getColor(context, colorId));
     }
 
+    /**
+     * 设置透明状态栏
+     */
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     public static void setTransparentStatus(@NonNull Window window) {
         setStatusBackgroundColor(window, Color.TRANSPARENT);
 
-        // 将contentView显示在状态栏底部
+        // Place the decorView under the status bar
         View decor = window.getDecorView();
         int visibility = decor.getSystemUiVisibility();
         visibility |= View.SYSTEM_UI_FLAG_LAYOUT_STABLE

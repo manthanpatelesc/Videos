@@ -174,19 +174,21 @@
                     android:gravity="center_vertical" />
             </LinearLayout>
 
-            <Button
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_commit"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:padding="10dp"
                 android:layout_marginLeft="10dp"
                 android:layout_marginTop="20dp"
                 android:layout_marginRight="10dp"
                 android:layout_marginBottom="20dp"
-                android:background="@drawable/bg_commit_button"
                 android:enabled="false"
                 android:text="@string/commit"
                 android:textSize="@dimen/primary_text_size"
-                android:textColor="@android:color/white" />
+                android:textColor="@android:color/white"
+                android:textAlignment="center"
+                android:gravity="center_horizontal" />
         </LinearLayout>
     </ScrollView>
 </LinearLayout>

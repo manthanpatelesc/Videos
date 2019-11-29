@@ -5,7 +5,6 @@
 
 package com.liuzhenlin.videos.dao;
 
-import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.SharedPreferences;
 
@@ -20,16 +19,13 @@ public final class AppSharedPreferences {
     private static volatile AppSharedPreferences sAppSP;
 
     private final SharedPreferences mSP;
-    private final SharedPreferences.Editor mEditor;
 
     private static final String DRAWER_BACKGROUND_PATH = "drawerBackgroundPath";
     private static final String IS_LIGHT_DRAWER_STATUS = "isLightDrawerStatus";
     private static final String IS_LIGHT_DRAWER_LIST_FOREGROUND = "isLightDrawerListForeground";
 
-    @SuppressLint("CommitPrefEdits")
     private AppSharedPreferences(Context context) {
         mSP = context.getSharedPreferences("Videos.sp", Context.MODE_PRIVATE);
-        mEditor = mSP.edit();
     }
 
     public static AppSharedPreferences getInstance(@NonNull Context context) {
@@ -49,7 +45,7 @@ public final class AppSharedPreferences {
     }
 
     public void setDrawerBackgroundPath(@Nullable String path) {
-        mEditor.putString(DRAWER_BACKGROUND_PATH, path).apply();
+        mSP.edit().putString(DRAWER_BACKGROUND_PATH, path).apply();
     }
 
     public boolean isLightDrawerStatus() {
@@ -57,7 +53,7 @@ public final class AppSharedPreferences {
     }
 
     public void setLightDrawerStatus(boolean light) {
-        mEditor.putBoolean(IS_LIGHT_DRAWER_STATUS, light).apply();
+        mSP.edit().putBoolean(IS_LIGHT_DRAWER_STATUS, light).apply();
     }
 
     public boolean isLightDrawerListForeground() {
@@ -65,6 +61,6 @@ public final class AppSharedPreferences {
     }
 
     public void setLightDrawerListForeground(boolean light) {
-        mEditor.putBoolean(IS_LIGHT_DRAWER_LIST_FOREGROUND, light).apply();
+        mSP.edit().putBoolean(IS_LIGHT_DRAWER_LIST_FOREGROUND, light).apply();
     }
 }

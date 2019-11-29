@@ -14,7 +14,9 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.liuzhenlin.texturevideoview.IVideoPlayer;
 import com.liuzhenlin.texturevideoview.R;
+import com.liuzhenlin.texturevideoview.SystemVideoPlayer;
 import com.liuzhenlin.texturevideoview.TextureVideoView;
+import com.liuzhenlin.texturevideoview.VideoPlayer;
 import com.liuzhenlin.texturevideoview.utils.FileUtils;
 
 import java.io.File;
@@ -24,24 +26,24 @@ import java.io.File;
  */
 public class DemoActivity extends AppCompatActivity {
     private TextureVideoView mVideoView;
-    private TextureVideoView.VideoPlayer mVideoPlayer;
+    private VideoPlayer mVideoPlayer;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_demo);
 
-        // First, interrelates TextureVideoView with TextureVideoView.VideoPlayer
+        // First, interrelates TextureVideoView with VideoPlayer
         mVideoView = findViewById(R.id.videoview);
-        mVideoPlayer = new TextureVideoView.MediaPlayer(this);
+        mVideoPlayer = new SystemVideoPlayer(this);
         mVideoPlayer.setVideoView(mVideoView);
         mVideoView.setVideoPlayer(mVideoPlayer);
 
         mVideoView.setTitle("Simplest Playback Demo for TextureVideoView");
         mVideoPlayer.setVideoUri(getIntent().getData());
-        // Sets fullscreenMode to true only for demonstration purpose, which, however, should normally
-        // not be set unless the onViewModeChange() method is called for the EventListener to perform
-        // some changes in the layout of our Activity as we see fit.
+        // Sets fullscreenMode to true only for demonstration purpose, which, however, should
+        // normally not be set unless the onViewModeChange() method is called for the EventListener
+        // to perform some changes in the layout of our Activity as we see fit.
         mVideoView.setFullscreenMode(true, 0);
         mVideoPlayer.addVideoListener(new IVideoPlayer.VideoListener() {
             @Override
@@ -59,7 +61,7 @@ public class DemoActivity extends AppCompatActivity {
                 // no-op
             }
         });
-        mVideoPlayer.setOnSkipPrevNextListener(new TextureVideoView.VideoPlayer.OnSkipPrevNextListener() {
+        mVideoPlayer.setOnSkipPrevNextListener(new VideoPlayer.OnSkipPrevNextListener() {
             @Override
             public void onSkipToPrevious() {
                 // no-op
@@ -72,7 +74,7 @@ public class DemoActivity extends AppCompatActivity {
         });
         mVideoView.setEventListener(new TextureVideoView.EventListener() {
             @Override
-            public void onPlayerChange(@Nullable TextureVideoView.VideoPlayer videoPlayer) {
+            public void onPlayerChange(@Nullable VideoPlayer videoPlayer) {
                 mVideoPlayer = videoPlayer;
             }
 

@@ -5,7 +5,6 @@
 
 package com.liuzhenlin.videos.view.fragment
 
-import android.app.Activity
 import android.content.Context
 import android.graphics.Color
 import android.os.Bundle
@@ -32,8 +31,6 @@ class LocalVideosFragment : Fragment(), ILocalVideosFragment, FragmentPartLifecy
         LocalFoldedVideosFragment.InteractionCallback, LocalSearchedVideosFragment.InteractionCallback,
         View.OnClickListener, SwipeBackLayout.SwipeListener, SlidingDrawerLayout.OnDrawerScrollListener {
 
-    private lateinit var mActivity: Activity
-    private lateinit var mContext: Context
     private lateinit var mInteractionCallback: InteractionCallback
 
     private lateinit var mLocalVideoListFragment: LocalVideoListFragment
@@ -58,9 +55,6 @@ class LocalVideosFragment : Fragment(), ILocalVideosFragment, FragmentPartLifecy
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
-        mActivity = context as Activity
-        mContext = context.applicationContext
-
         val parent = parentFragment
         mInteractionCallback = when {
             parent is InteractionCallback -> parent
@@ -83,7 +77,7 @@ class LocalVideosFragment : Fragment(), ILocalVideosFragment, FragmentPartLifecy
         mActionBar = contentView.findViewById(R.id.actionbar)
         insertTopPaddingToActionBarIfNeeded(mActionBar)
 
-        mDrawerArrowDrawable = DrawerArrowDrawable(mActivity)
+        mDrawerArrowDrawable = DrawerArrowDrawable(contentView.context)
         mDrawerArrowDrawable.gapSize = 12.5f
         mDrawerArrowDrawable.color = Color.WHITE
 
@@ -93,7 +87,7 @@ class LocalVideosFragment : Fragment(), ILocalVideosFragment, FragmentPartLifecy
 
         mTitleText = mActionBar.findViewById(R.id.text_title)
         mTitleText.post {
-            val app = App.getInstance(mContext)
+            val app = App.getInstance(contentView.context)
             val hauilp = mHomeAsUpIndicator.layoutParams as ViewGroup.MarginLayoutParams
             val ttlp = mTitleText.layoutParams as ViewGroup.MarginLayoutParams
             MarginLayoutParamsCompat.setMarginStart(ttlp,
@@ -113,7 +107,7 @@ class LocalVideosFragment : Fragment(), ILocalVideosFragment, FragmentPartLifecy
 
     private fun insertTopPaddingToActionBarIfNeeded(actionbar: View) {
         if (mInteractionCallback.isLayoutUnderStatusBar()) {
-            val statusHeight = App.getInstance(mContext).statusHeightInPortrait
+            val statusHeight = App.getInstance(actionbar.context).statusHeightInPortrait
             when (actionbar.layoutParams.height) {
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.MATCH_PARENT -> {
@@ -157,11 +151,13 @@ class LocalVideosFragment : Fragment(), ILocalVideosFragment, FragmentPartLifecy
     }
 
     override fun onFragmentAttached(childFragment: Fragment) {
+        // this::mLocalVideoListFragment.isInitialized用于判断我们是否已经初始化了子Fragment属性
+        // 在Activity被系统销毁后自动创建时，子Fragment属性还未在此类的onViewCreated()方法中被初始化，
+        // 但子Fragments已经attach到此Fragment了
+        if (!this::mLocalVideoListFragment.isInitialized) return
+
         when {
-            // this::mLocalVideoListFragment.isInitialized: 在Activity被系统销毁后自动创建时，
-            // mLocalVideoListFragment还未在此类中被初始化，但子Fragment已经attach到此Fragment了
-            this::mLocalVideoListFragment.isInitialized
-                    && childFragment === mLocalVideoListFragment -> {
+            childFragment === mLocalVideoListFragment -> {
                 mSwipeRefreshLayout.setOnRefreshListener(childFragment)
             }
             childFragment === mLocalFoldedVideosFragment -> {
@@ -172,7 +168,7 @@ class LocalVideosFragment : Fragment(), ILocalVideosFragment, FragmentPartLifecy
                 mInteractionCallback.setSideDrawerEnabled(false)
 
                 mActionBar.visibility = View.GONE
-                mTmpActionBar = LayoutInflater.from(mActivity).inflate(
+                mTmpActionBar = LayoutInflater.from(mActionBar.context).inflate(
                         R.layout.actionbar_local_folded_videos_fragment, mActionBarContainer, false) as ViewGroup
                 mActionBarContainer.addView(mTmpActionBar, 1)
                 insertTopPaddingToActionBarIfNeeded(mTmpActionBar!!)
@@ -187,11 +183,11 @@ class LocalVideosFragment : Fragment(), ILocalVideosFragment, FragmentPartLifecy
 
                 mInteractionCallback.setSideDrawerEnabled(false)
 
-                mTmpActionBar = LayoutInflater.from(mActivity).inflate(
+                mTmpActionBar = LayoutInflater.from(mActionBar.context).inflate(
                         R.layout.actionbar_local_searched_videos_fragment, mActionBarContainer, false) as ViewGroup
                 if (mInteractionCallback.isLayoutUnderStatusBar()) {
                     UiUtils.setViewMargins(mTmpActionBar!!,
-                            0, App.getInstance(mContext).statusHeightInPortrait, 0, 0)
+                            0, App.getInstance(mActionBar.context).statusHeightInPortrait, 0, 0)
                 }
                 mActionBarContainer.addView(mTmpActionBar, 1)
 
@@ -338,10 +334,14 @@ class LocalVideosFragment : Fragment(), ILocalVideosFragment, FragmentPartLifecy
     }
 
     override fun onScrollPercentChange(parent: SlidingDrawerLayout, drawer: View, percent: Float) {
+        if (view == null) return
+
         mDrawerArrowDrawable.progress = percent
     }
 
     override fun onScrollStateChange(parent: SlidingDrawerLayout, drawer: View, state: Int) {
+        if (view == null) return
+
         when (state) {
             SlidingDrawerLayout.SCROLL_STATE_TOUCH_SCROLL,
             SlidingDrawerLayout.SCROLL_STATE_AUTO_SCROLL -> {

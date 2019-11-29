@@ -14,6 +14,8 @@ import androidx.core.content.ContextCompat
 
 const val NO_ID = -1L
 
+internal const val TOLERANCE_VIDEO_DURATION = 100 // ms
+
 internal const val KEY_DIRECTORY_PATH = "path_directory"
 internal const val KEY_VIDEODIR = "videodir"
 internal const val KEY_VIDEO = "video"

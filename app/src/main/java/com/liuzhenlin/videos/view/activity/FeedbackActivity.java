@@ -507,9 +507,9 @@ public class FeedbackActivity extends SwipeBackActivity implements View.OnClickL
 
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
-            PictureGridViewHolder vh;
+            ViewHolder vh;
             if (convertView == null) {
-                vh = new PictureGridViewHolder(mContext);
+                vh = new ViewHolder(mContext);
                 convertView = vh.convertView;
                 convertView.setTag(vh);
 
@@ -524,13 +524,25 @@ public class FeedbackActivity extends SwipeBackActivity implements View.OnClickL
                 plp.width = screenWidth - dp_20;
                 plp.height = lp.height;
             } else {
-                vh = (PictureGridViewHolder) convertView.getTag();
+                vh = (ViewHolder) convertView.getTag();
             }
             vh.pictureImage.setImageBitmap(mPictures.get(position));
             vh.pictureText.setVisibility(position != mPictures.size() - 1 ? View.GONE : View.VISIBLE);
             mPictureCountIndicator.setText(
                     getString(R.string.pictureCount, mPictures.size() - 1));
             return convertView;
+        }
+
+        final class ViewHolder {
+            final ViewGroup convertView;
+            final ImageView pictureImage;
+            final TextView pictureText;
+
+            ViewHolder(Context context) {
+                convertView = (ViewGroup) View.inflate(context, R.layout.item_picture_grid, null);
+                pictureImage = convertView.findViewById(R.id.image_picture);
+                pictureText = convertView.findViewById(R.id.text_picture);
+            }
         }
 
         @Override
@@ -795,18 +807,6 @@ public class FeedbackActivity extends SwipeBackActivity implements View.OnClickL
                                 mIsNotchSupportOnEMUI && mIsNotchHidden ? 0 : mNotchHeight, 0);
                         break;
                 }
-            }
-        }
-
-        final class PictureGridViewHolder {
-            final ViewGroup convertView;
-            final ImageView pictureImage;
-            final TextView pictureText;
-
-            PictureGridViewHolder(Context context) {
-                convertView = (ViewGroup) View.inflate(context, R.layout.item_picture_grid, null);
-                pictureImage = convertView.findViewById(R.id.image_picture);
-                pictureText = convertView.findViewById(R.id.text_picture);
             }
         }
     }
