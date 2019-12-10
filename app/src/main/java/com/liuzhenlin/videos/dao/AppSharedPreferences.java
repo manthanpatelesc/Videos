@@ -11,12 +11,12 @@ import android.content.SharedPreferences;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.liuzhenlin.videos.utils.Singleton;
+
 /**
  * @author 刘振林
  */
 public final class AppSharedPreferences {
-
-    private static volatile AppSharedPreferences sAppSP;
 
     private final SharedPreferences mSP;
 
@@ -24,19 +24,22 @@ public final class AppSharedPreferences {
     private static final String IS_LIGHT_DRAWER_STATUS = "isLightDrawerStatus";
     private static final String IS_LIGHT_DRAWER_LIST_FOREGROUND = "isLightDrawerListForeground";
 
-    private AppSharedPreferences(Context context) {
-        mSP = context.getSharedPreferences("Videos.sp", Context.MODE_PRIVATE);
-    }
+    private static final Singleton<Context, AppSharedPreferences> sAppSharedPreferencesSingleton =
+            new Singleton<Context, AppSharedPreferences>() {
+                @NonNull
+                @Override
+                protected AppSharedPreferences onCreate(Context... ctxs) {
+                    return new AppSharedPreferences(ctxs[0]);
+                }
+            };
 
     public static AppSharedPreferences getInstance(@NonNull Context context) {
-        if (sAppSP == null) {
-            synchronized (AppSharedPreferences.class) {
-                if (sAppSP == null) {
-                    sAppSP = new AppSharedPreferences(context.getApplicationContext());
-                }
-            }
-        }
-        return sAppSP;
+        return sAppSharedPreferencesSingleton.get(context);
+    }
+
+    private AppSharedPreferences(Context context) {
+        context = context.getApplicationContext();
+        mSP = context.getSharedPreferences("Videos.sp", Context.MODE_PRIVATE);
     }
 
     @Nullable

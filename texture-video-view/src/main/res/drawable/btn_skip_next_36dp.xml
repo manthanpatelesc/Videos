@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?><!--
-  ~ Created on 3/22/19 11:36 AM.
-  ~ Copyright © 2019 刘振林. All rights reserved.
-  -->
-
-<selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:drawable="@drawable/ic_skip_next_white_36dp" android:state_pressed="false" />
-    <item android:drawable="@drawable/ic_skip_next_color_accent_36dp" android:state_pressed="true" />
-</selector>

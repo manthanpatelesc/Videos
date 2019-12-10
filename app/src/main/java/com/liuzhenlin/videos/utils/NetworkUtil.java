@@ -23,11 +23,12 @@ public class NetworkUtil {
      */
     public static boolean isNetworkConnected(@NonNull Context context) {
         // 获取手机所有连接管理对象（包括对WIFI，移动数据网络等连接的管理）
-        ConnectivityManager connectivityManager =
-                (ConnectivityManager) context.getApplicationContext()
-                        .getSystemService(Context.CONNECTIVITY_SERVICE);
+        ConnectivityManager connectivityManager = (ConnectivityManager)
+                context.getSystemService(Context.CONNECTIVITY_SERVICE);
         if (connectivityManager != null) {
+            //noinspection deprecation
             NetworkInfo mobileNetInfo = connectivityManager.getActiveNetworkInfo();
+            //noinspection deprecation
             return mobileNetInfo != null && mobileNetInfo.isConnected();
         }
         return false;

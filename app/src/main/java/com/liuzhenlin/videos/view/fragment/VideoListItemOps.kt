@@ -15,7 +15,7 @@ import androidx.fragment.app.Fragment
 import com.google.android.material.snackbar.Snackbar
 import com.liuzhenlin.texturevideoview.utils.FileUtils
 import com.liuzhenlin.videos.*
-import com.liuzhenlin.videos.dao.VideoDaoHelper
+import com.liuzhenlin.videos.dao.VideoListItemDao
 import com.liuzhenlin.videos.model.Video
 import com.liuzhenlin.videos.model.VideoDirectory
 import com.liuzhenlin.videos.model.VideoListItem
@@ -33,7 +33,7 @@ private val sDeleteItemTasks = ArrayDeque<AsyncTask<Unit, Unit, Unit>>()
 private fun deleteItemsInternal(items: Array<out VideoListItem>) {
     if (items.isEmpty()) return
 
-    val daoHelper = VideoDaoHelper.getInstance(App.getInstanceUnsafe()!!)
+    val dao = VideoListItemDao.getInstance(App.getInstanceUnsafe()!!)
     sDeleteItemTasks.offer(object : AsyncTask<Unit, Unit, Unit>() {
         override fun doInBackground(vararg units: Unit) {
             for (item in items)
@@ -43,19 +43,19 @@ private fun deleteItemsInternal(items: Array<out VideoListItem>) {
                         for (video in item.videos) {
                             deleteVideo(video)
                         }
-                        daoHelper.deleteVideoDir(item.path)
+                        dao.deleteVideoDir(item.path)
                     }
                 }
         }
 
         fun deleteVideo(video: Video) {
             // video的路径可能已在主线程中被修改（重命名视频）
-            val video2 = daoHelper.queryVideoById(video.id)
+            val video2 = dao.queryVideoById(video.id)
             if (video2 != null) {
                 File(video2.path).delete()
             }
 
-            daoHelper.deleteVideo(video.id)
+            dao.deleteVideo(video.id)
         }
 
         override fun onPostExecute(unit: Unit) {
@@ -126,7 +126,7 @@ interface VideoListItemOpCallback<in T : VideoListItem> {
 
             item.name = newName
             item.path = newFile.absolutePath
-            return if (VideoDaoHelper.getInstance(context).updateVideo(item)) {
+            return if (VideoListItemDao.getInstance(context).updateVideo(item)) {
                 if (view == null) {
                     Toast.makeText(context, R.string.renameSuccessful, Toast.LENGTH_SHORT).show()
                 } else {
@@ -145,7 +145,7 @@ interface VideoListItemOpCallback<in T : VideoListItem> {
             }
         } else if (item is VideoDirectory) {
             item.name = newName
-            return if (VideoDaoHelper.getInstance(context).updateVideoDir(item)) {
+            return if (VideoListItemDao.getInstance(context).updateVideoDir(item)) {
                 if (view == null) {
                     Toast.makeText(context, R.string.renameSuccessful, Toast.LENGTH_SHORT).show()
                 } else {

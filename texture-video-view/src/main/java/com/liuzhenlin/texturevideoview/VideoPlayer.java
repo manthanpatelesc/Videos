@@ -12,12 +12,14 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Message;
+import android.view.Surface;
 import android.widget.Toast;
 
 import androidx.annotation.CallSuper;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
+import androidx.core.util.ObjectsCompat;
 
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.audio.AudioAttributes;
@@ -50,8 +52,8 @@ public abstract class VideoPlayer implements IVideoPlayer {
 
     protected int mPrivateFlags;
 
-    /** Set via {@link #setPureAudioPlayback(boolean)} */
-    private static final int PFLAG_PURE_AUDIO_PLAYBACK = 1;
+    /** Set via {@link #setAudioAllowedToPlayInBackground(boolean)} */
+    private static final int PFLAG_AUDIO_ALLOWED_TO_PLAY_IN_BACKGROUND = 1;
 
     /** Set via {@link #setSingleVideoLoopPlayback(boolean)} */
     private static final int PFLAG_SINGLE_VIDEO_LOOP_PLAYBACK = 1 << 1;
@@ -92,7 +94,7 @@ public abstract class VideoPlayer implements IVideoPlayer {
 
     /**
      * Caches the listener that will be added to {@link #mOnPlaybackStateChangeListeners}
-     * for debugging purpose while {@link PackageConsts#DEBUG_LISTENER} is turned on.
+     * for debugging purpose while {@link InternalConsts#DEBUG_LISTENER} is turned on.
      */
     @Nullable
     private OnPlaybackStateChangeListener mOnPlaybackStateChangeDebuggingListener;
@@ -168,7 +170,7 @@ public abstract class VideoPlayer implements IVideoPlayer {
             sMediaButtonEventReceiverComponent =
                     new ComponentName(context, MediaButtonEventReceiver.class);
         }
-        if (PackageConsts.DEBUG_LISTENER) {
+        if (InternalConsts.DEBUG_LISTENER) {
             final String videoPlayerTextualRepresentation =
                     getClass().getName() + "@" + Integer.toHexString(hashCode());
             mOnPlaybackStateChangeDebuggingListener = (oldState, newState) -> {
@@ -190,7 +192,7 @@ public abstract class VideoPlayer implements IVideoPlayer {
      * downloaded from HTTP server onto disk.
      */
     @NonNull
-    protected File getBaseVideoCacheDirectory() {
+    protected final File getBaseVideoCacheDirectory() {
         return new File(FileUtils.getAvailableCacheDir(mContext), "videos");
     }
 
@@ -206,9 +208,30 @@ public abstract class VideoPlayer implements IVideoPlayer {
 
     @Override
     public void setVideoUri(@Nullable Uri uri) {
-        mVideoUri = uri;
-        if (mVideoView != null) {
-            mVideoView.onVideoUriChanged();
+        if (!ObjectsCompat.equals(uri, mVideoUri)) {
+            mVideoUri = uri;
+            if (mVideoView != null) {
+                mVideoView.onVideoUriChanged();
+            }
+
+            mVideoDuration = 0;
+            mVideoDurationString = DEFAULT_STRING_VIDEO_DURATION;
+            mPrivateFlags &= ~PFLAG_VIDEO_INFO_RESOLVED;
+            if (isPlayerCreated()) {
+                restartVideo();
+            } else {
+                // Removes the PFLAG_VIDEO_PAUSED_BY_USER flag and resets mSeekOnPlay to 0 in case
+                // the player was previously released and has not been initialized yet.
+                mPrivateFlags &= ~PFLAG_VIDEO_PAUSED_BY_USER;
+                mSeekOnPlay = 0;
+                if (uri == null) {
+                    // Sets the playback state to idle directly when the player is not created
+                    // and no video is set
+                    setPlaybackState(PLAYBACK_STATE_IDLE);
+                } else {
+                    openVideo(true);
+                }
+            }
         }
     }
 
@@ -236,15 +259,15 @@ public abstract class VideoPlayer implements IVideoPlayer {
      */
     public final void openVideo(boolean replayIfCompleted) {
         if (replayIfCompleted || mPlaybackState != PLAYBACK_STATE_COMPLETED) {
-            openVideoInternal();
+            openVideoInternal(mVideoView == null ? null : mVideoView.getSurface());
         }
     }
 
-    protected abstract void openVideoInternal();
+    protected abstract void openVideoInternal(@Nullable Surface surface);
 
     @Override
     public final void closeVideo() {
-        if (!isPureAudioPlayback()) {
+        if (!isAudioAllowedToPlayInBackground()) {
             closeVideoInternal(false /* ignored */);
         }
     }
@@ -256,6 +279,14 @@ public abstract class VideoPlayer implements IVideoPlayer {
      * @param fromUser `true` if the video is turned off by the user.
      */
     protected abstract void closeVideoInternal(boolean fromUser);
+
+    /**
+     * Called when the surface used as a sink for the video portion of the media changes
+     *
+     * @param surface the new surface for videos to be drawing onto {@link AbsTextureVideoView},
+     *                maybe {@code null} indicating no surface should be used to draw them.
+     */
+    protected abstract void onVideoSurfaceChanged(@Nullable Surface surface);
 
     @Override
     public void fastForward(boolean fromUser) {
@@ -275,6 +306,13 @@ public abstract class VideoPlayer implements IVideoPlayer {
         return UNKNOWN_DURATION;
     }
 
+    /**
+     * Gets the video duration, replacing {@value #UNKNOWN_DURATION} with 0.
+     */
+    /* package-private */ int getNoNegativeVideoDuration() {
+        return Math.max(0, getVideoDuration());
+    }
+
     @Override
     public int getVideoWidth() {
         if ((mPrivateFlags & PFLAG_VIDEO_INFO_RESOLVED) != 0) {
@@ -292,22 +330,24 @@ public abstract class VideoPlayer implements IVideoPlayer {
     }
 
     @Override
-    public boolean isPureAudioPlayback() {
-        return (mPrivateFlags & PFLAG_PURE_AUDIO_PLAYBACK) != 0;
+    public final boolean isAudioAllowedToPlayInBackground() {
+        return (mPrivateFlags & PFLAG_AUDIO_ALLOWED_TO_PLAY_IN_BACKGROUND) != 0;
     }
 
     @CallSuper
     @Override
-    public void setPureAudioPlayback(boolean audioOnly) {
-        mPrivateFlags = mPrivateFlags & ~PFLAG_PURE_AUDIO_PLAYBACK
-                | (audioOnly ? PFLAG_PURE_AUDIO_PLAYBACK : 0);
-        if (mVideoView != null) {
-            mVideoView.onPureAudioPlaybackModeChanged(audioOnly);
+    public void setAudioAllowedToPlayInBackground(boolean allowed) {
+        if (allowed != isAudioAllowedToPlayInBackground()) {
+            mPrivateFlags = mPrivateFlags & ~PFLAG_AUDIO_ALLOWED_TO_PLAY_IN_BACKGROUND
+                    | (allowed ? PFLAG_AUDIO_ALLOWED_TO_PLAY_IN_BACKGROUND : 0);
+            if (mVideoView != null) {
+                mVideoView.onAudioAllowedToPlayInBackgroundChanged(allowed);
+            }
         }
     }
 
     @Override
-    public boolean isSingleVideoLoopPlayback() {
+    public final boolean isSingleVideoLoopPlayback() {
         return (mPrivateFlags & PFLAG_SINGLE_VIDEO_LOOP_PLAYBACK) != 0;
     }
 
@@ -321,10 +361,12 @@ public abstract class VideoPlayer implements IVideoPlayer {
     @CallSuper
     @Override
     public void setSingleVideoLoopPlayback(boolean looping) {
-        mPrivateFlags = mPrivateFlags & ~PFLAG_SINGLE_VIDEO_LOOP_PLAYBACK
-                | (looping ? PFLAG_SINGLE_VIDEO_LOOP_PLAYBACK : 0);
-        if (mVideoView != null) {
-            mVideoView.onSingleVideoLoopPlaybackModeChanged(looping);
+        if (looping != isSingleVideoLoopPlayback()) {
+            mPrivateFlags = mPrivateFlags & ~PFLAG_SINGLE_VIDEO_LOOP_PLAYBACK
+                    | (looping ? PFLAG_SINGLE_VIDEO_LOOP_PLAYBACK : 0);
+            if (mVideoView != null) {
+                mVideoView.onSingleVideoLoopPlaybackModeChanged(looping);
+            }
         }
     }
 
@@ -337,18 +379,21 @@ public abstract class VideoPlayer implements IVideoPlayer {
     @CallSuper
     @Override
     public void setPlaybackSpeed(float speed) {
-        if (mVideoView != null) {
-            mVideoView.onPlaybackSpeedChanged(speed);
+        if (speed != mPlaybackSpeed) {
+            mPlaybackSpeed = speed;
+            if (mVideoView != null) {
+                mVideoView.onPlaybackSpeedChanged(speed);
+            }
         }
     }
 
     @PlaybackState
     @Override
-    public int getPlaybackState() {
+    public final int getPlaybackState() {
         return mPlaybackState;
     }
 
-    protected void setPlaybackState(@PlaybackState int newState) {
+    protected final void setPlaybackState(@PlaybackState int newState) {
         final int oldState = mPlaybackState;
         if (newState != oldState) {
             mPlaybackState = newState;
@@ -446,10 +491,10 @@ public abstract class VideoPlayer implements IVideoPlayer {
     }
 
     /**
-     * @param canSkipNextOnCompletion `true` if we can skip the played video to the next one in
-     *                                the playlist (if any) when the current playback ends
+     * @param canSkipToNextOnCompletion `true` if we can skip the played video to the next one in
+     *                                  the playlist (if any) when the current playback ends
      */
-    private void onVideoStopped(boolean canSkipNextOnCompletion) {
+    private void onVideoStopped(boolean canSkipToNextOnCompletion) {
         final int oldState = mPlaybackState;
         final int currentState;
         if (oldState == PLAYBACK_STATE_PLAYING) {
@@ -468,7 +513,7 @@ public abstract class VideoPlayer implements IVideoPlayer {
                 mVideoListeners.get(i).onVideoStopped();
             }
         }
-        if (canSkipNextOnCompletion
+        if (canSkipToNextOnCompletion
                 // First, checks the completed playback state here to see if it was changed in
                 // the above calls to the onVideoStopped() methods of the VideoListeners.
                 && currentState == PLAYBACK_STATE_COMPLETED && currentState == mPlaybackState
@@ -562,19 +607,20 @@ public abstract class VideoPlayer implements IVideoPlayer {
     }
 
     protected static class MsgHandler extends Handler {
-        protected final WeakReference<VideoPlayer> mVideoPlayerRef;
+        protected final WeakReference<VideoPlayer> videoPlayerRef;
 
         protected MsgHandler(VideoPlayer videoPlayer) {
-            mVideoPlayerRef = new WeakReference<>(videoPlayer);
+            videoPlayerRef = new WeakReference<>(videoPlayer);
         }
 
         @Override
         public void handleMessage(@NonNull Message msg) {
-            VideoPlayer videoPlayer = mVideoPlayerRef.get();
+            VideoPlayer videoPlayer = videoPlayerRef.get();
             if (videoPlayer == null) return;
 
             AbsTextureVideoView videoView = videoPlayer.mVideoView;
-            if (!(videoView != null && videoView.isInForeground() || videoPlayer.isPureAudioPlayback())) {
+            if (!(videoView != null &&
+                    (videoView.isInForeground() || videoPlayer.isAudioAllowedToPlayInBackground()))) {
                 return;
             }
 

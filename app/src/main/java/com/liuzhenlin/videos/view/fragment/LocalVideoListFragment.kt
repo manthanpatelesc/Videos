@@ -41,7 +41,7 @@ import com.liuzhenlin.swipeback.SwipeBackFragment
 import com.liuzhenlin.texturevideoview.utils.FileUtils
 import com.liuzhenlin.videos.*
 import com.liuzhenlin.videos.dao.IVideoDao
-import com.liuzhenlin.videos.dao.VideoDaoHelper
+import com.liuzhenlin.videos.dao.VideoListItemDao
 import com.liuzhenlin.videos.model.Video
 import com.liuzhenlin.videos.model.VideoDirectory
 import com.liuzhenlin.videos.model.VideoListItem
@@ -286,7 +286,7 @@ class LocalVideoListFragment : SwipeBackFragment(),
             REQUEST_CODE_LOCAL_SEARCHED_VIDEOS_FRAGMENT ->
                 if (resultCode == RESULT_CODE_LOCAL_SEARCHED_VIDEOS_FRAGMENT) {
                     val videos = data?.getParcelableArrayListExtra<Video>(KEY_VIDEOS) ?: return
-                    if (!videos.allEquals(allVideos)) {
+                    if (!videos.allEqual(allVideos)) {
                         autoLoadVideos()
                     }
                 }
@@ -297,11 +297,11 @@ class LocalVideoListFragment : SwipeBackFragment(),
                     loop@ for ((i, item) in mVideoListItems.withIndex()) {
                         if (item.path != dirPath) continue@loop
 
-                        val daoHelper = VideoDaoHelper.getInstance(contextRequired)
+                        val dao = VideoListItemDao.getInstance(contextRequired)
                         when (videos.size) {
                             0 -> {
                                 if (item is VideoDirectory) {
-                                    daoHelper.deleteVideoDir(item.path)
+                                    dao.deleteVideoDir(item.path)
                                 }
 
                                 mVideoListItems.removeAt(i)
@@ -310,13 +310,13 @@ class LocalVideoListFragment : SwipeBackFragment(),
                             }
                             1 -> {
                                 if (item is VideoDirectory) {
-                                    daoHelper.deleteVideoDir(item.path)
+                                    dao.deleteVideoDir(item.path)
                                 }
 
                                 val video = videos[0]
                                 if (video.isTopped) {
                                     video.isTopped = false
-                                    daoHelper.setVideoListItemTopped(video, false)
+                                    dao.setVideoListItemTopped(video, false)
                                 }
 
                                 mVideoListItems[i] = video
@@ -333,13 +333,13 @@ class LocalVideoListFragment : SwipeBackFragment(),
                             }
                             else -> {
                                 if (item is Video) {
-                                    var videodir = daoHelper.queryVideoDirByPath(dirPath)
+                                    var videodir = dao.queryVideoDirByPath(dirPath)
                                     if (videodir == null) {
-                                        videodir = daoHelper.insertVideoDir(dirPath)
+                                        videodir = dao.insertVideoDir(dirPath)
                                     } else
                                         if (videodir.isTopped) {
                                             videodir.isTopped = false
-                                            daoHelper.setVideoListItemTopped(videodir, false)
+                                            dao.setVideoListItemTopped(videodir, false)
                                         }
                                     videodir.videos = videos
                                     videodir.size = videos.allVideoSize()
@@ -359,12 +359,12 @@ class LocalVideoListFragment : SwipeBackFragment(),
                                     val oldVideos = item.videos
                                     val oldSize = item.size
                                     val oldVideoCount = oldVideos.size
-                                    if (!oldVideos.allEquals(videos)) {
+                                    if (!oldVideos.allEqual(videos)) {
                                         item.videos = videos
                                         item.size = videos.allVideoSize()
 
                                         var payloads = 0
-                                        if (!oldVideos[0].allEquals(videos[0])) {
+                                        if (!oldVideos[0].allEqual(videos[0])) {
                                             payloads = payloads or PAYLOAD_REFRESH_VIDEODIR_THUMB
                                         }
                                         if (oldSize != item.size || oldVideoCount != videos.size) {
@@ -392,7 +392,7 @@ class LocalVideoListFragment : SwipeBackFragment(),
         } else if (items.size == mVideoListItems.size) {
             var changedIndices: MutableList<Int>? = null
             for (i in items.indices) {
-                if (!items[i].allEquals(mVideoListItems[i])) {
+                if (!items[i].allEqual(mVideoListItems[i])) {
                     if (changedIndices == null) changedIndices = LinkedList()
                     changedIndices.add(i)
                 }
@@ -446,13 +446,13 @@ class LocalVideoListFragment : SwipeBackFragment(),
         }
 
         override fun doInBackground(vararg voids: Void): List<VideoListItem>? {
-            val daoHelper = VideoDaoHelper.getInstance(contextRequired)
+            val dao = VideoListItemDao.getInstance(contextRequired)
 
             var videos: MutableList<Video>? = null
 
-            val videoCursor = daoHelper.queryAllVideos() ?: return null
+            val videoCursor = dao.queryAllVideos() ?: return null
             while (!isCancelled && videoCursor.moveToNext()) {
-                val video = daoHelper.buildVideo(videoCursor)
+                val video = dao.buildVideo(videoCursor)
                 if (video != null) {
                     if (videos == null) videos = LinkedList()
                     videos.add(video)
@@ -462,11 +462,11 @@ class LocalVideoListFragment : SwipeBackFragment(),
 
             val items = videos.asVideoListItems() ?: return null
 
-            val videodirCursor = daoHelper.queryAllVideoDirs() ?: return items
+            val videodirCursor = dao.queryAllVideoDirs() ?: return items
             while (!isCancelled && videodirCursor.moveToNext()) {
-                val videodir = daoHelper.buildVideoDir(videodirCursor)
+                val videodir = dao.buildVideoDir(videodirCursor)
                 if (!items.contains(videodir)) {
-                    daoHelper.deleteVideoDir(videodir.path)
+                    dao.deleteVideoDir(videodir.path)
                 }
             }
             videodirCursor.close()
@@ -567,7 +567,7 @@ class LocalVideoListFragment : SwipeBackFragment(),
                 if (payload and PAYLOAD_REFRESH_VIDEODIR_THUMB != 0) {
                     val vh = holder as VideoDirViewHolder
                     val videos = (item as VideoDirectory).videos
-                    VideoUtils2.loadVideoThumbnail(vh.videodirImage, videos[0])
+                    VideoUtils2.loadVideoThumbnailIntoImageView(vh.videodirImage, videos[0])
                 }
                 if (payload and PAYLOAD_REFRESH_VIDEODIR_SIZE_AND_VIDEO_COUNT != 0) {
                     val vh = holder as VideoDirViewHolder
@@ -598,7 +598,7 @@ class LocalVideoListFragment : SwipeBackFragment(),
                     val vh = holder as VideoViewHolder
                     val video = item as Video
 
-                    VideoUtils2.loadVideoThumbnail(vh.videoImage, video)
+                    VideoUtils2.loadVideoThumbnailIntoImageView(vh.videoImage, video)
                     vh.videoNameText.text = item.name
                     vh.videoSizeText.text = FileUtils2.formatFileSize(item.size.toDouble())
                     vh.videoProgressAndDurationText.text =
@@ -608,7 +608,7 @@ class LocalVideoListFragment : SwipeBackFragment(),
                     val vh = holder as VideoDirViewHolder
                     val videos = (item as VideoDirectory).videos
 
-                    VideoUtils2.loadVideoThumbnail(vh.videodirImage, videos[0])
+                    VideoUtils2.loadVideoThumbnailIntoImageView(vh.videodirImage, videos[0])
                     vh.videodirNameText.text = item.name
                     vh.videodirSizeText.text = FileUtils2.formatFileSize(item.size.toDouble())
                     vh.videoCountText.text = getString(R.string.aTotalOfSeveralVideos, videos.size)
@@ -703,7 +703,7 @@ class LocalVideoListFragment : SwipeBackFragment(),
 
                 val topped = !item.isTopped
                 item.isTopped = topped
-                VideoDaoHelper.getInstance(v.context).setVideoListItemTopped(item, topped)
+                VideoListItemDao.getInstance(v.context).setVideoListItemTopped(item, topped)
 
                 val newPosition = mVideoListItems.reordered().indexOf(item)
                 if (newPosition == position) {

@@ -29,7 +29,7 @@ import com.liuzhenlin.simrv.Utils
 import com.liuzhenlin.swipeback.SwipeBackFragment
 import com.liuzhenlin.swipeback.SwipeBackLayout
 import com.liuzhenlin.videos.*
-import com.liuzhenlin.videos.dao.VideoDaoHelper
+import com.liuzhenlin.videos.dao.VideoListItemDao
 import com.liuzhenlin.videos.model.Video
 import com.liuzhenlin.videos.model.VideoDirectory
 import com.liuzhenlin.videos.utils.FileUtils2
@@ -284,7 +284,7 @@ class LocalFoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, Vie
                 val topped = !video.isTopped
                 video.isTopped = topped
 
-                VideoDaoHelper.getInstance(v.context).setVideoListItemTopped(video, topped)
+                VideoListItemDao.getInstance(v.context).setVideoListItemTopped(video, topped)
 
                 val newIndex = mVideos.reordered().indexOf(video)
                 if (newIndex == index) {
@@ -496,7 +496,7 @@ class LocalFoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, Vie
             if (videos.size == mVideos.size) {
                 var changedIndices: MutableList<Int>? = null
                 for (i in videos.indices) {
-                    if (!videos[i].allEquals(mVideos[i])) {
+                    if (!videos[i].allEqual(mVideos[i])) {
                         if (changedIndices == null) changedIndices = LinkedList()
                         changedIndices.add(i)
                     }
@@ -544,13 +544,13 @@ class LocalFoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, Vie
         }
 
         override fun doInBackground(vararg params: Void?): List<Video>? {
-            val daoHelper = VideoDaoHelper.getInstance(contextRequired)
+            val dao = VideoListItemDao.getInstance(contextRequired)
 
             var videos: MutableList<Video>? = null
 
-            val videoCursor = daoHelper.queryAllVideosInDirectory(mVideoDir?.path) ?: return null
+            val videoCursor = dao.queryAllVideosInDirectory(mVideoDir?.path) ?: return null
             while (!isCancelled && videoCursor.moveToNext()) {
-                val video = daoHelper.buildVideo(videoCursor) ?: continue
+                val video = dao.buildVideo(videoCursor) ?: continue
                 if (videos == null)
                     videos = LinkedList()
                 videos.add(video)
@@ -626,7 +626,7 @@ class LocalFoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, Vie
                 visibility = mVideoOptionsFrame.visibility
                 isChecked = video.isChecked
             }
-            VideoUtils2.loadVideoThumbnail(holder.videoImage, video)
+            VideoUtils2.loadVideoThumbnailIntoImageView(holder.videoImage, video)
             holder.videoNameText.text = video.name
             holder.videoSizeText.text = FileUtils2.formatFileSize(video.size.toDouble())
             holder.videoProgressAndDurationText.text =

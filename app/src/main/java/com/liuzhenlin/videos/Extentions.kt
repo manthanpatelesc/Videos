@@ -8,7 +8,8 @@ package com.liuzhenlin.videos
 import androidx.collection.ArrayMap
 import androidx.fragment.app.Fragment
 import com.liuzhenlin.texturevideoview.utils.FileUtils
-import com.liuzhenlin.videos.dao.VideoDaoHelper
+import com.liuzhenlin.videos.dao.IVideoDirectoryDao
+import com.liuzhenlin.videos.dao.VideoListItemDao
 import com.liuzhenlin.videos.model.Video
 import com.liuzhenlin.videos.model.VideoDirectory
 import com.liuzhenlin.videos.model.VideoListItem
@@ -62,7 +63,7 @@ fun <T : VideoListItem> List<T>.reordered(): MutableList<T> {
     return items
 }
 
-fun <T : VideoListItem> List<T>?.allEquals(other: List<T>?): Boolean {
+fun <T : VideoListItem> List<T>?.allEqual(other: List<T>?): Boolean {
     this ?: return other == null
 
     if (other == null) return size == 0
@@ -70,7 +71,7 @@ fun <T : VideoListItem> List<T>?.allEquals(other: List<T>?): Boolean {
     if (other.size != size) return false
 
     for (i in indices) {
-        if (!this[i].allEquals(other[i])) return false
+        if (!this[i].allEqual(other[i])) return false
     }
 
     return true
@@ -96,7 +97,7 @@ fun <T : VideoListItem> MutableList<T>.deepCopy(src: List<T>) {
     }
 }
 
-fun VideoDaoHelper.insertVideoDir(directory: String): VideoDirectory {
+fun IVideoDirectoryDao.insertVideoDir(directory: String): VideoDirectory {
     val videodir = VideoDirectory()
     videodir.name = FileUtils.getFileNameFromFilePath(directory)
     videodir.path = directory
@@ -137,13 +138,13 @@ fun List<Video>?.asVideoListItems(): MutableList<VideoListItem>? {
         if (videos.size == 1) {
             videosMap.setValueAt(index, videos[0])
         } else {
-            val daoHelper = VideoDaoHelper.getInstance(App.getInstanceUnsafe()!!)
+            val dao = VideoListItemDao.getInstance(App.getInstanceUnsafe()!!)
 
             val dirPath = videosMap.keyAt(index)
-            var videodir = daoHelper.queryVideoDirByPath(dirPath)
+            var videodir = dao.queryVideoDirByPath(dirPath)
             val videodirAlreadyExists = videodir != null
             if (!videodirAlreadyExists) {
-                videodir = daoHelper.insertVideoDir(dirPath)
+                videodir = dao.insertVideoDir(dirPath)
             }
             videodir!!.size = videos.allVideoSize()
             videodir.videos =
@@ -154,7 +155,7 @@ fun List<Video>?.asVideoListItems(): MutableList<VideoListItem>? {
                             for (video in videos)
                                 if (video.isTopped) {
                                     video.isTopped = false
-                                    daoHelper.setVideoListItemTopped(video, false)
+                                    dao.setVideoListItemTopped(video, false)
                                 }
                         }
                         videos.sortByElementName()

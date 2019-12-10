@@ -12,8 +12,7 @@
         android:background="@android:color/white"
         android:textSize="@dimen/primary_text_size"
         android:textColor="@android:color/black"
-        android:textAlignment="center"
-        android:gravity="center" />
+        android:gravity="center_horizontal" />
 
     <include layout="@layout/divider_horizontal_opaque" />
 
@@ -26,8 +25,7 @@
         android:text="@string/confirm"
         android:textSize="@dimen/secondary_text_size"
         android:textColor="@color/colorAccent"
-        android:textAlignment="center"
-        android:gravity="center" />
+        android:gravity="center_horizontal" />
 
     <include layout="@layout/divider_horizontal_opaque" />
 
@@ -40,6 +38,5 @@
         android:text="@string/cancel"
         android:textSize="@dimen/secondary_text_size"
         android:textColor="@color/gray"
-        android:textAlignment="center"
-        android:gravity="center" />
+        android:gravity="center_horizontal" />
 </LinearLayout>

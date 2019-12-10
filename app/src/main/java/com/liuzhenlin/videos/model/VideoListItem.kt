@@ -14,7 +14,7 @@ abstract class VideoListItem(open var name: String,
                              open var isTopped: Boolean) : Parcelable {
     var isChecked = false
 
-    abstract fun allEquals(other: Any?): Boolean
+    abstract fun allEqual(other: Any?): Boolean
 
     abstract fun <T : VideoListItem> deepCopy(): T
 }
@@ -39,7 +39,7 @@ data class VideoDirectory(override var name: String = "",
 
     override fun hashCode() = path.hashCode()
 
-    override fun allEquals(other: Any?): Boolean {
+    override fun allEqual(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
 
@@ -48,7 +48,7 @@ data class VideoDirectory(override var name: String = "",
         if (!(name == other.name && path == other.path && size == other.size && isTopped == other.isTopped)) return false
         if (videos.size != other.videos.size) return false
         for (i in videos.indices) {
-            if (!videos[i].allEquals(other.videos[i])) return false
+            if (!videos[i].allEqual(other.videos[i])) return false
         }
 
         return true
@@ -109,7 +109,7 @@ data class Video(var id: Long = 0L,
 
     override fun hashCode() = id.hashCode()
 
-    override fun allEquals(other: Any?): Boolean {
+    override fun allEqual(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
 

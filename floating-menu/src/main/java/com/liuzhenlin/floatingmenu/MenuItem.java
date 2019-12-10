@@ -1,13 +1,11 @@
 package com.liuzhenlin.floatingmenu;
 
-import android.view.View;
-
 import androidx.annotation.NonNull;
 
 public class MenuItem {
 
     private CharSequence text;
-    private int iconResId = View.NO_ID;
+    private int iconResId;
 
     public MenuItem() {
     }

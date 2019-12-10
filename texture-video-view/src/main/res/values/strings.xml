@@ -3,16 +3,18 @@
   ~ Copyright © 2018 刘振林. All rights reserved.
   -->
 <resources>
+    <string name="close">Close</string>
     <string name="back">Back</string>
     <string name="share">Share</string>
     <string name="clickToShare">Click to Share</string>
     <string name="more">More</string>
-    <string name="brightnessProgress">Brightness：%.0f%%</string>
-    <string name="brightnessFollowsSystem">Brightness：follows the system</string>
-    <string name="volumeProgress">Volume：%.0f%%</string>
+    <string name="brightnessProgress">Brightness: %.0f%%</string>
+    <string name="brightnessFollowsSystem">Brightness: follows the system</string>
+    <string name="volumeProgress">Volume: %.0f%%</string>
     <string name="progress_duration">%s/%s</string>
     <string name="lock">Lock</string>
     <string name="unlock">Unlock</string>
+    <string name="videoThumbnail">Video Thumbnail</string>
     <string name="captureVideoPhoto">Capture a Video Photo</string>
     <string name="capturedVideoPhoto">Captured Video Photo</string>
     <string name="saveScreenshotFailed">Save screenshot failed</string>
@@ -22,7 +24,8 @@
     <string name="clipForward">Clip Forward</string>
     <string name="clipBackwards">Clip Backwards</string>
     <string name="videoclipPlaybackProgress">Playback Progress of the Video Clip</string>
-    <string name="canTakeUpToXSecondsXSecondsSelected">You can take up to %d seconds. %d seconds is selected.</string>
+    <string name="canTakeUpToXSecondsXSecondsSelected">
+        You can take up to %d seconds. %d seconds is selected.</string>
     <string name="gifClippingIsNotYetSupported">GIF clipping is not yet supported!</string>
     <string name="shortVideoHasBeenSavedTo">Short video \"%s\" has been saved to \"%s\"</string>
     <string name="gifHasBeenSavedTo">GIF \"%s\" has been saved to \"%s\"</string>
@@ -32,28 +35,33 @@
     <string name="pause">Pause</string>
     <string name="fastForward">Fast Forward</string>
     <string name="fastRewind">Fast Rewind</string>
+    <string name="skipPrevious">Skip to Previous</string>
     <string name="skipNext">Skip to Next</string>
     <string name="minimize">Minimize</string>
     <string name="fullscreen">Fullscreen</string>
     <string name="playlist">Playlist</string>
     <string name="stretchVideoToFitFullscreen">Stretch Video to Fit Fullscreen</string>
     <string name="singleVideoLoopPlayback">Single Video Loop Playback</string>
-    <string name="pureAudioPlayback">Pure Audio Playback</string>
-    <string name="timedOff">Timed Off: </string>
+    <string name="allowAudioToPlayInBackground">Allow Audio to Play in Background</string>
+    <string name="timedOff">Timed Off:</string>
     <string name="whenThisEpisodeEnds">when this episode ends</string>
     <string name="_30Minutes">30 minutes</string>
     <string name="anHour">an hour</string>
     <string name="_90Minutes">90 minutes</string>
     <string name="_2Hours">2 hours</string>
-    <string name="playerEngine">Player Engine：</string>
+    <string name="playerEngine">Player Engine:</string>
     <string name="android_system_mediaplayer" translatable="false">Android System MediaPlayer</string>
-    <string name="google_exoplayer_v2_10_8">Google ExoPlayer v2.10.8 (recommended)</string>
+    <string name="google_exoplayer">Google ExoPlayer (recommended)</string>
     <string name="videoIsLoading">Video is loading…</string>
     <string name="failedToLoadThisVideo">Failed to load this video!</string>
     <string name="loadTimeout">Load timeout</string>
     <string name="videoInThisFormatIsNotSupported">Video in this format is not supported!</string>
-    <string name="unknownErrorOccurredWhenVideoIsPlaying">Unknown error occurs while the video is playing!</string>
+    <string name="unknownErrorOccurredWhenVideoIsPlaying">
+        Unknown error occurs while the video is playing!</string>
     <string name="undo">Undo</string>
     <string name="cancel">Cancel</string>
     <string name="ok">OK</string>
+    <string name="playbackControlNotificationChannelId" translatable="false">
+        %s__playback_control_notification_channel</string>
+    <string name="playbackControlNotificationChannelName">Playback Control</string>
 </resources>

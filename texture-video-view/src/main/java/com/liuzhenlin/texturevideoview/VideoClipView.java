@@ -308,7 +308,7 @@ public class VideoClipView extends FrameLayout {
         mThumbGallery.setHasFixedSize(true);
         mThumbGallery.setAdapter(mThumbsAdapter);
 
-        if (PackageConsts.DEBUG_LISTENER) {
+        if (InternalConsts.DEBUG_LISTENER) {
             addOnSelectionChangeListener(new OnSelectionChangeListener() {
                 @Override
                 public void onStartTrackingTouch() {
@@ -978,42 +978,42 @@ public class VideoClipView extends FrameLayout {
     }
 
     public void addThumbnail(@Nullable Bitmap thumb) {
-        addThumbnail(mThumbsAdapter.mThumbnails.size(), thumb);
+        addThumbnail(mThumbsAdapter.thumbnails.size(), thumb);
     }
 
     public void addThumbnail(int index, @Nullable Bitmap thumb) {
-        mThumbsAdapter.mThumbnails.add(index, thumb);
+        mThumbsAdapter.thumbnails.add(index, thumb);
         mThumbsAdapter.notifyItemInserted(index);
         mThumbsAdapter.notifyItemRangeChanged(index, mThumbsAdapter.getItemCount() - index);
     }
 
     public void setThumbnail(int index, @Nullable Bitmap thumb) {
-        mThumbsAdapter.mThumbnails.set(index, thumb);
+        mThumbsAdapter.thumbnails.set(index, thumb);
         mThumbsAdapter.notifyItemChanged(index);
     }
 
     public void removeThumbnail(@Nullable Bitmap thumb) {
-        final int index = mThumbsAdapter.mThumbnails.indexOf(thumb);
+        final int index = mThumbsAdapter.thumbnails.indexOf(thumb);
         if (index != -1) {
             removeThumbnail(index);
         }
     }
 
     public void removeThumbnail(int index) {
-        mThumbsAdapter.mThumbnails.remove(index);
+        mThumbsAdapter.thumbnails.remove(index);
         mThumbsAdapter.notifyItemRemoved(index);
         mThumbsAdapter.notifyItemRangeChanged(index, mThumbsAdapter.getItemCount() - index);
     }
 
     public void clearThumbnails() {
         final int itemCount = mThumbsAdapter.getItemCount();
-        mThumbsAdapter.mThumbnails.clear();
+        mThumbsAdapter.thumbnails.clear();
         mThumbsAdapter.notifyItemRangeRemoved(0, itemCount);
     }
 
     private final class ThumbsAdapter extends RecyclerView.Adapter<ThumbsAdapter.ViewHolder> {
 
-        final List<Bitmap> mThumbnails = new ArrayList<>();
+        final List<Bitmap> thumbnails = new ArrayList<>();
 
         @NonNull
         @Override
@@ -1025,7 +1025,7 @@ public class VideoClipView extends FrameLayout {
 
         @Override
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-            Bitmap thumb = mThumbnails.get(position);
+            Bitmap thumb = thumbnails.get(position);
             if (thumb != null) {
                 final int thumbWidth = thumb.getWidth();
                 final int thumbHeight = thumb.getHeight();
@@ -1044,7 +1044,7 @@ public class VideoClipView extends FrameLayout {
 
         @Override
         public int getItemCount() {
-            return mThumbnails.size();
+            return thumbnails.size();
         }
 
         final class ViewHolder extends RecyclerView.ViewHolder {
@@ -1052,7 +1052,7 @@ public class VideoClipView extends FrameLayout {
 
             ViewHolder(@NonNull View itemView) {
                 super(itemView);
-                thumbImage = itemView.findViewById(R.id.image_thumb);
+                thumbImage = itemView.findViewById(R.id.image_videoThumb);
             }
         }
     }

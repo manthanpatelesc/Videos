@@ -9,6 +9,8 @@
 
     <uses-permission android:name="android.permission.BLUETOOTH" />
 
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+
     <uses-sdk tools:overrideLibrary="
             com.google.android.exoplayer2.core,
             com.google.android.exoplayer2.source.dash,
@@ -21,5 +23,7 @@
                 <action android:name="android.intent.action.MEDIA_BUTTON" />
             </intent-filter>
         </receiver>
+
+        <service android:name=".service.BackgroundPlaybackControllerService" />
     </application>
 </manifest>

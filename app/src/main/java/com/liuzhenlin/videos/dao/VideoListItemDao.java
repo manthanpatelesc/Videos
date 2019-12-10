@@ -9,11 +9,10 @@ import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
-import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
-import android.database.sqlite.SQLiteOpenHelper;
 import android.graphics.Bitmap;
 import android.media.MediaMetadataRetriever;
+import android.os.Build;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -23,15 +22,23 @@ import com.liuzhenlin.videos.Consts;
 import com.liuzhenlin.videos.model.Video;
 import com.liuzhenlin.videos.model.VideoDirectory;
 import com.liuzhenlin.videos.model.VideoListItem;
+import com.liuzhenlin.videos.utils.Singleton;
 
 import java.io.File;
+
+import static com.liuzhenlin.videos.dao.DatabaseOpenHelper.TABLE_VIDEODIRS;
+import static com.liuzhenlin.videos.dao.DatabaseOpenHelper.TABLE_VIDEOS;
+import static com.liuzhenlin.videos.dao.DatabaseOpenHelper.VIDEODIRS_COL_IS_TOPPED;
+import static com.liuzhenlin.videos.dao.DatabaseOpenHelper.VIDEODIRS_COL_NAME;
+import static com.liuzhenlin.videos.dao.DatabaseOpenHelper.VIDEODIRS_COL_PATH;
+import static com.liuzhenlin.videos.dao.DatabaseOpenHelper.VIDEOS_COL_ID;
+import static com.liuzhenlin.videos.dao.DatabaseOpenHelper.VIDEOS_COL_IS_TOPPED;
+import static com.liuzhenlin.videos.dao.DatabaseOpenHelper.VIDEOS_COL_PROGRESS;
 
 /**
  * @author 刘振林
  */
-public final class VideoDaoHelper extends SQLiteOpenHelper implements IVideoDao {
-
-    private static volatile VideoDaoHelper sHelper;
+public final class VideoListItemDao implements IVideoListItemDao {
 
     private final ContentResolver mContentResolver;
     private final SQLiteDatabase mDataBase;
@@ -40,64 +47,26 @@ public final class VideoDaoHelper extends SQLiteOpenHelper implements IVideoDao 
             VIDEO_ID, VIDEO_NAME, VIDEO_PATH, VIDEO_SIZE, VIDEO_DURATION, VIDEO_RESOLUTION
     };
 
-    private static final String SEPARATOR_RESOLUTION = "x";
+    private static final String SEPARATOR_RESOLUTION =
+            Build.VERSION.SDK_INT >= /* Build.VERSION_CODES.Q */ 29 ? "×" : "x";
 
-    private static final String TABLE_VIDEOS = "videos";
-    private static final String VIDEOS_COL_ID = VIDEO_ID;
-    private static final String VIDEOS_COL_PROGRESS = "progress";
-    private static final String VIDEOS_COL_IS_TOPPED = "isTopped";
-
-    private static final String TABLE_VIDEODIRS = "videodirs";
-    private static final String VIDEODIRS_COL_NAME = "name";
-    private static final String VIDEODIRS_COL_PATH = "path";
-    private static final String VIDEODIRS_COL_IS_TOPPED = "isTopped";
-
-    private VideoDaoHelper(Context context) {
-        super(context, "Videos.db", null, 1);
-        mContentResolver = context.getContentResolver();
-        mDataBase = getWritableDatabase();
-    }
-
-    public static VideoDaoHelper getInstance(@NonNull Context context) {
-        if (sHelper == null) {
-            synchronized (VideoDaoHelper.class) {
-                if (sHelper == null) {
-                    sHelper = new VideoDaoHelper(context.getApplicationContext());
+    private static final Singleton<Context, VideoListItemDao> sVideoListItemDaoSingleton =
+            new Singleton<Context, VideoListItemDao>() {
+                @NonNull
+                @Override
+                protected VideoListItemDao onCreate(Context... ctxs) {
+                    return new VideoListItemDao(ctxs[0]);
                 }
-            }
-        }
-        return sHelper;
+            };
+
+    public static VideoListItemDao getInstance(@NonNull Context context) {
+        return sVideoListItemDaoSingleton.get(context);
     }
 
-    @Override
-    public void onCreate(SQLiteDatabase db) {
-        //@formatter:off
-        db.execSQL("CREATE TABLE " + TABLE_VIDEOS + "("
-                + VIDEOS_COL_ID + " long PRIMARY KEY, "
-                + VIDEOS_COL_PROGRESS + " int NOT NULL DEFAULT 0, "
-                + VIDEOS_COL_IS_TOPPED + " int NOT NULL DEFAULT 0" +
-                        " CHECK(" + VIDEOS_COL_IS_TOPPED + " IN (0,1)))");
-        db.execSQL("CREATE TABLE " + TABLE_VIDEODIRS + "("
-                + VIDEODIRS_COL_NAME + " text NOT NULL" +
-                        " CHECK(LENGTH(" + VIDEODIRS_COL_NAME + ") > 0), "
-                + VIDEODIRS_COL_PATH + " text PRIMARY KEY COLLATE NOCASE, "
-                + VIDEODIRS_COL_IS_TOPPED + " int NOT NULL DEFAULT 0" +
-                        " CHECK(" + VIDEODIRS_COL_IS_TOPPED + " IN (0,1)))");
-        //@formatter:on
-    }
-
-    @Override
-    public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        try {
-            db.execSQL("CREATE TABLE tmp AS SELECT * FROM " + TABLE_VIDEOS);
-            onCreate(db);
-            db.execSQL("INSERT INTO " + TABLE_VIDEOS + " SELECT * FROM tmp");
-        } catch (SQLException e) {
-            e.printStackTrace();
-
-            db.execSQL("DROP TABLE IF EXISTS " + TABLE_VIDEOS);
-            onCreate(db);
-        }
+    private VideoListItemDao(Context context) {
+        context = context.getApplicationContext();
+        mContentResolver = context.getContentResolver();
+        mDataBase = new DatabaseOpenHelper(context).getWritableDatabase();
     }
 
     @Override

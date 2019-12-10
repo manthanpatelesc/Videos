@@ -17,7 +17,9 @@
     <string name="cancel">取消</string>
     <string name="cancelTop">取消置顶</string>
     <string name="cannotPlayThisVideo">无法播放此视频</string>
+    <string name="charsequenceProgress">%1$s/%2$s</string>
     <string name="checkForUpdates">检查更新</string>
+    <string name="clickToInstallIt">点击安装</string>
     <string name="colon">：</string>
     <string name="commit">提交</string>
     <string name="complete">完成</string>
@@ -33,9 +35,11 @@
     <string name="doYouNeedToSaveTheEditedContents">是否对已编辑的内容进行保存？</string>
     <string name="doYouNeedToUpdateItSoon">请问您需要立即更新吗？</string>
     <string name="downloadError">下载异常</string>
+    <string name="downloadNotificationChannelName">下载</string>
     <string name="downloading">正在下载…</string>
     <string name="downloadingUpdates">正在下载更新…</string>
     <string name="drawerBackground">抽屉背景</string>
+    <string name="drawerSettings">抽屉设置</string>
     <string name="findNewVersion">发现新版本</string>
     <string name="findNewVersion_title">发现新版本</string>
     <plurals name="findSomeVideos">
@@ -45,10 +49,12 @@
     <string name="hasBeenPlacedInTheBackground">已放入后台</string>
     <string name="illegalInputLink">输入链接不合法！</string>
     <string name="isTheLatestVersion">已是最新版本</string>
-    <string name="loadingVideos">正在载入数据,请稍候…</string>
+    <string name="loadingVideos">正在载入数据，请稍候…</string>
     <string name="localVideos">本地视频</string>
     <string name="lockScreenOrientation">锁定屏幕</string>
+    <string name="msgNotificationChannelName">消息</string>
     <string name="name">名称：%s</string>
+    <string name="newAppDownloaded">新应用下载完成</string>
     <string name="noNetworkConnection">无网络连接！</string>
     <string name="notHaveEnoughStorage">存储卡空间不足</string>
     <string name="notOpenYet">暂不开启</string>
@@ -58,6 +64,7 @@
     <string name="openOrCloseSideDrawer">打开或关闭侧边抽屉</string>
     <string name="optionalForMeToContactWithYou">选填，便于我与你联系</string>
     <string name="path">路径：%s</string>
+    <string name="percentProgress">%.2f%%</string>
     <string name="permissionsRequired">需要权限</string>
     <string name="pictureCount">%d/3</string>
     <string name="pictures">图片（选填，提供问题截图）</string>
@@ -67,8 +74,6 @@
     <string name="pleaseInputVideoLinkFirst">请先输入视频链接！</string>
     <string name="pleaseInsertSdCardOnYourDeviceFirst">请先插入SD卡</string>
     <string name="pressAgainToExitApp">再按一次退出视频</string>
-    <string name="progress">%.2f%%</string>
-    <string name="progressNumberOfUpdatingApp">%1$s/%2$s</string>
     <string name="rationale_askExternalStoragePermission">此应用需要访问您的存储卡，以便扫描并加载视频。</string>
     <string name="rationale_askExternalStoragePermissionAgain">
         没有读写存储卡的权限，此应用将无法正常工作。
@@ -76,7 +81,7 @@
     </string>
     <string name="rationale_askFloatingWindowPermission">此应用还没有被授予悬浮窗权限，请开启后再试！</string>
     <string name="readTimeout">读取超时</string>
-    <string name="refreshingVideos">正在刷新数据,请稍候…</string>
+    <string name="refreshingVideos">正在刷新数据，请稍候…</string>
     <string name="rename">重命名</string>
     <string name="renameDirectory">重命名目录</string>
     <string name="renameFailed">重命名失败</string>
@@ -96,11 +101,10 @@
     <string name="sendFailed">发送失败</string>
     <string name="sendSuccessful">发送成功</string>
     <string name="sending">正在发送…</string>
-    <string name="drawerSettings">抽屉设置</string>
     <string name="setBackground">设置背景</string>
-    <string name="setForeground">设置前景</string>
     <string name="setDarkStatus">设置暗色状态栏</string>
     <string name="setDarkTexts">设置暗色字体</string>
+    <string name="setForeground">设置前景</string>
     <string name="setLightStatus">设置亮色状态栏</string>
     <string name="setLightTexts">设置亮色字体</string>
     <string name="severalItemsHaveBeenSelected">已选择%d项</string>
@@ -115,7 +119,7 @@
     <string name="updateLog">%1$sv%2$s 更新日志：</string>
     <string name="updateLogs">更新日志</string>
     <string name="userFeedback">用户反馈</string>
-    <string name="version">v1.8-rc01</string>
+    <string name="version">v1.8-rc02</string>
     <string name="videoCount">视频数：%d</string>
     <string name="videoDetails">视频详情</string>
     <string name="videoLink">视频链接</string>

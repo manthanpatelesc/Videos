@@ -11,7 +11,6 @@ import android.media.AudioFocusRequest;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.media.PlaybackParams;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Messenger;
 import android.util.Log;
@@ -23,7 +22,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RawRes;
 import androidx.annotation.RestrictTo;
-import androidx.core.util.ObjectsCompat;
 
 import com.danikula.videocache.HttpProxyCacheServer;
 import com.google.android.material.snackbar.Snackbar;
@@ -143,55 +141,25 @@ public class SystemVideoPlayer extends VideoPlayer {
     }
 
     @Override
-    public void setVideoView(@Nullable AbsTextureVideoView videoView) {
-        if (mVideoView != videoView) {
-            super.setVideoView(videoView);
-            if (mMediaPlayer != null) {
-                mMediaPlayer.setSurface(
-                        isPureAudioPlayback() || videoView == null ? null : videoView.getSurface());
-            }
-        }
-    }
-
-    @Override
     public void setVideoResourceId(@RawRes int resId) {
         setVideoPath(resId == 0 ?
                 null : "android.resource://" + mContext.getPackageName() + "/" + resId);
     }
 
     @Override
-    public void setVideoUri(@Nullable Uri uri) {
-        if (!ObjectsCompat.equals(uri, mVideoUri)) {
-            super.setVideoUri(uri);
-            mVideoDuration = 0;
-            mVideoDurationString = DEFAULT_STRING_VIDEO_DURATION;
-            mPrivateFlags &= ~PFLAG_VIDEO_INFO_RESOLVED;
-            if (mMediaPlayer == null) {
-                // Removes the PFLAG_VIDEO_PAUSED_BY_USER flag and resets mSeekOnPlay to 0 in case
-                // the MediaPlayer was previously released and has not been initialized yet.
-                mPrivateFlags &= ~PFLAG_VIDEO_PAUSED_BY_USER;
-                mSeekOnPlay = 0;
-                if (uri == null) {
-                    // Sets the playback state to idle directly when the player is not created
-                    // and no video is set
-                    setPlaybackState(PLAYBACK_STATE_IDLE);
-                } else {
-                    openVideoInternal();
-                }
-            } else {
-                restartVideo();
-            }
+    protected void onVideoSurfaceChanged(@Nullable Surface surface) {
+        if (mMediaPlayer != null) {
+            mMediaPlayer.setSurface(surface);
         }
     }
 
     @Override
-    protected void openVideoInternal() {
-        Surface surface = mVideoView == null ? null : mVideoView.getSurface();
+    protected void openVideoInternal(@Nullable Surface surface) {
         if (mMediaPlayer == null && mVideoUri != null
                 && !(mVideoView != null && surface == null)
                 && (mPrivateFlags & PFLAG_VIDEO_PAUSED_BY_USER) == 0) {
             mMediaPlayer = new MediaPlayer();
-            mMediaPlayer.setSurface(isPureAudioPlayback() ? null : surface);
+            mMediaPlayer.setSurface(surface);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 mMediaPlayer.setAudioAttributes(sDefaultAudioAttrs.getAudioAttributesV21());
             } else {
@@ -240,7 +208,7 @@ public class SystemVideoPlayer extends VideoPlayer {
             mMediaPlayer.setOnBufferingUpdateListener((mp, percent)
                     -> mBuffering = (int) (mVideoDuration * percent / 100f + 0.5f));
             mMediaPlayer.setOnErrorListener((mp, what, extra) -> {
-                if (PackageConsts.DEBUG) {
+                if (InternalConsts.DEBUG) {
                     Log.e(TAG, "Error occurred while playing video:" +
                             " what= " + what + "; extra= " + extra);
                 }
@@ -351,6 +319,7 @@ public class SystemVideoPlayer extends VideoPlayer {
             } else {
                 // Not clear the PFLAG_VIDEO_INFO_RESOLVED flag
                 mPrivateFlags &= ~(PFLAG_VIDEO_PAUSED_BY_USER
+                        | PFLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER
                         | PFLAG_SEEKING
                         | PFLAG_BUFFERING);
                 pause(false);
@@ -382,7 +351,7 @@ public class SystemVideoPlayer extends VideoPlayer {
                 }
 
                 mPrivateFlags &= ~PFLAG_VIDEO_PAUSED_BY_USER;
-                openVideoInternal();
+                openVideo(true);
             } else {
                 Log.w(TAG, "Cannot start playback programmatically before the video is opened");
             }
@@ -427,7 +396,7 @@ public class SystemVideoPlayer extends VideoPlayer {
                 //@formatter:on
                 switch (result) {
                     case AudioManager.AUDIOFOCUS_REQUEST_FAILED:
-                        if (PackageConsts.DEBUG) {
+                        if (InternalConsts.DEBUG) {
                             Log.w(TAG, "Failed to request audio focus");
                         }
                         // Starts to play video even if the audio focus is not gained, but it is
@@ -574,17 +543,6 @@ public class SystemVideoPlayer extends VideoPlayer {
     }
 
     @Override
-    public void setPureAudioPlayback(boolean audioOnly) {
-        if (audioOnly != isPureAudioPlayback()) {
-            if (mMediaPlayer != null) {
-                mMediaPlayer.setSurface(
-                        audioOnly || mVideoView == null ? null : mVideoView.getSurface());
-            }
-            super.setPureAudioPlayback(audioOnly);
-        }
-    }
-
-    @Override
     public void setSingleVideoLoopPlayback(boolean looping) {
         if (looping != isSingleVideoLoopPlayback()) {
             if (mMediaPlayer != null) {
@@ -625,7 +583,7 @@ public class SystemVideoPlayer extends VideoPlayer {
             }
             // If the above fails due to an unsupported playback speed, then our speed will
             // remain unchanged. This ensures the program runs steadily.
-            mPlaybackSpeed = mUserPlaybackSpeed = speed;
+            mUserPlaybackSpeed = speed;
             super.setPlaybackSpeed(speed);
         }
     }

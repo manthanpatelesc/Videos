@@ -5,6 +5,7 @@
 
 package com.liuzhenlin.texturevideoview.sample;
 
+import android.app.Activity;
 import android.os.Bundle;
 import android.view.Window;
 
@@ -84,6 +85,11 @@ public class DemoActivity extends AppCompatActivity {
             }
 
             @Override
+            public void onBackgroundPlaybackControllerClose() {
+                finish();
+            }
+
+            @Override
             public void onViewModeChange(int oldMode, int newMode, boolean layoutMatches) {
                 // no-op
             }
@@ -104,6 +110,12 @@ public class DemoActivity extends AppCompatActivity {
             @Override
             public Window getWindow() {
                 return DemoActivity.this.getWindow();
+            }
+
+            @NonNull
+            @Override
+            public Class<? extends Activity> getHostActivityClass() {
+                return DemoActivity.this.getClass();
             }
 
             // Optional, just returns null to use the default output directory

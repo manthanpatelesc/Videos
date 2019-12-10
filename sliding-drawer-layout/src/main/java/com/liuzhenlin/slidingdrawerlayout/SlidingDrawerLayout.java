@@ -2811,7 +2811,7 @@ public class SlidingDrawerLayout extends ViewGroup {
     }
 
     class AccessibilityDelegate extends AccessibilityDelegateCompat {
-        private final Rect mTmpRect = new Rect();
+        private final Rect tmpRect = new Rect();
 
         @Override
         public void onInitializeAccessibilityNodeInfo(View host, AccessibilityNodeInfoCompat info) {
@@ -2887,11 +2887,11 @@ public class SlidingDrawerLayout extends ViewGroup {
          */
         private void copyNodeInfoNoChildren(AccessibilityNodeInfoCompat dest,
                                             AccessibilityNodeInfoCompat src) {
-            src.getBoundsInParent(mTmpRect);
-            dest.setBoundsInParent(mTmpRect);
+            src.getBoundsInParent(tmpRect);
+            dest.setBoundsInParent(tmpRect);
 
-            src.getBoundsInScreen(mTmpRect);
-            dest.setBoundsInScreen(mTmpRect);
+            src.getBoundsInScreen(tmpRect);
+            dest.setBoundsInScreen(tmpRect);
 
             dest.setVisibleToUser(src.isVisibleToUser());
             dest.setPackageName(src.getPackageName());

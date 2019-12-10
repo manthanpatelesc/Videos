@@ -54,8 +54,8 @@ public class DensityUtils {
     @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR1)
     public static int getRealScreenWidth(@NonNull Context context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
-            WindowManager wm = (WindowManager) context.getApplicationContext()
-                    .getSystemService(Context.WINDOW_SERVICE);
+            WindowManager wm = (WindowManager)
+                    context.getApplicationContext().getSystemService(Context.WINDOW_SERVICE);
             if (wm != null) {
                 Point size = new Point();
                 wm.getDefaultDisplay().getRealSize(size);
@@ -68,8 +68,8 @@ public class DensityUtils {
     @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR1)
     public static int getRealScreenHeight(@NonNull Context context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
-            WindowManager wm = (WindowManager) context.getApplicationContext()
-                    .getSystemService(Context.WINDOW_SERVICE);
+            WindowManager wm = (WindowManager)
+                    context.getApplicationContext().getSystemService(Context.WINDOW_SERVICE);
             if (wm != null) {
                 Point size = new Point();
                 wm.getDefaultDisplay().getRealSize(size);

@@ -31,21 +31,25 @@ public class VideoUtils2 {
     private VideoUtils2() {
     }
 
-    public static void loadVideoThumbnail(@NonNull ImageView image, @NonNull Video video) {
+    public static void loadVideoThumbnailIntoImageView(@NonNull ImageView image, @NonNull Video video) {
+        loadVideoThumbnailIntoImageView(image, video.getPath());
+    }
+
+    public static void loadVideoThumbnailIntoImageView(@NonNull ImageView image, @NonNull String path) {
         Context context = image.getContext();
         Resources res = context.getResources();
 
-        final float aspectRatio = (float) video.getWidth() / (float) video.getHeight();
+//        final float aspectRatio = (float) video.getWidth() / (float) video.getHeight();
         final int thumbWidth = App.getInstance(context).getVideoThumbWidth();
-        final int height = (int) ((float) thumbWidth / aspectRatio + 0.5f);
-        final int maxHeight = (int) (thumbWidth * 9f / 16f + 0.5f);
-        final int thumbHeight = height > maxHeight ? maxHeight : height;
+//        final int height = (int) ((float) thumbWidth / aspectRatio + 0.5f);
+        final int thumbHeight /* maxHeight */ = (int) (thumbWidth * 9f / 16f + 0.5f);
+//        final int thumbHeight = height > maxHeight ? maxHeight : height;
 
         Bitmap bitmap = BitmapUtils.createScaledBitmap(
                 BitmapFactory.decodeResource(res, R.drawable.ic_default_thumb),
                 thumbWidth, thumbHeight, true);
         Glide.with(context)
-                .load(video.getPath())
+                .load(path)
                 .override(thumbWidth, thumbHeight)
                 .centerCrop()
                 .placeholder(new BitmapDrawable(res, bitmap))
@@ -54,6 +58,7 @@ public class VideoUtils2 {
 
     @Nullable
     public static Bitmap generateMiniThumbnail(@NonNull Context context, @NonNull String path) {
+        //noinspection deprecation
         Bitmap thumb = ThumbnailUtils.createVideoThumbnail(path, MediaStore.Images.Thumbnails.MINI_KIND);
         if (thumb != null) {
             final float ratio = context.getResources().getDisplayMetrics().widthPixels / 1080f;

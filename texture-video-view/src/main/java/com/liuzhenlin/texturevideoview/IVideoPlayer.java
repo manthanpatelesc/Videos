@@ -248,15 +248,15 @@ public interface IVideoPlayer {
     int getVideoHeight();
 
     /**
-     * @return true if the player is currently in audio-only playback (no video displayed).
+     * @return true if the audio portion of the video source is allowed to play in the background.
      */
-    boolean isPureAudioPlayback();
+    boolean isAudioAllowedToPlayInBackground();
 
     /**
-     * Sets the player to audio-only playback mode to preserve the playback in the background
-     * but will cause no video frame displayed onto the screen.
+     * Sets whether the audio decoded from the video source is allowed to be played even after
+     * the application switched to the background.
      */
-    void setPureAudioPlayback(boolean audioOnly);
+    void setAudioAllowedToPlayInBackground(boolean allowed);
 
     /**
      * @return whether or not the player is looping through a single video.

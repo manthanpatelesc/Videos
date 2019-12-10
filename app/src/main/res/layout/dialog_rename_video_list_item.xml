@@ -61,7 +61,6 @@
         android:hint="新名称"
         android:textSize="@dimen/primary_text_size"
         android:singleLine="true"
-        android:textAlignment="center"
-        android:gravity="center"
+        android:gravity="center_horizontal"
         tools:ignore="HardcodedText" />
 </LinearLayout>

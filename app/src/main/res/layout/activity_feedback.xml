@@ -187,7 +187,6 @@
                 android:text="@string/commit"
                 android:textSize="@dimen/primary_text_size"
                 android:textColor="@android:color/white"
-                android:textAlignment="center"
                 android:gravity="center_horizontal" />
         </LinearLayout>
     </ScrollView>

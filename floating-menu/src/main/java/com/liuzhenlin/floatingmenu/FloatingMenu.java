@@ -21,6 +21,7 @@ import android.widget.TextView;
 import androidx.annotation.MenuRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.content.res.AppCompatResources;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.ViewCompat;
 
@@ -157,14 +158,12 @@ public class FloatingMenu extends PopupWindow {
 
     private void readItem(AttributeSet attrs) {
         TypedArray ta = mContext.obtainStyledAttributes(attrs, R.styleable.MenuItem);
-        final int iconResId = ta.getResourceId(R.styleable.MenuItem_icon, View.NO_ID);
+        final int iconResId = ta.getResourceId(R.styleable.MenuItem_icon, 0);
         final String text = ta.getText(R.styleable.MenuItem_text).toString();
         ta.recycle();
 
         MenuItem item = new MenuItem();
-        if (iconResId != View.NO_ID) {
-            item.setIconResId(iconResId);
-        }
+        item.setIconResId(iconResId);
         item.setText(text);
 
         mMenuItems.add(item);
@@ -220,9 +219,9 @@ public class FloatingMenu extends PopupWindow {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
                 textView.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_START);
             }
-            textView.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
-            if (menuItem.getIconResId() != View.NO_ID) {
-                Drawable icon = ContextCompat.getDrawable(mContext, menuItem.getIconResId());
+            textView.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
+            if (menuItem.getIconResId() != 0) {
+                Drawable icon = AppCompatResources.getDrawable(mContext, menuItem.getIconResId());
                 if (icon != null) {
                     textView.setCompoundDrawablePadding(padding);
                     if (ViewCompat.getLayoutDirection(mAnchorView) == ViewCompat.LAYOUT_DIRECTION_LTR) {

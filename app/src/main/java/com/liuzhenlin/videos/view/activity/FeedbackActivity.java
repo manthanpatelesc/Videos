@@ -35,7 +35,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatDialog;
-import androidx.core.content.ContextCompat;
+import androidx.appcompat.content.res.AppCompatResources;
 
 import com.google.android.material.snackbar.Snackbar;
 import com.liuzhenlin.floatingmenu.DensityUtils;
@@ -485,8 +485,8 @@ public class FeedbackActivity extends SwipeBackActivity implements View.OnClickL
         PictureGridAdapter(@NonNull Context context) {
             mContext = context;
             //noinspection all
-            mPictures.add(BitmapUtils.drawableToBitmap(ContextCompat.getDrawable(
-                    mContext, R.drawable.ic_add_photo_gray_36dp)));
+            mPictures.add(BitmapUtils.drawableToBitmap(
+                    AppCompatResources.getDrawable(context, R.drawable.ic_add_photo_gray_36dp)));
         }
 
         @Override
@@ -560,6 +560,7 @@ public class FeedbackActivity extends SwipeBackActivity implements View.OnClickL
 
         final class PicturePreviewDialog extends Dialog implements DialogInterface.OnDismissListener,
                 View.OnClickListener, View.OnLongClickListener {
+            final Window mParentWindow;
             final Window mWindow;
 
             final GalleryViewPager mGalleryViewPager;
@@ -583,16 +584,15 @@ public class FeedbackActivity extends SwipeBackActivity implements View.OnClickL
             PicturePreviewDialog(int currentItem) {
                 super(mContext, R.style.DialogStyle_PicturePreview);
                 setOnDismissListener(this);
+
+                mParentWindow = FeedbackActivity.this.getWindow();
                 mWindow = getWindow();
 
                 assert mWindow != null;
                 View view = View.inflate(mContext,
                         R.layout.dialog_picture_preview,
                         mWindow.getDecorView().findViewById(Window.ID_ANDROID_CONTENT));
-                mDeleteFrame = view.findViewById(R.id.frame_btn_delete);
-                mDeleteFrame.setOnClickListener(this);
-                view.findViewById(R.id.btn_delete).setOnClickListener(this);
-                //
+
                 List<ImageView> images = new ArrayList<>(mPictures.size() - 1);
                 for (int i = 0, count = mPictures.size() - 1; i < count; i++) {
                     ImageView image = (ImageView) View.inflate(
@@ -608,6 +608,10 @@ public class FeedbackActivity extends SwipeBackActivity implements View.OnClickL
                 mGalleryViewPager.setItemCallback(mGalleryPagerAdapter);
                 mGalleryViewPager.setCurrentItem(currentItem);
                 mGalleryViewPager.setPageMargin(DensityUtils.dp2px(mContext, 25f));
+
+                mDeleteFrame = view.findViewById(R.id.frame_btn_delete);
+                mDeleteFrame.setOnClickListener(this);
+                view.findViewById(R.id.btn_delete).setOnClickListener(this);
 
                 mWindow.setLayout(WindowManager.LayoutParams.MATCH_PARENT,
                         WindowManager.LayoutParams.MATCH_PARENT);
@@ -631,7 +635,7 @@ public class FeedbackActivity extends SwipeBackActivity implements View.OnClickL
                 super.show();
 
                 mRotationObserver = new RotationObserver(
-                        FeedbackActivity.this.getWindow().getDecorView().getHandler(), mContext) {
+                        mParentWindow.getDecorView().getHandler(), mContext) {
                     @Override
                     public void onRotationChange(boolean selfChange, boolean enabled) {
                         mIsRotationEnabled = enabled;
@@ -731,11 +735,11 @@ public class FeedbackActivity extends SwipeBackActivity implements View.OnClickL
                 return false;
             }
 
+            // 使View占用刘海区（如果有）
             void setLayoutInDisplayCutout() {
-                View decorView = FeedbackActivity.this.getWindow().getDecorView();
-                // 使View占用刘海区（如果有）
+                View parentDecorView = mParentWindow.getDecorView();
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                    DisplayCutout dc = decorView.getRootWindowInsets().getDisplayCutout();
+                    DisplayCutout dc = parentDecorView.getRootWindowInsets().getDisplayCutout();
                     if (dc != null) {
                         mIsNotchSupport = true;
                         if (OSHelper.isEMUI()) {
@@ -770,8 +774,9 @@ public class FeedbackActivity extends SwipeBackActivity implements View.OnClickL
                     }
                 }
                 if (mIsNotchSupportOnEMUI || mIsNotchSupportOnMIUI) {
-                    mNotchSwitchObserver = new ScreenNotchSwitchObserver(decorView.getHandler(),
-                            mContext, mIsNotchSupportOnEMUI, mIsNotchSupportOnMIUI) {
+                    mNotchSwitchObserver = new ScreenNotchSwitchObserver(
+                            parentDecorView.getHandler(), mContext,
+                            mIsNotchSupportOnEMUI, mIsNotchSupportOnMIUI) {
                         boolean first = true;
 
                         @Override
@@ -799,8 +804,8 @@ public class FeedbackActivity extends SwipeBackActivity implements View.OnClickL
                         break;
                     case SCREEN_ORIENTATION_LANDSCAPE:
                         mGalleryViewPager.setPadding(
-                                mIsNotchSupportOnEMUI && mIsNotchHidden ? 0 : mNotchHeight,
-                                0, 0, 0);
+                                mIsNotchSupportOnEMUI && mIsNotchHidden ? 0 : mNotchHeight, 0,
+                                0, 0);
                         break;
                     case SCREEN_ORIENTATION_REVERSE_LANDSCAPE:
                         mGalleryViewPager.setPadding(0, 0,

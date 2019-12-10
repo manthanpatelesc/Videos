@@ -34,7 +34,7 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.NO_POSITION
 import com.liuzhenlin.floatingmenu.FloatingMenu
 import com.liuzhenlin.videos.*
-import com.liuzhenlin.videos.dao.VideoDaoHelper
+import com.liuzhenlin.videos.dao.VideoListItemDao
 import com.liuzhenlin.videos.model.Video
 import com.liuzhenlin.videos.utils.AlgorithmUtils
 import com.liuzhenlin.videos.utils.UiUtils
@@ -313,7 +313,7 @@ class LocalSearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLon
     }
 
     override fun onReloadVideos(videos: List<Video>?) =
-            if (!mVideos.allEquals(videos)) {
+            if (!mVideos.allEqual(videos)) {
                 mVideos.set(videos)
                 refreshList(false)
             } else Unit
@@ -338,7 +338,7 @@ class LocalSearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLon
         } else if (searchedVideos.size == mSearchedVideos.size) {
             var changedIndices: MutableList<Int>? = null
             for (i in searchedVideos.indices) {
-                if (!searchedVideos[i].allEquals(mSearchedVideos[i])) {
+                if (!searchedVideos[i].allEqual(mSearchedVideos[i])) {
                     if (changedIndices == null) changedIndices = LinkedList()
                     changedIndices.add(i)
                 }
@@ -390,13 +390,13 @@ class LocalSearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLon
     @SuppressLint("StaticFieldLeak")
     private inner class LoadVideosTask : AsyncTask<Void, Void, List<Video>?>() {
         override fun doInBackground(vararg voids: Void): List<Video>? {
-            val daoHelper = VideoDaoHelper.getInstance(contextRequired)
+            val dao = VideoListItemDao.getInstance(contextRequired)
 
             var videos: MutableList<Video>? = null
 
-            val videoCursor = daoHelper.queryAllVideos() ?: return null
+            val videoCursor = dao.queryAllVideos() ?: return null
             while (!isCancelled && videoCursor.moveToNext()) {
-                val video = daoHelper.buildVideo(videoCursor)
+                val video = dao.buildVideo(videoCursor)
                 if (video != null) {
                     if (videos == null) videos = mutableListOf()
                     videos.add(video)
@@ -452,7 +452,7 @@ class LocalSearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLon
             highlightSelectedItemIfExists(holder, position)
 
             val video = mSearchedVideos[position]
-            VideoUtils2.loadVideoThumbnail(holder.videoImage, video)
+            VideoUtils2.loadVideoThumbnailIntoImageView(holder.videoImage, video)
             updateItemName(holder, video.name)
             holder.videoProgressAndDurationText.text =
                     VideoUtils2.concatVideoProgressAndDuration(video.progress, video.duration)

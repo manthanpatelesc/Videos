@@ -118,23 +118,26 @@
                     android:paddingRight="0dp"
                     android:paddingStart="5dp"
                     android:paddingEnd="0dp"
-                    android:drawableLeft="@drawable/btn_navigate_before_38dp"
-                    android:drawableStart="@drawable/btn_navigate_before_38dp"
+                    app:drawableLeftCompat="@drawable/ic_navigate_before_white_38dp"
+                    app:drawableStartCompat="@drawable/ic_navigate_before_white_38dp"
+                    app:drawableTint="@color/color_selector_white_color_accent"
                     android:textColor="@color/color_selector_white_color_accent"
                     android:textSize="@dimen/video_title_text_size"
-                    android:gravity="center_vertical" />
+                    android:textAlignment="viewStart"
+                    android:gravity="start|center_vertical" />
             </FrameLayout>
 
-            <androidx.appcompat.widget.AppCompatImageView
+            <ImageView
                 android:id="@+id/btn_share"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginLeft="15dp"
                 android:layout_marginRight="15dp"
-                app:srcCompat="@drawable/btn_share_25dp"
+                app:srcCompat="@drawable/ic_share_white_25dp"
+                app:tint="@color/color_selector_white_color_accent"
                 android:contentDescription="@string/share" />
 
-            <androidx.appcompat.widget.AppCompatImageView
+            <ImageView
                 android:id="@+id/btn_more"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -142,11 +145,12 @@
                 android:layout_marginRight="15dp"
                 android:layout_marginStart="5dp"
                 android:layout_marginEnd="15dp"
-                app:srcCompat="@drawable/btn_more_27dp"
+                app:srcCompat="@drawable/ic_more_white_27dp"
+                app:tint="@color/color_selector_white_color_accent"
                 android:contentDescription="@string/more" />
         </LinearLayout>
 
-        <androidx.appcompat.widget.AppCompatImageView
+        <ImageView
             android:id="@+id/btn_lockUnlock"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -162,11 +166,12 @@
             android:paddingRight="8dp"
             android:paddingBottom="8dp"
             android:background="@drawable/bg_middle_small_btns"
-            app:srcCompat="@drawable/btn_unlock_24dp"
+            app:srcCompat="@drawable/ic_unlock_white_24dp"
+            app:tint="@color/color_selector_white_color_accent"
             android:contentDescription="@string/unlock"
             android:visibility="gone" />
 
-        <androidx.appcompat.widget.AppCompatImageView
+        <ImageView
             android:id="@+id/btn_camera"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -184,11 +189,12 @@
             android:paddingRight="10dp"
             android:paddingBottom="10dp"
             android:background="@drawable/bg_middle_small_btns"
-            app:srcCompat="@drawable/btn_camera_20dp"
+            app:srcCompat="@drawable/ic_camera_white_20dp"
+            app:tint="@color/color_selector_white_color_accent"
             android:contentDescription="@string/captureVideoPhoto"
             android:visibility="gone" />
 
-        <androidx.appcompat.widget.AppCompatImageView
+        <ImageView
             android:id="@+id/btn_videoCamera"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -204,7 +210,8 @@
             android:paddingRight="9.25dp"
             android:paddingBottom="9.25dp"
             android:background="@drawable/bg_middle_small_btns"
-            app:srcCompat="@drawable/btn_gifcamera_21point5dp"
+            app:srcCompat="@drawable/ic_gifcamera_white_21point5dp"
+            app:tint="@color/color_selector_white_color_accent"
             android:contentDescription="@string/clipVideo"
             android:visibility="gone" />
 
@@ -228,8 +235,7 @@
                 android:layout_height="wrap_content"
                 android:textSize="@dimen/widget_large_text_size"
                 android:textColor="@android:color/white"
-                android:textAlignment="center"
-                android:gravity="center" />
+                android:gravity="center_horizontal" />
 
             <ProgressBar
                 android:id="@+id/pb_brightness_or_volume"
@@ -252,7 +258,7 @@
             app:layout_constraintVertical_bias="1"
             android:background="@drawable/shadow_bottom">
 
-            <!--<include layout="@layout/bottom_controls_fullscreen" />-->
+            <!--<include layout="@layout/bottom_controls" />-->
         </FrameLayout>
     </com.liuzhenlin.texturevideoview.ConstraintLayout>
 

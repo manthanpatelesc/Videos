@@ -49,6 +49,8 @@
                 android:textSize="@dimen/listitem_first_level_text_size"
                 android:textColor="@android:color/black"
                 android:singleLine="true"
+                android:textAlignment="viewStart"
+                android:gravity="start"
                 tools:ignore="HardcodedText" />
 
             <TextView
@@ -67,6 +69,8 @@
                 android:layout_marginTop="2.5dp"
                 android:text="观看至1分钟 | 40分钟"
                 android:textSize="@dimen/listitem_third_level_text_size"
+                android:textAlignment="viewStart"
+                android:gravity="start"
                 tools:ignore="HardcodedText" />
         </LinearLayout>
     </LinearLayout>

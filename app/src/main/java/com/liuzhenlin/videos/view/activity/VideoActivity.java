@@ -60,7 +60,7 @@ import com.liuzhenlin.videos.App;
 import com.liuzhenlin.videos.BuildConfig;
 import com.liuzhenlin.videos.Consts;
 import com.liuzhenlin.videos.R;
-import com.liuzhenlin.videos.dao.VideoDaoHelper;
+import com.liuzhenlin.videos.dao.VideoListItemDao;
 import com.liuzhenlin.videos.model.Video;
 import com.liuzhenlin.videos.utils.DisplayCutoutUtils;
 import com.liuzhenlin.videos.utils.OSHelper;
@@ -231,7 +231,7 @@ public class VideoActivity extends SwipeBackActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        if (canInitVideos(savedInstanceState)) {
+        if (canInitVideos(savedInstanceState, getIntent())) {
             setRequestedOrientation(mScreenOrientation);
             setContentView(R.layout.activity_video);
             initViews(savedInstanceState);
@@ -247,9 +247,33 @@ public class VideoActivity extends SwipeBackActivity {
         }
     }
 
-    private boolean canInitVideos(Bundle savedInstanceState) {
+    @Override
+    protected void onNewIntent(Intent intent) {
+        Video video = mVideos[mVideoIndex];
+        if (canInitVideos(null, intent)) {
+            super.onNewIntent(intent);
+            setIntent(intent);
+
+            recordVideoProgress(video);
+
+            final boolean needPlaylist = mVideos.length > 1;
+            TextureVideoView.PlayListAdapter adapter = mVideoView.getPlayListAdapter();
+            if (needPlaylist && adapter != null) {
+                adapter.notifyDataSetChanged();
+            }
+            //noinspection unchecked
+            mVideoView.setPlayListAdapter(needPlaylist
+                    ? adapter == null ? new VideoEpisodesAdapter() : adapter
+                    : null);
+            mVideoView.setCanSkipToPrevious(needPlaylist);
+            mVideoView.setCanSkipToNext(needPlaylist);
+
+            setVideoToPlay(mVideos[mVideoIndex]);
+        }
+    }
+
+    private boolean canInitVideos(Bundle savedInstanceState, Intent intent) {
         final boolean stateRestore = savedInstanceState != null;
-        Intent intent = getIntent();
         Parcelable[] parcelables = intent.getParcelableArrayExtra(Consts.KEY_VIDEOS);
         if (parcelables != null) {
             final int length = parcelables.length;
@@ -258,7 +282,8 @@ public class VideoActivity extends SwipeBackActivity {
                 for (int i = 0; i < length; i++) {
                     Video video = (Video) parcelables[i];
                     if (stateRestore) {
-                        video.setProgress(VideoDaoHelper.getInstance(this).getVideoProgress(video.getId()));
+                        video.setProgress(
+                                VideoListItemDao.getInstance(this).getVideoProgress(video.getId()));
                     }
                     mVideos[i] = video;
                 }
@@ -279,7 +304,7 @@ public class VideoActivity extends SwipeBackActivity {
                 if (uri != null) {
                     final String path = FileUtils.UriResolver.getPath(this, uri);
                     if (path != null) {
-                        video = VideoDaoHelper.getInstance(this).queryVideoByPath(path);
+                        video = VideoListItemDao.getInstance(this).queryVideoByPath(path);
                         if (video == null) {
                             video = new Video();
                             video.setId(Consts.NO_ID);
@@ -291,7 +316,8 @@ public class VideoActivity extends SwipeBackActivity {
             }
             if (video != null) {
                 if (stateRestore) {
-                    video.setProgress(VideoDaoHelper.getInstance(this).getVideoProgress(video.getId()));
+                    video.setProgress(
+                            VideoListItemDao.getInstance(this).getVideoProgress(video.getId()));
                 }
                 mVideos = new Video[]{video};
                 mVideoIndex = stateRestore ? savedInstanceState.getInt(KEY_VIDEO_INDEX) : 0;
@@ -340,7 +366,7 @@ public class VideoActivity extends SwipeBackActivity {
         if (savedInstanceState == null && mVideoIndex != 0) {
             notifyItemSelectionChanged(0, mVideoIndex, true);
         }
-        setVideoToPlay(mVideoIndex);
+        setVideoToPlay(mVideos[mVideoIndex]);
         videoPlayer.addVideoListener(new IVideoPlayer.VideoListener() {
             @Override
             public void onVideoStarted() {
@@ -424,7 +450,7 @@ public class VideoActivity extends SwipeBackActivity {
                 } else {
                     --mVideoIndex;
                 }
-                setVideoToPlay(mVideoIndex);
+                setVideoToPlay(mVideos[mVideoIndex]);
                 notifyItemSelectionChanged(oldVideoIndex, mVideoIndex, true);
             }
 
@@ -438,7 +464,7 @@ public class VideoActivity extends SwipeBackActivity {
                 } else {
                     ++mVideoIndex;
                 }
-                setVideoToPlay(mVideoIndex);
+                setVideoToPlay(mVideos[mVideoIndex]);
                 notifyItemSelectionChanged(oldVideoIndex, mVideoIndex, true);
             }
         });
@@ -456,6 +482,11 @@ public class VideoActivity extends SwipeBackActivity {
                 } else {
                     finish();
                 }
+            }
+
+            @Override
+            public void onBackgroundPlaybackControllerClose() {
+                finish();
             }
 
             public void onViewModeChange(int oldMode, int newMode, boolean layoutMatches) {
@@ -506,14 +537,19 @@ public class VideoActivity extends SwipeBackActivity {
 
             @NonNull
             @Override
+            public Class<? extends Activity> getHostActivityClass() {
+                return VideoActivity.this.getClass();
+            }
+
+            @NonNull
+            @Override
             public String getFileOutputDirectory() {
                 return App.getAppDirectory();
             }
         });
     }
 
-    private void setVideoToPlay(int videoIndex) {
-        Video video = mVideos[videoIndex];
+    private void setVideoToPlay(Video video) {
         mVideoPlayer.setVideoPath(video.getPath());
         mVideoView.setTitle(FileUtils.getFileTitleFromFileName(video.getName()));
     }
@@ -695,12 +731,15 @@ public class VideoActivity extends SwipeBackActivity {
     }
 
     private void recordCurrVideoProgress() {
-        Video video = mVideos[mVideoIndex];
+        recordVideoProgress(mVideos[mVideoIndex]);
+    }
+
+    private void recordVideoProgress(Video video) {
         video.setProgress(mVideoPlayer.getVideoProgress());
 
         final long id = video.getId();
         if (id != Consts.NO_ID) {
-            VideoDaoHelper.getInstance(this).setVideoProgress(id, video.getProgress());
+            VideoListItemDao.getInstance(this).setVideoProgress(id, video.getProgress());
         }
     }
 
@@ -1264,6 +1303,12 @@ public class VideoActivity extends SwipeBackActivity {
             mPlayList = recyclerView;
         }
 
+        @Override
+        public void onDetachedFromRecyclerView(@NonNull RecyclerView recyclerView) {
+            super.onDetachedFromRecyclerView(recyclerView);
+            mPlayList = null;
+        }
+
         @NonNull
         @Override
         public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
@@ -1299,7 +1344,7 @@ public class VideoActivity extends SwipeBackActivity {
             highlightSelectedItemIfExists(holder, position);
 
             Video video = mVideos[position];
-            VideoUtils2.loadVideoThumbnail(holder.videoImage, video);
+            VideoUtils2.loadVideoThumbnailIntoImageView(holder.videoImage, video);
             holder.videoNameText.setText(video.getName());
             if (position == mVideoIndex) {
                 holder.videoProgressDurationText.setText(mWatching);
@@ -1332,7 +1377,7 @@ public class VideoActivity extends SwipeBackActivity {
 
                 final int oldPosition = mVideoIndex;
                 mVideoIndex = position;
-                setVideoToPlay(position);
+                setVideoToPlay(mVideos[position]);
                 notifyItemSelectionChanged(oldPosition, position, false);
             }
         }

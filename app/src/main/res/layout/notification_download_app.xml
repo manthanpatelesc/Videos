@@ -1,25 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:padding="10dp">
-
-    <ImageView
-        android:id="@+id/image_appIcon"
-        android:layout_width="@dimen/notification_icon_size"
-        android:layout_height="@dimen/notification_icon_size"
-        android:layout_centerVertical="true"
-        android:src="@mipmap/ic_launcher"
-        android:contentDescription="@string/appIcon" />
+    android:layout_height="wrap_content">
 
     <TextView
         android:id="@+id/text_title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_toRightOf="@id/image_appIcon"
-        android:layout_toEndOf="@id/image_appIcon"
-        android:layout_marginLeft="10dp"
-        android:layout_marginStart="10dp"
         android:layout_marginBottom="5dp"
         android:text="@string/downloadingUpdates"
         android:textSize="@dimen/notification_title_text_size"
@@ -33,10 +20,11 @@
         android:layout_alignLeft="@id/text_title"
         android:layout_alignStart="@id/text_title"
         android:layout_marginBottom="1dp"
+        android:indeterminate="true"
         style="@style/Widget.AppCompat.ProgressBar.Horizontal" />
 
     <TextView
-        android:id="@+id/text_progressPercent"
+        android:id="@+id/text_percentProgress"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_below="@id/progress"
@@ -46,7 +34,7 @@
         android:textAppearance="@style/TextAppearance.Compat.Notification.Line2" />
 
     <TextView
-        android:id="@+id/text_progressNumber"
+        android:id="@+id/text_charsequenceProgress"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_below="@id/progress"
@@ -59,7 +47,7 @@
         android:id="@+id/btn_cancel_danv"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@id/text_progressNumber"
+        android:layout_below="@id/text_charsequenceProgress"
         android:layout_alignParentRight="true"
         android:layout_alignParentEnd="true"
         android:layout_marginTop="6dp"

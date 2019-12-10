@@ -17,11 +17,9 @@ import android.view.ViewConfiguration;
 
 import androidx.annotation.NonNull;
 
-public class MediaButtonEventHandler implements Parcelable {
+import com.liuzhenlin.texturevideoview.InternalConsts;
 
-    private static final class NoPreloadHolder {
-        static final Handler sHandler = new Handler();
-    }
+public class MediaButtonEventHandler implements Parcelable {
 
     public static final int MSG_PLAY_PAUSE_KEY_SINGLE_TAP = 1;
     public static final int MSG_PLAY_PAUSE_KEY_DOUBLE_TAP = 2;
@@ -58,26 +56,29 @@ public class MediaButtonEventHandler implements Parcelable {
                     // Consider long-press as a single tap.
                     handlePlayPauseKeySingleOrDoubleTapAsNeeded();
 
-                } else switch (mPlayPauseKeyTappedTime) {
-                    case 0:
-                        mPlayPauseKeyTappedTime = 1;
-                        NoPreloadHolder.sHandler.postDelayed(mPlayPauseKeyTimeoutRunnable,
-                                ViewConfiguration.getDoubleTapTimeout());
-                        break;
+                } else {
+                    Handler handler = InternalConsts.getMainThreadHandler();
+                    switch (mPlayPauseKeyTappedTime) {
+                        case 0:
+                            mPlayPauseKeyTappedTime = 1;
+                            handler.postDelayed(mPlayPauseKeyTimeoutRunnable,
+                                    ViewConfiguration.getDoubleTapTimeout());
+                            break;
 
-                    case 1:
-                        mPlayPauseKeyTappedTime = 2;
-                        NoPreloadHolder.sHandler.removeCallbacks(mPlayPauseKeyTimeoutRunnable);
-                        NoPreloadHolder.sHandler.postDelayed(mPlayPauseKeyTimeoutRunnable,
-                                ViewConfiguration.getDoubleTapTimeout());
-                        break;
+                        case 1:
+                            mPlayPauseKeyTappedTime = 2;
+                            handler.removeCallbacks(mPlayPauseKeyTimeoutRunnable);
+                            handler.postDelayed(mPlayPauseKeyTimeoutRunnable,
+                                    ViewConfiguration.getDoubleTapTimeout());
+                            break;
 
-                    case 2:
-                        mPlayPauseKeyTappedTime = 0;
-                        NoPreloadHolder.sHandler.removeCallbacks(mPlayPauseKeyTimeoutRunnable);
+                        case 2:
+                            mPlayPauseKeyTappedTime = 0;
+                            handler.removeCallbacks(mPlayPauseKeyTimeoutRunnable);
 
-                        sendMsg(MSG_PLAY_PAUSE_KEY_TRIPLE_TAP);
-                        break;
+                            sendMsg(MSG_PLAY_PAUSE_KEY_TRIPLE_TAP);
+                            break;
+                    }
                 }
                 return true;
             default:
@@ -102,7 +103,7 @@ public class MediaButtonEventHandler implements Parcelable {
         if (tappedTime == 0) return;
 
         mPlayPauseKeyTappedTime = 0;
-        NoPreloadHolder.sHandler.removeCallbacks(mPlayPauseKeyTimeoutRunnable);
+        InternalConsts.getMainThreadHandler().removeCallbacks(mPlayPauseKeyTimeoutRunnable);
 
         switch (tappedTime) {
             case 1:

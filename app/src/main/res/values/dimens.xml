@@ -20,7 +20,6 @@
     <dimen name="icon_bottom_text_size">@dimen/smallest_text_size</dimen>
     <dimen name="dialog_button_text_size">@dimen/secondary_text_size</dimen>
 
-    <dimen name="notification_icon_size">36dp</dimen>
     <dimen name="notification_title_text_size">14sp</dimen>
     <dimen name="notification_progress_text_size">12sp</dimen>
     <dimen name="notification_button_text_size">13sp</dimen>

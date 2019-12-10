@@ -14,10 +14,10 @@ import android.os.Environment;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatDelegate;
 import androidx.collection.SimpleArrayMap;
 import androidx.multidex.MultiDex;
 
+import com.bumptech.glide.Glide;
 import com.liuzhenlin.floatingmenu.DensityUtils;
 import com.liuzhenlin.texturevideoview.utils.SystemBarUtils;
 import com.squareup.leakcanary.LeakCanary;
@@ -52,9 +52,9 @@ public class App extends Application implements Application.ActivityLifecycleCal
 
     private RefWatcher mRefWatcher;
 
-    static {
-        AppCompatDelegate.setCompatVectorFromResourcesEnabled(true);
-    }
+//    static {
+//        AppCompatDelegate.setCompatVectorFromResourcesEnabled(true);
+//    }
 
     @Override
     protected void attachBaseContext(Context base) {
@@ -65,6 +65,7 @@ public class App extends Application implements Application.ActivityLifecycleCal
     @Override
     public void onCreate() {
         super.onCreate();
+
         if (LeakCanary.isInAnalyzerProcess(this)) {
             // This process is dedicated to LeakCanary for heap analysis.
             // You should not init your app in this process.
@@ -73,8 +74,9 @@ public class App extends Application implements Application.ActivityLifecycleCal
         mRefWatcher = LeakCanary.install(this);
 
         sApp = this;
-        registerActivityLifecycleCallbacks(this);
         mStatusHeight = SystemBarUtils.getStatusHeight(this);
+        registerActivityLifecycleCallbacks(this);
+        registerComponentCallbacks(Glide.get(this));
     }
 
     @NonNull
@@ -121,6 +123,7 @@ public class App extends Application implements Application.ActivityLifecycleCal
                     screenWidth  ^= screenHeight;
                 }
                 //@formatter:on
+                mScreenHeight = screenHeight;
             }
             mScreenWidth = screenWidth;
         }
@@ -140,6 +143,7 @@ public class App extends Application implements Application.ActivityLifecycleCal
                     screenHeight ^= screenWidth;
                 }
                 //@formatter:on
+                mScreenWidth = screenWidth;
             }
             mScreenHeight = screenHeight;
         }
@@ -160,6 +164,7 @@ public class App extends Application implements Application.ActivityLifecycleCal
                     screenWidth  ^= screenHeight;
                 }
                 //@formatter:on
+                mRealScreenHeight = screenHeight;
             }
             mRealScreenWidth = screenWidth;
         }
@@ -179,6 +184,7 @@ public class App extends Application implements Application.ActivityLifecycleCal
                     screenHeight ^= screenWidth;
                 }
                 //@formatter:on
+                mRealScreenWidth = screenWidth;
             }
             mRealScreenHeight = screenHeight;
         }

@@ -23,22 +23,24 @@
         android:orientation="horizontal"
         android:gravity="center_vertical">
 
-        <androidx.appcompat.widget.AppCompatImageView
+        <ImageView
             android:id="@+id/btn_toggle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginLeft="10dp"
             android:layout_marginStart="10dp"
-            app:srcCompat="@drawable/btn_play_32dp"
+            app:srcCompat="@drawable/ic_play_white_32dp"
+            app:tint="@color/color_selector_white_color_accent"
             android:contentDescription="@string/play" />
 
-        <androidx.appcompat.widget.AppCompatImageView
+        <ImageView
             android:id="@+id/btn_skipNext"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginLeft="10dp"
             android:layout_marginStart="10dp"
-            app:srcCompat="@drawable/btn_skip_next_36dp"
+            app:srcCompat="@drawable/ic_skip_next_white_36dp"
+            app:tint="@color/color_selector_white_color_accent"
             android:contentDescription="@string/skipNext" />
 
         <TextView

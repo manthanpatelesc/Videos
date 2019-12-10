@@ -57,12 +57,6 @@ import com.liuzhenlin.texturevideoview.utils.Utils;
     }
 
     /**
-     * @return the {@link Surface} onto which video will be rendered.
-     */
-    @Nullable
-    public abstract Surface getSurface();
-
-    /**
      * Sets whether to show the loading indicator ring in the center of this view, normally set while
      * the player is loading the video content or paused to buffer more data through progressive
      * HTTP download.
@@ -83,6 +77,12 @@ import com.liuzhenlin.texturevideoview.utils.Utils;
         return getWindowVisibility() == VISIBLE;
     }
 
+    /**
+     * @return the {@link Surface} onto which video will be rendered.
+     */
+    /* package-private */
+    abstract @Nullable Surface getSurface();
+
     /* package-private */
     abstract void onVideoUriChanged();
 
@@ -102,7 +102,7 @@ import com.liuzhenlin.texturevideoview.utils.Utils;
     public abstract boolean canSkipToNext();
 
     /* package-private */
-    abstract void onPureAudioPlaybackModeChanged(boolean audioOnly);
+    abstract void onAudioAllowedToPlayInBackgroundChanged(boolean allowed);
 
     /* package-private */
     abstract void onSingleVideoLoopPlaybackModeChanged(boolean looping);

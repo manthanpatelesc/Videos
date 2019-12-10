@@ -93,6 +93,7 @@ public class BitmapUtils {
         final int h = drawable.getIntrinsicHeight();
 
         // 取 drawable 的颜色格式
+        //noinspection deprecation
         Bitmap.Config config = drawable.getOpacity() == PixelFormat.OPAQUE ?
                 Bitmap.Config.RGB_565 : Bitmap.Config.ARGB_8888;
         // 建立对应 bitmap

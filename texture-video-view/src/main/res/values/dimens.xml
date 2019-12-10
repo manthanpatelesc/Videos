@@ -26,4 +26,7 @@
 
     <dimen name="cutout_buttons_corner_radius">5dp</dimen>
     <dimen name="cutout_buttons_stroke_width">1.25dp</dimen>
+
+    <dimen name="notification_thumb_max_width">64dp</dimen>
+    <dimen name="notification_thumb_max_height">64dp</dimen>
 </resources>

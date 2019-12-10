@@ -12,13 +12,14 @@
     android:orientation="horizontal"
     android:gravity="center_vertical">
 
-    <androidx.appcompat.widget.AppCompatImageView
+    <ImageView
         android:id="@+id/btn_toggle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginLeft="10dp"
         android:layout_marginRight="10dp"
-        app:srcCompat="@drawable/btn_play_32dp"
+        app:srcCompat="@drawable/ic_play_white_32dp"
+        app:tint="@color/color_selector_white_color_accent"
         android:contentDescription="@string/play" />
 
     <TextView
@@ -47,14 +48,15 @@
         android:textSize="@dimen/widget_small_text_size"
         tools:ignore="HardcodedText" />
 
-    <androidx.appcompat.widget.AppCompatImageView
+    <ImageView
         android:id="@+id/btn_minimize"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:srcCompat="@drawable/btn_minimize_24dp"
+        app:srcCompat="@drawable/ic_minimize_white_24dp"
+        app:tint="@color/color_selector_white_color_accent"
         android:contentDescription="@string/minimize" />
 
-    <androidx.appcompat.widget.AppCompatImageView
+    <ImageView
         android:id="@+id/btn_fullscreen"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -62,6 +64,7 @@
         android:layout_marginRight="10dp"
         android:layout_marginStart="15dp"
         android:layout_marginEnd="10dp"
-        app:srcCompat="@drawable/btn_fullscreen_33dp"
+        app:srcCompat="@drawable/ic_fullscreen_white_33dp"
+        app:tint="@color/color_selector_white_color_accent"
         android:contentDescription="@string/fullscreen" />
 </LinearLayout>

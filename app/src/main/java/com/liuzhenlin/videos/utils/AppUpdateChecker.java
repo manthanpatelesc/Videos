@@ -8,26 +8,25 @@ package com.liuzhenlin.videos.utils;
 import android.annotation.SuppressLint;
 import android.app.Dialog;
 import android.app.Notification;
-import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.IBinder;
 import android.os.Message;
-import android.os.Messenger;
-import android.os.RemoteException;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.RemoteViews;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.MainThread;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
@@ -39,6 +38,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.liuzhenlin.videos.App;
 import com.liuzhenlin.videos.BuildConfig;
+import com.liuzhenlin.videos.Consts;
 import com.liuzhenlin.videos.R;
 
 import org.apache.http.conn.ConnectTimeoutException;
@@ -59,6 +59,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
+@MainThread
 public final class AppUpdateChecker {
 
     public interface OnResultListener {
@@ -79,41 +80,34 @@ public final class AppUpdateChecker {
     private Dialog mUpdateDialog;
 
     private final Context mContext;
-    private Handler mHandler;
+    private final Handler mHandler;
     private boolean mToastResult;
     private boolean mCheckInProgress;
 
     private List<OnResultListener> mListeners;
 
-    private static final String EXTRA_MESSENGER = "extra_messenger";
     private static final String EXTRA_APP_NAME = "extra_appName";
     private static final String EXTRA_VERSION_NAME = "extra_versionName";
     private static final String EXTRA_APP_LINK = "extra_appLink";
     private Intent mServiceIntent;
 
-    private static volatile AppUpdateChecker sInstance;
-
-    private AppUpdateChecker(Context context) {
-        mContext = context.getApplicationContext();
-    }
+    private static final Singleton<Context, AppUpdateChecker> sAppUpdateCheckerSingleton =
+            new Singleton<Context, AppUpdateChecker>() {
+                @NonNull
+                @Override
+                protected AppUpdateChecker onCreate(Context... ctxs) {
+                    return new AppUpdateChecker(ctxs[0]);
+                }
+            };
 
     @NonNull
     public static AppUpdateChecker getInstance(@NonNull Context context) {
-        if (sInstance == null) {
-            synchronized (AppUpdateChecker.class) {
-                if (sInstance == null) {
-                    sInstance = new AppUpdateChecker(context);
-                }
-            }
-        }
-        return sInstance;
+        return sAppUpdateCheckerSingleton.get(context);
     }
 
-    private Handler getHandler() {
-        if (mHandler == null) {
-            mHandler = new Handler();
-        }
-        return mHandler;
+    private AppUpdateChecker(Context context) {
+        mContext = context.getApplicationContext();
+        mHandler = new Handler();
     }
 
     private boolean hasOnResultListener() {
@@ -237,11 +231,11 @@ public final class AppUpdateChecker {
             protected void onPostExecute(Integer result) {
                 switch (result) {
                     case RESULT_FIND_NEW_VERSION:
-                        getHandler().sendEmptyMessage(Handler.MSG_FIND_NEW_VERSION);
+                        mHandler.sendEmptyMessage(Handler.MSG_FIND_NEW_VERSION);
                         showUpdateDialog();
                         break;
                     case RESULT_NO_NEW_VERSION:
-                        getHandler().sendEmptyMessage(Handler.MSG_NO_NEW_VERSION);
+                        mHandler.sendEmptyMessage(Handler.MSG_NO_NEW_VERSION);
                         if (mToastResult) {
                             Toast.makeText(mContext,
                                     R.string.isTheLatestVersion, Toast.LENGTH_SHORT).show();
@@ -293,7 +287,6 @@ public final class AppUpdateChecker {
                         mUpdateDialog = null;
                         if (FileUtils2.isExternalStorageMounted()) {
                             mServiceIntent = new Intent(mContext, UpdateAppService.class)
-                                    .putExtra(EXTRA_MESSENGER, new Messenger(getHandler()))
                                     .putExtra(EXTRA_APP_NAME, mAppName)
                                     .putExtra(EXTRA_VERSION_NAME, mVersionName)
                                     .putExtra(EXTRA_APP_LINK, mAppLink);
@@ -367,11 +360,13 @@ public final class AppUpdateChecker {
 
     @VisibleForTesting
     public static final class UpdateAppService extends Service {
-        private UpdateAppTask mTask;
-
         private static final int INDEX_APP_NAME = 0;
         private static final int INDEX_VERSION_NAME = 1;
         private static final int INDEX_APP_LINK = 2;
+
+        private UpdateAppTask mTask;
+
+        private CancelAppUpdateReceiver mReceiver;
 
         @Nullable
         @Override
@@ -381,59 +376,50 @@ public final class AppUpdateChecker {
 
         @Override
         public int onStartCommand(Intent intent, int flags, int startId) {
-            mTask = new UpdateAppTask(this,
-                    intent.getParcelableExtra(AppUpdateChecker.EXTRA_MESSENGER));
+            mTask = new UpdateAppTask(this);
             mTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,
                     intent.getStringExtra(AppUpdateChecker.EXTRA_APP_NAME),
                     intent.getStringExtra(AppUpdateChecker.EXTRA_VERSION_NAME),
                     intent.getStringExtra(AppUpdateChecker.EXTRA_APP_LINK));
-            return super.onStartCommand(intent, flags, startId);
+
+            mReceiver = new CancelAppUpdateReceiver();
+            registerReceiver(mReceiver, new IntentFilter(CancelAppUpdateReceiver.ACTION));
+
+            return START_REDELIVER_INTENT;
         }
 
         @Override
         public void onDestroy() {
             super.onDestroy();
+
             if (mTask != null) {
                 mTask.cancel();
             }
+
+            unregisterReceiver(mReceiver);
+            mReceiver = null;
         }
 
-        @VisibleForTesting
-        public static final class CancelAppUpdateReceiver extends BroadcastReceiver {
+        private static final class CancelAppUpdateReceiver extends BroadcastReceiver {
+            static final String ACTION =
+                    "action_AppUpdateChecker$UpdateAppService$CancelAppUpdateReceiver";
+
             @Override
             public void onReceive(Context context, Intent intent) {
-                Messenger messenger = intent.getParcelableExtra(AppUpdateChecker.EXTRA_MESSENGER);
-                Message msg = Message.obtain();
-                msg.what = Handler.MSG_STOP_UPDATE_APP_SERVICE;
-                try {
-                    Objects.requireNonNull(messenger).send(msg);
-                } catch (RemoteException e) {
-                    e.printStackTrace();
-                }
+                getInstance(context).mHandler.sendEmptyMessage(Handler.MSG_STOP_UPDATE_APP_SERVICE);
             }
         }
 
         private static final class UpdateAppTask extends AsyncTask<String, Void, Void> {
             @SuppressLint("StaticFieldLeak")
             final UpdateAppService mService;
-            final Messenger mMessenger;
 
             @SuppressLint("StaticFieldLeak")
             final Context mContext;
             final String mPkgName;
-            final CharSequence mAppLabel;
 
-            static NotificationManager sNotificationManager;
-            NotificationCompat.Builder mNotificationBuilder;
-            PendingIntent mCancelPendingIntent;
-
-            static android.os.Handler sHandler;
-            static final Runnable sCancelNotificationRunnable = new Runnable() {
-                @Override
-                public void run() {
-                    sNotificationManager.cancel(ID_NOTIFICATION);
-                }
-            };
+            final NotificationManager mNotificationManager;
+            final NotificationCompat.Builder mNotificationBuilder;
 
             static final String TAG_NOTIFICATION =
                     "notification_AppUpdateChecker$UpdateAppService$UpdateAppTask";
@@ -459,57 +445,41 @@ public final class AppUpdateChecker {
             int mApkLength = -1;
             final AtomicInteger mProgress = new AtomicInteger();
 
-            UpdateAppTask(UpdateAppService service, Messenger messenger) {
+            UpdateAppTask(UpdateAppService service) {
                 mService = service;
-                mMessenger = messenger;
                 mContext = service.getApplicationContext();
                 mPkgName = service.getPackageName();
-                mAppLabel = service.getApplicationInfo().loadLabel(service.getPackageManager());
+
+                mNotificationManager = (NotificationManager)
+                        mContext.getSystemService(Context.NOTIFICATION_SERVICE);
+                RemoteViews nv = createNotificationView();
+                mNotificationBuilder = new NotificationCompat.Builder(
+                        mContext, NotificationChannelManager.getDownloadNotificationChannelId(mContext))
+                        .setSmallIcon(mContext.getApplicationInfo().icon)
+                        .setTicker(mContext.getString(R.string.downloadingUpdates))
+                        .setCustomContentView(nv)
+                        .setCustomBigContentView(nv)
+                        .setStyle(new NotificationCompat.DecoratedCustomViewStyle())
+                        .setColor(Consts.COLOR_ACCENT)
+                        .setDefaults(0)
+                        .setOnlyAlertOnce(true)
+                        .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                        .setCategory(NotificationCompat.CATEGORY_PROGRESS)
+                        .setVisibility(NotificationCompat.VISIBILITY_SECRET);
             }
 
             @Override
             protected void onPreExecute() {
-                if (sNotificationManager == null) {
-                    sNotificationManager = (NotificationManager)
-                            mContext.getSystemService(Context.NOTIFICATION_SERVICE);
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        NotificationChannel channel = new NotificationChannel(
-                                mPkgName, mAppLabel, NotificationManager.IMPORTANCE_DEFAULT);
-                        channel.enableLights(true);
-                        channel.enableVibration(false);
-                        sNotificationManager.createNotificationChannel(channel);
-                    }
-                } else {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        // 应用名可能会改变...
-                        sNotificationManager.getNotificationChannel(mPkgName).setName(mAppLabel);
-                    }
-
-                    if (sHandler != null) {
-                        sHandler.removeCallbacks(sCancelNotificationRunnable);
-                    }
-                }
-                RemoteViews nv = createNotificationView();
-                mNotificationBuilder = new NotificationCompat.Builder(mContext, mPkgName)
-                        .setSmallIcon(R.mipmap.ic_launcher)
-                        .setCustomContentView(nv)
-                        .setCustomBigContentView(nv)
-                        .setOnlyAlertOnce(true)
-                        .setDefaults(Notification.DEFAULT_LIGHTS)
-                        .setTicker(mContext.getString(R.string.downloadingUpdates));
                 mService.startForeground(ID_NOTIFICATION, mNotificationBuilder.build());
             }
 
             private RemoteViews createNotificationView() {
-                if (mCancelPendingIntent == null) {
-                    mCancelPendingIntent = PendingIntent.getBroadcast(mContext,
-                            0,
-                            new Intent(mContext, CancelAppUpdateReceiver.class)
-                                    .putExtra(EXTRA_MESSENGER, mMessenger),
-                            PendingIntent.FLAG_ONE_SHOT);
-                }
-                RemoteViews nv = new RemoteViews(mPkgName, R.layout.notification_view_download_app);
-                nv.setOnClickPendingIntent(R.id.btn_cancel_danv, mCancelPendingIntent);
+                RemoteViews nv = new RemoteViews(mPkgName, R.layout.notification_download_app);
+                nv.setOnClickPendingIntent(R.id.btn_cancel_danv,
+                        PendingIntent.getBroadcast(mContext,
+                                0,
+                                new Intent(CancelAppUpdateReceiver.ACTION),
+                                0));
                 return nv;
             }
 
@@ -595,11 +565,9 @@ public final class AppUpdateChecker {
                 }
 
                 deleteApk();
-                release();
 
-                // 确保不再有任何通知被弹出...
-                android.os.Handler handler = getHandler();
-                handler.postDelayed(sCancelNotificationRunnable, 100);
+                stopService();
+                mNotificationManager.cancel(ID_NOTIFICATION);
             }
 
             private void deleteApk() {
@@ -609,23 +577,14 @@ public final class AppUpdateChecker {
                 }
             }
 
-            private void release() {
+            private void stopService() {
                 mService.mTask = null;
-
-                Message msg = Message.obtain();
-                msg.what = Handler.MSG_STOP_UPDATE_APP_SERVICE;
-                try {
-                    mMessenger.send(msg);
-                } catch (RemoteException e) {
-                    e.printStackTrace();
-                }
+                mService.stopForeground(true);
+                getHandler().sendEmptyMessage(Handler.MSG_STOP_UPDATE_APP_SERVICE);
             }
 
             android.os.Handler getHandler() {
-                if (sHandler == null) {
-                    sHandler = sInstance.mHandler;
-                }
-                return sHandler;
+                return getInstance(mContext).mHandler;
             }
 
             private void onConnectionTimeout() {
@@ -743,11 +702,11 @@ public final class AppUpdateChecker {
                 private void notifyProgressUpdated(int progress) {
                     RemoteViews nv = createNotificationView();
                     nv.setProgressBar(R.id.progress, mApkLength, progress, false);
-                    nv.setTextViewText(R.id.text_progressPercent,
-                            mContext.getString(R.string.progress,
+                    nv.setTextViewText(R.id.text_percentProgress,
+                            mContext.getString(R.string.percentProgress,
                                     (float) progress / (float) mApkLength * 100f));
-                    nv.setTextViewText(R.id.text_progressNumber,
-                            mContext.getString(R.string.progressNumberOfUpdatingApp,
+                    nv.setTextViewText(R.id.text_charsequenceProgress,
+                            mContext.getString(R.string.charsequenceProgress,
                                     FileUtils2.formatFileSize(progress),
                                     FileUtils2.formatFileSize(mApkLength)));
 
@@ -759,7 +718,7 @@ public final class AppUpdateChecker {
 
                         // 确保下载被取消后不再有任何通知被弹出...
                         if (!mHost.isCancelled()) {
-                            sNotificationManager.notify(ID_NOTIFICATION, n);
+                            mNotificationManager.notify(ID_NOTIFICATION, n);
                         }
                     }
                 }
@@ -768,13 +727,13 @@ public final class AppUpdateChecker {
                 protected void onPostExecute(Void aVoid) {
                     mDownloadAppTasks.remove(this);
                     if (mDownloadAppTasks.isEmpty()) {
-                        release();
-                        installApk(mApk);
+                        stopService();
+                        onAppDownloaded(mApk);
                     }
                 }
             }
 
-            void installApk(File apk) {
+            void onAppDownloaded(File apk) {
                 if (apk == null || !apk.exists() || apk.length() != mApkLength) {
                     Toast.makeText(mContext, R.string.theInstallationPackageHasBeenDestroyed,
                             Toast.LENGTH_SHORT).show();
@@ -791,7 +750,28 @@ public final class AppUpdateChecker {
                 } else {
                     it.setDataAndType(Uri.fromFile(apk), "application/vnd.android.package-archive");
                 }
-                mContext.startActivity(it);
+
+//                mContext.startActivity(it); // MIUI默认应用在后台时无法弹出界面
+
+                String title = mContext.getString(R.string.newAppDownloaded);
+                PendingIntent pi = PendingIntent.getActivity(mContext, 0, it, 0);
+                mNotificationManager.notify(ID_NOTIFICATION,
+                        mNotificationBuilder
+                                .setChannelId(NotificationChannelManager.getMessageNotificationChannelId(mContext))
+                                .setTicker(title)
+                                .setContentTitle(title)
+                                .setContentText(mContext.getString(R.string.clickToInstallIt))
+                                .setContentIntent(pi)
+//                                .setFullScreenIntent(pi, true)
+                                .setAutoCancel(true)
+                                .setCustomContentView(null)
+                                .setCustomBigContentView(null)
+                                .setStyle(null)
+                                .setDefaults(Notification.DEFAULT_SOUND | Notification.DEFAULT_LIGHTS)
+                                .setPriority(NotificationCompat.PRIORITY_HIGH) // 高优先级以显示抬头式通知
+                                .setCategory(NotificationCompat.CATEGORY_PROMO)
+                                .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+                                .build());
             }
         }
     }

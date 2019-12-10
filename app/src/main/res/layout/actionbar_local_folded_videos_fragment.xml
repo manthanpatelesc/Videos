@@ -47,7 +47,10 @@
         android:focusable="true"
         android:focusableInTouchMode="true"
         android:gravity="center_horizontal"
-        tools:ignore="HardcodedText" />
+        tools:ignore="HardcodedText">
+
+        <requestFocus />
+    </TextView>
 
     <Button
         android:id="@+id/btn_selectAll"

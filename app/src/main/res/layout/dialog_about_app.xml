@@ -26,7 +26,9 @@
         android:paddingRight="15dp"
         android:text="@string/copyright"
         android:textSize="14.5sp"
-        android:textColor="@android:color/black" />
+        android:textColor="@android:color/black"
+        android:textAlignment="viewStart"
+        android:gravity="start" />
 
     <FrameLayout
         android:layout_width="match_parent"
