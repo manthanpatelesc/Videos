@@ -82,15 +82,15 @@ public abstract class VideoPlayer implements IVideoPlayer {
      * the previous or the next one in the playlist.
      */
     @Nullable
-    /* package-private */ OnSkipPrevNextListener mOnSkipPrevNextListener;
+    /*package*/ OnSkipPrevNextListener mOnSkipPrevNextListener;
 
     /** The set of listeners for all the events related to video we publish. */
     @Nullable
-    /* package-private */ List<VideoListener> mVideoListeners;
+    /*package*/ List<VideoListener> mVideoListeners;
 
     /** Listeners monitoring all state changes to the player or the playback of the video. */
     @Nullable
-    /* package-private */ List<OnPlaybackStateChangeListener> mOnPlaybackStateChangeListeners;
+    /*package*/ List<OnPlaybackStateChangeListener> mOnPlaybackStateChangeListeners;
 
     /**
      * Caches the listener that will be added to {@link #mOnPlaybackStateChangeListeners}
@@ -235,6 +235,11 @@ public abstract class VideoPlayer implements IVideoPlayer {
         }
     }
 
+    /**
+     * @return whether or not the player object is created for playing the video(s)
+     */
+    protected abstract boolean isPlayerCreated();
+
     /** @see #openVideo(boolean) */
     @Override
     public final void openVideo() {
@@ -309,7 +314,7 @@ public abstract class VideoPlayer implements IVideoPlayer {
     /**
      * Gets the video duration, replacing {@value #UNKNOWN_DURATION} with 0.
      */
-    /* package-private */ int getNoNegativeVideoDuration() {
+    /*package*/ final int getNoNegativeVideoDuration() {
         return Math.max(0, getVideoDuration());
     }
 
@@ -526,11 +531,6 @@ public abstract class VideoPlayer implements IVideoPlayer {
     }
 
     /**
-     * @return whether or not the player object is created for playing the video(s)
-     */
-    protected abstract boolean isPlayerCreated();
-
-    /**
      * @return true if the video is closed, as scheduled by the user, when playback completes
      */
     protected boolean onPlaybackCompleted() {
@@ -544,6 +544,12 @@ public abstract class VideoPlayer implements IVideoPlayer {
         } else {
             onVideoStopped(true);
             return false;
+        }
+    }
+
+    protected void onVideoSeekProcessed() {
+        if (mVideoView != null) {
+            mVideoView.onVideoSeekProcessed();
         }
     }
 

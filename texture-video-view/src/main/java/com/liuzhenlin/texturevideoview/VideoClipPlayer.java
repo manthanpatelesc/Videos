@@ -24,7 +24,7 @@ import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
 /**
  * @author 刘振林
  */
-/* package-private */ final class VideoClipPlayer {
+/*package*/ final class VideoClipPlayer {
     private final Context mContext;
     private final Surface mSurface;
     private final MediaSource mMediaSource;

@@ -50,7 +50,7 @@
     <string name="_90Minutes">90 minutes</string>
     <string name="_2Hours">2 hours</string>
     <string name="playerEngine">Player Engine:</string>
-    <string name="android_system_mediaplayer" translatable="false">Android System MediaPlayer</string>
+    <string name="android_mediaplayer" translatable="false">Android MediaPlayer</string>
     <string name="google_exoplayer">Google ExoPlayer (recommended)</string>
     <string name="videoIsLoading">Video is loading…</string>
     <string name="failedToLoadThisVideo">Failed to load this video!</string>

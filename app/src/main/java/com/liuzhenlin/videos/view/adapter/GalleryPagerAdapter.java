@@ -9,6 +9,9 @@ import androidx.viewpager.widget.PagerAdapter;
 
 import com.liuzhenlin.galleryviewer.GalleryViewPager;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -16,21 +19,28 @@ import java.util.List;
  */
 public class GalleryPagerAdapter<V extends View> extends PagerAdapter
         implements GalleryViewPager.ItemCallback {
-    @Nullable
-    private final List<V> mViews;
 
-    @Nullable
-    public List<V> getViews() {
-        return mViews;
+    @NonNull
+    public final List<V> views;
+
+    public GalleryPagerAdapter(@Nullable V[] views) {
+        if (views == null) {
+            this.views = new ArrayList<>(0);
+        } else {
+            this.views = new ArrayList<>(views.length);
+            if (views.length > 0) {
+                this.views.addAll(Arrays.asList(views));
+            }
+        }
     }
 
-    public GalleryPagerAdapter(@Nullable List<V> views) {
-        mViews = views;
+    public GalleryPagerAdapter(@Nullable Collection<V> views) {
+        this.views = views == null ? new ArrayList<>(0) : new ArrayList<>(views);
     }
 
     @Override
     public int getCount() {
-        return mViews == null ? 0 : mViews.size();
+        return views.size();
     }
 
     @Override
@@ -41,8 +51,7 @@ public class GalleryPagerAdapter<V extends View> extends PagerAdapter
     @NonNull
     @Override
     public Object instantiateItem(@NonNull ViewGroup container, int position) {
-        assert mViews != null;
-        View view = mViews.get(position);
+        View view = views.get(position);
         if (view.getParent() == null) {
             container.addView(view);
         }
@@ -61,8 +70,8 @@ public class GalleryPagerAdapter<V extends View> extends PagerAdapter
 
     @Override
     public Object getItemAt(int position) {
-        if (mViews != null && position >= 0 && position < mViews.size()) {
-            return mViews.get(position);
+        if (position >= 0 && position < views.size()) {
+            return views.get(position);
         }
         return null;
     }

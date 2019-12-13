@@ -11,19 +11,19 @@ import android.database.sqlite.SQLiteOpenHelper;
 
 import androidx.annotation.NonNull;
 
-/* package-private */ class DatabaseOpenHelper extends SQLiteOpenHelper {
+/*package*/ class DatabaseOpenHelper extends SQLiteOpenHelper {
 
-    static final String TABLE_VIDEOS = "videos";
-    static final String VIDEOS_COL_ID = "_id";
-    static final String VIDEOS_COL_PROGRESS = "progress";
-    static final String VIDEOS_COL_IS_TOPPED = "isTopped";
+    public static final String TABLE_VIDEOS = "videos";
+    public static final String VIDEOS_COL_ID = "_id";
+    public static final String VIDEOS_COL_PROGRESS = "progress";
+    public static final String VIDEOS_COL_IS_TOPPED = "isTopped";
 
-    static final String TABLE_VIDEODIRS = "videodirs";
-    static final String VIDEODIRS_COL_NAME = "name";
-    static final String VIDEODIRS_COL_PATH = "path";
-    static final String VIDEODIRS_COL_IS_TOPPED = "isTopped";
+    public static final String TABLE_VIDEODIRS = "videodirs";
+    public static final String VIDEODIRS_COL_NAME = "name";
+    public static final String VIDEODIRS_COL_PATH = "path";
+    public static final String VIDEODIRS_COL_IS_TOPPED = "isTopped";
 
-    DatabaseOpenHelper(@NonNull Context context) {
+    public DatabaseOpenHelper(@NonNull Context context) {
         super(context, "Videos.db", null, 1);
     }
 

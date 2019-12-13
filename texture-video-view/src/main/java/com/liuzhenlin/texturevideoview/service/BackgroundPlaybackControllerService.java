@@ -260,9 +260,9 @@ public class BackgroundPlaybackControllerService extends Service {
 
         // Chronometer
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            nv.setLong(R.id.chronometer, "setBase",
+            nv.setLong(R.id.countdownChronometer, "setBase",
                     SystemClock.elapsedRealtime() + (mMediaDuration - mMediaProgress));
-            nv.setBoolean(R.id.chronometer, "setStarted", mIsPlaying);
+            nv.setBoolean(R.id.countdownChronometer, "setStarted", mIsPlaying);
         }
 
         return nv;
@@ -334,6 +334,11 @@ public class BackgroundPlaybackControllerService extends Service {
             mIsPlaying = false;
             mMediaProgress = progress;
             mMediaDuration = duration;
+            postNotificationIfForeground();
+        }
+
+        public void onMediaSoughtTo(long positionMs) {
+            mMediaProgress = positionMs;
             postNotificationIfForeground();
         }
 

@@ -1,6 +1,6 @@
 /*
  * Created on 2018/08/15.
-  * Copyright © 2018 刘振林. All rights reserved.
+ * Copyright © 2018 刘振林. All rights reserved.
  */
 
 package com.liuzhenlin.videos.view.fragment
@@ -62,7 +62,7 @@ class LocalFoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, Vie
     private inline val mVideos: MutableList<Video>
         get() {
             if (_mVideos == null) {
-                _mVideos = mVideoDir?.videos ?: mutableListOf()
+                _mVideos = mVideoDir?.videos ?: ArrayList(0)
             }
             return _mVideos!!
         }

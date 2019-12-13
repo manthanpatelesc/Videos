@@ -70,7 +70,7 @@ public final class AppUpdateChecker {
     private static final int TIMEOUT_READ = 60 * 1000; // ms
 
     private static final String LINK_APP_INFOS =
-            "https://raw.githubusercontent.com/freeze-frames/Videos/release/app.json";
+            "https://raw.githubusercontent.com/lzls/Videos/release/app.json";
 
     private String mAppName;
     private String mVersionName;

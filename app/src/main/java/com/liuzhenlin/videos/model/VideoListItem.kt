@@ -23,7 +23,7 @@ data class VideoDirectory(override var name: String = "",
                           override var path: String = "",
                           override var size: Long = 0L,
                           override var isTopped: Boolean = false,
-                          var videos: MutableList<Video> = mutableListOf())
+                          var videos: MutableList<Video> = ArrayList(0))
     : VideoListItem(name, path, size, isTopped) {
 
     override fun equals(other: Any?): Boolean {

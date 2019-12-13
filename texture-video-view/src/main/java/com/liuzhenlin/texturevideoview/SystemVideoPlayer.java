@@ -180,11 +180,12 @@ public class SystemVideoPlayer extends VideoPlayer {
                 play(false);
             });
             mMediaPlayer.setOnSeekCompleteListener(mp -> {
+                mPrivateFlags &= ~PFLAG_SEEKING;
                 if ((mPrivateFlags & PFLAG_BUFFERING) == 0) {
                     if (mVideoView != null)
                         mVideoView.showLoadingView(false);
                 }
-                mPrivateFlags &= ~PFLAG_SEEKING;
+                onVideoSeekProcessed();
             });
             mMediaPlayer.setOnInfoListener((mp, what, extra) -> {
                 switch (what) {
@@ -493,12 +494,12 @@ public class SystemVideoPlayer extends VideoPlayer {
     }
 
     @Override
-    public void seekTo(int progress, boolean fromUser) {
+    public void seekTo(int positionMs, boolean fromUser) {
         if (isPlaying()) {
-            seekToInternal(progress);
+            seekToInternal(positionMs);
         } else {
             mPrivateFlags |= PFLAG_SEEK_POSITION_WHILE_VIDEO_PAUSED;
-            mSeekOnPlay = progress;
+            mSeekOnPlay = positionMs;
             play(fromUser);
             mPrivateFlags &= ~PFLAG_SEEK_POSITION_WHILE_VIDEO_PAUSED;
         }
@@ -507,7 +508,7 @@ public class SystemVideoPlayer extends VideoPlayer {
     /**
      * Similar to {@link #seekTo(int, boolean)}, but without check to the playing state.
      */
-    private void seekToInternal(int progress) {
+    private void seekToInternal(int positionMs) {
         if ((mPrivateFlags & PFLAG_BUFFERING) == 0) {
             if (mVideoView != null)
                 mVideoView.showLoadingView(true);
@@ -516,9 +517,9 @@ public class SystemVideoPlayer extends VideoPlayer {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             // Precise seek with larger performance overhead compared to the default one.
             // Slow! Really slow!
-            mMediaPlayer.seekTo(progress, MediaPlayer.SEEK_CLOSEST);
+            mMediaPlayer.seekTo(positionMs, MediaPlayer.SEEK_CLOSEST);
         } else {
-            mMediaPlayer.seekTo(progress /*, MediaPlayer.SEEK_PREVIOUS_SYNC*/);
+            mMediaPlayer.seekTo(positionMs /*, MediaPlayer.SEEK_PREVIOUS_SYNC*/);
         }
     }
 
@@ -538,7 +539,7 @@ public class SystemVideoPlayer extends VideoPlayer {
     }
 
     @Override
-    public int getVideoBufferedProgress() {
+    public int getVideoBufferProgress() {
         return mBuffering;
     }
 

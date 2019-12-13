@@ -107,7 +107,7 @@ fun IVideoDirectoryDao.insertVideoDir(directory: String): VideoDirectory {
     return videodir
 }
 
-fun List<Video>?.asVideoListItems(): MutableList<VideoListItem>? {
+fun Collection<Video>?.asVideoListItems(): MutableList<VideoListItem>? {
     this ?: return null
     if (size == 0) return null
 
@@ -175,7 +175,7 @@ fun List<Video>?.asVideoListItems(): MutableList<VideoListItem>? {
 
         val item = videosMap.valueAt(index) as VideoListItem
         if (item.isTopped) {
-            if (toppedItems == null) toppedItems = mutableListOf()
+            if (toppedItems == null) toppedItems = LinkedList()
             toppedItems.add(item)
         } else {
             items.add(item)
@@ -194,7 +194,7 @@ fun List<Video>?.asVideoListItems(): MutableList<VideoListItem>? {
     return items
 }
 
-fun List<Video>?.allVideoSize(): Long {
+fun Collection<Video>?.allVideoSize(): Long {
     var size = 0L
     for (video in this ?: return size) {
         size += video.size

@@ -193,7 +193,7 @@ public class VideoActivity extends SwipeBackActivity {
                 if (mVideoPlayer.isPlaying()) {
                     mHandler.postDelayed(this, 1000 - progress % 1000);
                 }
-                mVideoProgressInPiP.setSecondaryProgress(mVideoPlayer.getVideoBufferedProgress());
+                mVideoProgressInPiP.setSecondaryProgress(mVideoPlayer.getVideoBufferProgress());
                 mVideoProgressInPiP.setProgress(progress);
             }
         };

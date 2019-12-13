@@ -2116,7 +2116,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
         } else {
             mDrawerViewMinimumHeight = 0;
             lp.width = ViewGroup.LayoutParams.MATCH_PARENT;
-            lp.height = (int) (height * 0.88f + 0.5f);
+            lp.height = (int) (height * 0.85f + 0.5f);
         }
 //        mDrawerView.setLayoutParams(lp);
 
@@ -3122,7 +3122,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
     private void refreshVideoProgress(int progress, boolean refreshSeekBar) {
         VideoPlayer videoPlayer = mVideoPlayer;
         if (videoPlayer == null) progress = 0;
-        final int videoBufferedProgress = videoPlayer == null ? 0 : videoPlayer.getVideoBufferedProgress();
+        final int videoBufferProgress = videoPlayer == null ? 0 : videoPlayer.getVideoBufferProgress();
         final int videoDuration = videoPlayer == null ? 0 : videoPlayer.getNoNegativeVideoDuration();
         final String videoDurationString = videoPlayer == null ?
                 VideoPlayer.DEFAULT_STRING_VIDEO_DURATION : videoPlayer.mVideoDurationString;
@@ -3141,7 +3141,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                 mVideoDurationText.setText(videoDurationString);
             }
         }
-        mVideoSeekBar.setSecondaryProgress(videoBufferedProgress);
+        mVideoSeekBar.setSecondaryProgress(videoBufferProgress);
         if (refreshSeekBar) {
             mVideoSeekBar.setProgress(progress);
         }
@@ -3832,6 +3832,13 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
         if (canAccessBackgroundPlaybackControllerService()) {
             sBgPlaybackControllerServiceConn.service.onMediaPause(
                     mVideoPlayer.getVideoProgress(), mVideoPlayer.getNoNegativeVideoDuration());
+        }
+    }
+
+    @Override
+    void onVideoSeekProcessed() {
+        if (canAccessBackgroundPlaybackControllerService()) {
+            sBgPlaybackControllerServiceConn.service.onMediaSoughtTo(mVideoPlayer.getVideoProgress());
         }
     }
 

@@ -52,7 +52,7 @@ public class VideoClipView extends FrameLayout {
     private final ThumbsAdapter mThumbsAdapter = new ThumbsAdapter();
 
     /** @see #getThumbGalleryWidth() */
-    private int mThumbGalleryWidth = -1;
+    private int mThumbGalleryWidth;
     /** @see #getThumbDisplayHeight() */
     private final int mThumbDisplayHeight;
 
@@ -343,7 +343,7 @@ public class VideoClipView extends FrameLayout {
 
     /**
      * Gets the width of the horizontal gallery used for displaying the thumbnails retrieved from
-     * the video being clipped or -1 if this view is not laid-out, through which you can decide
+     * the video being clipped or 0 if this view is not laid-out, through which you can decide
      * the minimum count of thumbnails that can full fill the gallery.
      */
     public int getThumbGalleryWidth() {

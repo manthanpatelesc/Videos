@@ -199,7 +199,7 @@ public interface IVideoPlayer {
      *
      * @param fromUser whether the playback position change is initiated by the user
      */
-    void seekTo(int progress, boolean fromUser);
+    void seekTo(int positionMs, boolean fromUser);
 
     /**
      * Fast-forward the video.
@@ -224,7 +224,7 @@ public interface IVideoPlayer {
      * @return an estimate of the position in the current content window up to which data is
      * buffered, in milliseconds.
      */
-    int getVideoBufferedProgress();
+    int getVideoBufferProgress();
 
     /**
      * Gets the duration of the video.

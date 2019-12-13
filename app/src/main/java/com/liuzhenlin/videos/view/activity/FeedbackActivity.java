@@ -477,7 +477,7 @@ public class FeedbackActivity extends SwipeBackActivity implements View.OnClickL
     private final class PictureGridAdapter extends BaseAdapter implements AdapterView.OnItemClickListener {
         final Context mContext;
 
-        final List<Bitmap> mPictures = new ArrayList<>(1);
+        final List<Bitmap> mPictures = new ArrayList<>(MAX_COUNT_UPLOAD_PICTURES + 1);
         List<String> mPicturePaths;
 
         static final int MAX_COUNT_UPLOAD_PICTURES = 3;
@@ -707,8 +707,7 @@ public class FeedbackActivity extends SwipeBackActivity implements View.OnClickL
                         mConfirmDeletePictureDialog = null;
 
                         final int currentItem = mGalleryViewPager.getCurrentItem();
-                        //noinspection all (mGalleryPagerAdapter.getViews() != null)
-                        mGalleryPagerAdapter.getViews().remove(currentItem);
+                        mGalleryPagerAdapter.views.remove(currentItem);
                         mGalleryPagerAdapter.notifyDataSetChanged();
                         // 图片全部被删除时，销毁此对话框
                         if (mPictures.size() == 2) {

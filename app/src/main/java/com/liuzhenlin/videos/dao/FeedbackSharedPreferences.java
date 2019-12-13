@@ -49,6 +49,7 @@ public class FeedbackSharedPreferences {
 
     @NonNull
     public String getText() {
+        //noinspection ConstantConditions
         return mSP.getString(TEXT, Consts.EMPTY_STRING);
     }
 
@@ -58,6 +59,7 @@ public class FeedbackSharedPreferences {
 
     @NonNull
     public String getContactWay() {
+        //noinspection ConstantConditions
         return mSP.getString(CONTACT_WAY, Consts.EMPTY_STRING);
     }
 

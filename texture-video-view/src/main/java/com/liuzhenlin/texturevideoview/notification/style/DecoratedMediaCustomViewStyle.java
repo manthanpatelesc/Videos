@@ -88,15 +88,15 @@ public class DecoratedMediaCustomViewStyle extends NotificationCompat.Style {
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
     @Override
-    public void apply(NotificationBuilderWithBuilderAccessor builder) {
+    public void apply(NotificationBuilderWithBuilderAccessor builderAccessor) {
         if (Build.VERSION.SDK_INT >= 24) {
-            builder.getBuilder().setStyle(
+            builderAccessor.getBuilder().setStyle(
                     fillInMediaStyle(new Notification.DecoratedMediaCustomViewStyle()));
         } else if (Build.VERSION.SDK_INT >= 21) {
-            builder.getBuilder().setStyle(
+            builderAccessor.getBuilder().setStyle(
                     fillInMediaStyle(new Notification.MediaStyle()));
         }/* else {
-            builder.getBuilder().setOngoing(true);
+            builderAccessor.getBuilder().setOngoing(true);
         }*/
     }
 

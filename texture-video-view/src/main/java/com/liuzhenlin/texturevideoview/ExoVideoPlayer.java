@@ -250,6 +250,11 @@ public class ExoVideoPlayer extends VideoPlayer {
                 }
 
                 @Override
+                public void onSeekProcessed() {
+                    onVideoSeekProcessed();
+                }
+
+                @Override
                 public void onPlayerError(ExoPlaybackException error) {
                     if (InternalConsts.DEBUG) {
                         Log.e(TAG, "playback error", error);
@@ -306,8 +311,7 @@ public class ExoVideoPlayer extends VideoPlayer {
         }
     }
 
-    /* package-private */
-    AdsMediaSource.MediaSourceFactory obtainMediaSourceFactory(Uri uri) {
+    /*package*/ AdsMediaSource.MediaSourceFactory obtainMediaSourceFactory(Uri uri) {
         if (mMediaSourceFactory != null) return mMediaSourceFactory;
 
         @C.ContentType int type = Util.inferContentType(uri, null);
@@ -517,11 +521,11 @@ public class ExoVideoPlayer extends VideoPlayer {
     }
 
     @Override
-    public void seekTo(int progress, boolean fromUser) {
+    public void seekTo(int positionMs, boolean fromUser) {
         if (isPlaying()) {
-            mExoPlayer.seekTo(progress);
+            mExoPlayer.seekTo(positionMs);
         } else {
-            mSeekOnPlay = progress;
+            mSeekOnPlay = positionMs;
             play(fromUser);
         }
     }
@@ -539,7 +543,7 @@ public class ExoVideoPlayer extends VideoPlayer {
     }
 
     @Override
-    public int getVideoBufferedProgress() {
+    public int getVideoBufferProgress() {
         if (mExoPlayer != null) {
             return (int) mExoPlayer.getBufferedPosition();
         }
