@@ -28,7 +28,6 @@ import com.google.android.material.snackbar.Snackbar;
 import com.liuzhenlin.texturevideoview.receiver.HeadsetEventsReceiver;
 import com.liuzhenlin.texturevideoview.receiver.MediaButtonEventHandler;
 import com.liuzhenlin.texturevideoview.receiver.MediaButtonEventReceiver;
-import com.liuzhenlin.texturevideoview.utils.TimeUtil;
 import com.liuzhenlin.texturevideoview.utils.Utils;
 
 import java.io.File;
@@ -48,22 +47,22 @@ public class SystemVideoPlayer extends VideoPlayer {
      * Flag used to indicate that the volume of the video is auto-turned down by the system
      * when the player temporarily loses the audio focus.
      */
-    private static final int PFLAG_VIDEO_VOLUME_TURNED_DOWN_AUTOMATICALLY = PFLAG_VIDEO_IS_CLOSING << 1;
+    private static final int PFLAG_VIDEO_VOLUME_TURNED_DOWN_AUTOMATICALLY = 1 << 31;
 
     /**
      * Flag indicates that a position seek request happens when the video is not playing.
      */
-    private static final int PFLAG_SEEK_POSITION_WHILE_VIDEO_PAUSED = PFLAG_VIDEO_IS_CLOSING << 2;
+    private static final int PFLAG_SEEK_POSITION_WHILE_VIDEO_PAUSED = 1 << 30;
 
     /**
      * If true, MediaPlayer is moving the media to some specified time position
      */
-    private static final int PFLAG_SEEKING = PFLAG_VIDEO_IS_CLOSING << 3;
+    private static final int PFLAG_SEEKING = 1 << 29;
 
     /**
      * If true, MediaPlayer is temporarily pausing playback internally in order to buffer more data.
      */
-    private static final int PFLAG_BUFFERING = PFLAG_VIDEO_IS_CLOSING << 4;
+    private static final int PFLAG_BUFFERING = 1 << 28;
 
     private MediaPlayer mMediaPlayer;
 
@@ -82,6 +81,10 @@ public class SystemVideoPlayer extends VideoPlayer {
             switch (focusChange) {
                 // Audio focus gained
                 case AudioManager.AUDIOFOCUS_GAIN:
+                    if ((mPrivateFlags & PFLAG_VIDEO_VOLUME_TURNED_DOWN_AUTOMATICALLY) != 0) {
+                        mPrivateFlags &= ~PFLAG_VIDEO_VOLUME_TURNED_DOWN_AUTOMATICALLY;
+                        mMediaPlayer.setVolume(1.0f, 1.0f);
+                    }
                     play(false);
                     break;
 
@@ -109,10 +112,8 @@ public class SystemVideoPlayer extends VideoPlayer {
                 // Temporarily lose the audio focus but the playback can continue.
                 // The volume of the playback needs to be turned down.
                 case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK:
-                    if (mMediaPlayer != null) {
-                        mPrivateFlags |= PFLAG_VIDEO_VOLUME_TURNED_DOWN_AUTOMATICALLY;
-                        mMediaPlayer.setVolume(0.5f, 0.5f);
-                    }
+                    mPrivateFlags |= PFLAG_VIDEO_VOLUME_TURNED_DOWN_AUTOMATICALLY;
+                    mMediaPlayer.setVolume(0.5f, 0.5f);
                     break;
             }
         }
@@ -147,6 +148,11 @@ public class SystemVideoPlayer extends VideoPlayer {
     }
 
     @Override
+    protected boolean isPlayerCreated() {
+        return mMediaPlayer != null;
+    }
+
+    @Override
     protected void onVideoSurfaceChanged(@Nullable Surface surface) {
         if (mMediaPlayer != null) {
             mMediaPlayer.setSurface(surface);
@@ -170,15 +176,14 @@ public class SystemVideoPlayer extends VideoPlayer {
                     mVideoView.showLoadingView(false);
                 }
                 if ((mPrivateFlags & PFLAG_VIDEO_INFO_RESOLVED) == 0) {
-                    mVideoDuration = mp.getDuration();
-                    mVideoDurationString = mVideoDuration == UNKNOWN_DURATION
-                            ? DEFAULT_STRING_VIDEO_DURATION
-                            : TimeUtil.formatTimeByColon(mVideoDuration);
+                    onVideoDurationDetermined(mp.getDuration());
                     mPrivateFlags |= PFLAG_VIDEO_INFO_RESOLVED;
                 }
                 setPlaybackState(PLAYBACK_STATE_PREPARED);
                 play(false);
             });
+            mMediaPlayer.setOnVideoSizeChangedListener((mp, width, height)
+                    -> onVideoSizeChanged(width, height));
             mMediaPlayer.setOnSeekCompleteListener(mp -> {
                 mPrivateFlags &= ~PFLAG_SEEKING;
                 if ((mPrivateFlags & PFLAG_BUFFERING) == 0) {
@@ -225,9 +230,14 @@ public class SystemVideoPlayer extends VideoPlayer {
                 }
                 return true;
             });
-            mMediaPlayer.setOnCompletionListener(mp -> onPlaybackCompleted());
-            mMediaPlayer.setOnVideoSizeChangedListener((mp, width, height)
-                    -> onVideoSizeChanged(width, height));
+            mMediaPlayer.setOnCompletionListener(mp -> {
+                if (isSingleVideoLoopPlayback()) {
+                    mp.start();
+                    onVideoRepeat();
+                } else {
+                    onPlaybackCompleted();
+                }
+            });
             startVideo();
 
             MediaButtonEventReceiver.setMediaButtonEventHandler(
@@ -280,7 +290,7 @@ public class SystemVideoPlayer extends VideoPlayer {
                 }
                 setPlaybackState(PLAYBACK_STATE_PREPARING);
                 mMediaPlayer.prepareAsync();
-                mMediaPlayer.setLooping(isSingleVideoLoopPlayback());
+//                mMediaPlayer.setLooping(isSingleVideoLoopPlayback());
             } catch (IOException e) {
                 e.printStackTrace();
                 showVideoErrorMsg(/* MediaPlayer.MEDIA_ERROR_IO */ -1004);
@@ -346,7 +356,7 @@ public class SystemVideoPlayer extends VideoPlayer {
             // Opens the video only if this is a user request
             if (fromUser) {
                 // If the video playback finished, skip to the next video if possible
-                if (playbackState == PLAYBACK_STATE_COMPLETED &&
+                if (playbackState == PLAYBACK_STATE_COMPLETED && !isSingleVideoLoopPlayback() &&
                         skipToNextIfPossible() && mMediaPlayer != null) {
                     return;
                 }
@@ -383,7 +393,8 @@ public class SystemVideoPlayer extends VideoPlayer {
                 break;
 
             case PLAYBACK_STATE_COMPLETED:
-                if (skipToNextIfPossible() && getPlaybackState() != PLAYBACK_STATE_COMPLETED) {
+                if (!isSingleVideoLoopPlayback() &&
+                        skipToNextIfPossible() && getPlaybackState() != PLAYBACK_STATE_COMPLETED) {
                     break;
                 }
                 // Starts the video only if we have prepared it for the player
@@ -543,16 +554,6 @@ public class SystemVideoPlayer extends VideoPlayer {
         return mBuffering;
     }
 
-    @Override
-    public void setSingleVideoLoopPlayback(boolean looping) {
-        if (looping != isSingleVideoLoopPlayback()) {
-            if (mMediaPlayer != null) {
-                mMediaPlayer.setLooping(looping);
-            }
-            super.setSingleVideoLoopPlayback(looping);
-        }
-    }
-
     @SuppressLint("MissingSuperCall")
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     @Override
@@ -593,10 +594,15 @@ public class SystemVideoPlayer extends VideoPlayer {
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && speed != mPlaybackSpeed;
     }
 
-    @Override
-    protected boolean isPlayerCreated() {
-        return mMediaPlayer != null;
-    }
+//    @Override
+//    public void setSingleVideoLoopPlayback(boolean looping) {
+//        if (looping != isSingleVideoLoopPlayback()) {
+//            if (mMediaPlayer != null) {
+//                mMediaPlayer.setLooping(looping);
+//            }
+//            super.setSingleVideoLoopPlayback(looping);
+//        }
+//    }
 
     @Override
     protected boolean onPlaybackCompleted() {

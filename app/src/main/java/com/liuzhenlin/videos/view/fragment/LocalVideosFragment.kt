@@ -174,7 +174,7 @@ class LocalVideosFragment : Fragment(), ILocalVideosFragment, FragmentPartLifecy
                 insertTopPaddingToActionBarIfNeeded(mTmpActionBar!!)
 
                 mInteractionCallback.showTabItems(false)
-                mInteractionCallback.setTabItemsClickable(false)
+                mInteractionCallback.setTabItemsEnabled(false)
             }
             childFragment === mLocalSearchedVideosFragment -> {
                 childFragment.setVideoOpCallback(mLocalVideoListFragment)
@@ -217,7 +217,7 @@ class LocalVideosFragment : Fragment(), ILocalVideosFragment, FragmentPartLifecy
                 mActionBarContainer.removeView(mTmpActionBar)
                 mTmpActionBar = null
 
-                mInteractionCallback.setTabItemsClickable(true)
+                mInteractionCallback.setTabItemsEnabled(true)
 //                mInteractionCallback.showTabItems(true)
             }
             childFragment === mLocalSearchedVideosFragment -> {
@@ -371,6 +371,6 @@ class LocalVideosFragment : Fragment(), ILocalVideosFragment, FragmentPartLifecy
         fun onClickHomeAsUpIndicator()
 
         fun showTabItems(show: Boolean)
-        fun setTabItemsClickable(clickable: Boolean)
+        fun setTabItemsEnabled(enabled: Boolean)
     }
 }

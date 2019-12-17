@@ -384,18 +384,14 @@ public class VideoActivity extends SwipeBackActivity {
                     mVideoHeight = mVideoPlayer.getVideoHeight();
                 }
 
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    mVideoProgressInPiP.setMax(mVideoPlayer.getVideoDuration());
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && isInPictureInPictureMode()) {
+                    // We are playing the video now. In PiP mode, we want to show several
+                    // action items to fast rewind, pause and fast forward the video.
+                    updatePictureInPictureActions(PIP_ACTION_FAST_REWIND
+                            | PIP_ACTION_PAUSE | PIP_ACTION_FAST_FORWARD);
 
-                    if (isInPictureInPictureMode()) {
-                        // We are playing the video now. In PiP mode, we want to show several
-                        // action items to fast rewind, pause and fast forward the video.
-                        updatePictureInPictureActions(PIP_ACTION_FAST_REWIND
-                                | PIP_ACTION_PAUSE | PIP_ACTION_FAST_FORWARD);
-
-                        if (mRefreshVideoProgressInPiPTask != null) {
-                            mRefreshVideoProgressInPiPTask.execute();
-                        }
+                    if (mRefreshVideoProgressInPiPTask != null) {
+                        mRefreshVideoProgressInPiPTask.execute();
                     }
                 }
             }
@@ -411,6 +407,15 @@ public class VideoActivity extends SwipeBackActivity {
                         actions |= PIP_ACTION_FAST_FORWARD;
                     }
                     updatePictureInPictureActions(actions);
+                }
+            }
+
+            @Override
+            public void onVideoDurationDetermined(int duration) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    if (mVideoProgressInPiP.getMax() != duration) {
+                        mVideoProgressInPiP.setMax(duration);
+                    }
                 }
             }
 

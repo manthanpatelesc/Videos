@@ -48,7 +48,6 @@ import com.google.android.material.snackbar.Snackbar;
 import com.liuzhenlin.texturevideoview.receiver.HeadsetEventsReceiver;
 import com.liuzhenlin.texturevideoview.receiver.MediaButtonEventHandler;
 import com.liuzhenlin.texturevideoview.receiver.MediaButtonEventReceiver;
-import com.liuzhenlin.texturevideoview.utils.TimeUtil;
 import com.liuzhenlin.texturevideoview.utils.Utils;
 
 import java.io.File;
@@ -78,6 +77,9 @@ public class ExoVideoPlayer extends VideoPlayer {
             switch (focusChange) {
                 // Audio focus gained
                 case AudioManager.AUDIOFOCUS_GAIN:
+                    if (mExoPlayer.getVolume() != 1.0f) {
+                        mExoPlayer.setVolume(1.0f);
+                    }
                     play(false);
                     break;
 
@@ -105,7 +107,7 @@ public class ExoVideoPlayer extends VideoPlayer {
                 // Temporarily lose the audio focus but the playback can continue.
                 // The volume of the playback needs to be turned down.
                 case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK:
-                    if (mExoPlayer != null) {
+                    if (mExoPlayer.getVolume() != 0.5f) {
                         mExoPlayer.setVolume(0.5f);
                     }
                     break;
@@ -200,6 +202,11 @@ public class ExoVideoPlayer extends VideoPlayer {
     }
 
     @Override
+    protected boolean isPlayerCreated() {
+        return mExoPlayer != null;
+    }
+
+    @Override
     protected void onVideoSurfaceChanged(@Nullable Surface surface) {
         if (mExoPlayer != null) {
             mExoPlayer.setVideoSurface(surface);
@@ -229,13 +236,8 @@ public class ExoVideoPlayer extends VideoPlayer {
                             if (getPlaybackState() == PLAYBACK_STATE_PREPARING) {
                                 if ((mPrivateFlags & PFLAG_VIDEO_INFO_RESOLVED) == 0) {
                                     final long duration = mExoPlayer.getDuration();
-                                    if (duration == C.TIME_UNSET) {
-                                        mVideoDuration = UNKNOWN_DURATION;
-                                        mVideoDurationString = DEFAULT_STRING_VIDEO_DURATION;
-                                    } else {
-                                        mVideoDuration = (int) duration;
-                                        mVideoDurationString = TimeUtil.formatTimeByColon(mVideoDuration);
-                                    }
+                                    onVideoDurationDetermined(duration == C.TIME_UNSET ?
+                                            UNKNOWN_DURATION : (int) duration);
                                     mPrivateFlags |= PFLAG_VIDEO_INFO_RESOLVED;
                                 }
                                 setPlaybackState(PLAYBACK_STATE_PREPARED);
@@ -246,6 +248,13 @@ public class ExoVideoPlayer extends VideoPlayer {
                         case Player.STATE_ENDED:
                             onPlaybackCompleted();
                             break;
+                    }
+                }
+
+                @Override
+                public void onPositionDiscontinuity(int reason) {
+                    if (reason == Player.DISCONTINUITY_REASON_PERIOD_TRANSITION) {
+                        onVideoRepeat();
                     }
                 }
 
@@ -389,7 +398,7 @@ public class ExoVideoPlayer extends VideoPlayer {
             // Opens the video only if this is a user request
             if (fromUser) {
                 // If the video playback finished, skip to the next video if possible
-                if (playbackState == PLAYBACK_STATE_COMPLETED &&
+                if (playbackState == PLAYBACK_STATE_COMPLETED && !isSingleVideoLoopPlayback() &&
                         skipToNextIfPossible() && mExoPlayer != null) {
                     return;
                 }
@@ -417,7 +426,8 @@ public class ExoVideoPlayer extends VideoPlayer {
                 break;
 
             case PLAYBACK_STATE_COMPLETED:
-                if (skipToNextIfPossible() && getPlaybackState() != PLAYBACK_STATE_COMPLETED) {
+                if (!isSingleVideoLoopPlayback() &&
+                        skipToNextIfPossible() && getPlaybackState() != PLAYBACK_STATE_COMPLETED) {
                     break;
                 }
                 // Starts the video only if we have prepared it for the player
@@ -550,16 +560,6 @@ public class ExoVideoPlayer extends VideoPlayer {
         return 0;
     }
 
-    @Override
-    public void setSingleVideoLoopPlayback(boolean looping) {
-        if (looping != isSingleVideoLoopPlayback()) {
-            if (mExoPlayer != null) {
-                mExoPlayer.setRepeatMode(looping ? Player.REPEAT_MODE_ONE : Player.REPEAT_MODE_OFF);
-            }
-            super.setSingleVideoLoopPlayback(looping);
-        }
-    }
-
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     @Override
     public void setPlaybackSpeed(float speed) {
@@ -573,8 +573,13 @@ public class ExoVideoPlayer extends VideoPlayer {
     }
 
     @Override
-    protected boolean isPlayerCreated() {
-        return mExoPlayer != null;
+    public void setSingleVideoLoopPlayback(boolean looping) {
+        if (looping != isSingleVideoLoopPlayback()) {
+            if (mExoPlayer != null) {
+                mExoPlayer.setRepeatMode(looping ? Player.REPEAT_MODE_ONE : Player.REPEAT_MODE_OFF);
+            }
+            super.setSingleVideoLoopPlayback(looping);
+        }
     }
 
     @Override

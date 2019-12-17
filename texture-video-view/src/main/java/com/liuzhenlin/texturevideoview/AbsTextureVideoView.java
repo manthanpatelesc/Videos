@@ -8,6 +8,7 @@ package com.liuzhenlin.texturevideoview;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.Resources;
+import android.net.Uri;
 import android.util.AttributeSet;
 import android.view.Gravity;
 import android.view.Surface;
@@ -66,6 +67,12 @@ import com.liuzhenlin.texturevideoview.utils.Utils;
      */
     public abstract void cancelDraggingVideoSeekBar();
 
+    /** @return true if we can skip the video played to the previous one */
+    public abstract boolean canSkipToPrevious();
+
+    /** @return true if we can skip the video played to the next one */
+    public abstract boolean canSkipToNext();
+
     /**
      * @return whether or not this view is in the foreground
      */
@@ -78,21 +85,21 @@ import com.liuzhenlin.texturevideoview.utils.Utils;
      */
     /*package*/ abstract @Nullable Surface getSurface();
 
-    /*package*/ abstract void onVideoUriChanged();
+    /*package*/ abstract void onVideoUriChanged(@Nullable Uri uri);
+
+    /*package*/ abstract void onVideoDurationDetermined(int duration);
+
+    /*package*/ abstract void onVideoSizeChanged(int width, int height);
 
     /*package*/ abstract void onVideoStarted();
 
     /*package*/ abstract void onVideoStopped();
 
+    /*package*/ abstract void onVideoRepeat();
+
     /*package*/ abstract void onVideoSeekProcessed();
 
-    /*package*/ abstract void onVideoSizeChanged(int width, int height);
-
-    /** @return true if we can skip the video played to the previous one */
-    public abstract boolean canSkipToPrevious();
-
-    /** @return true if we can skip the video played to the next one */
-    public abstract boolean canSkipToNext();
+    /*package*/ abstract void onPlaybackSpeedChanged(float speed);
 
     /*package*/ abstract void onAudioAllowedToPlayInBackgroundChanged(boolean allowed);
 
@@ -101,8 +108,6 @@ import com.liuzhenlin.texturevideoview.utils.Utils;
     /*package*/ abstract boolean willTurnOffWhenThisEpisodeEnds();
 
     /*package*/ abstract void onVideoTurnedOffWhenTheEpisodeEnds();
-
-    /*package*/ abstract void onPlaybackSpeedChanged(float speed);
 
     @Override
     public int getDrawerLockMode(@NonNull View drawerView) {

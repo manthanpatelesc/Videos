@@ -92,6 +92,17 @@ public interface IVideoPlayer {
         default void onVideoStopped() {
         }
 
+        /** Called when the video played repeats from its beginning. */
+        default void onVideoRepeat() {
+        }
+
+        /**
+         * Called to indicate the video duration (in milliseconds), which could be
+         * {@value #UNKNOWN_DURATION} if not available (e.g., streaming live content).
+         */
+        default void onVideoDurationDetermined(int duration) {
+        }
+
         /**
          * Called to indicate the video size (width and height), which could be 0 if there was
          * no video set or the value was not determined yet.
@@ -248,6 +259,16 @@ public interface IVideoPlayer {
     int getVideoHeight();
 
     /**
+     * @return the current playback speed of the video.
+     */
+    float getPlaybackSpeed();
+
+    /**
+     * Sets the playback speed for the video player.
+     */
+    void setPlaybackSpeed(float speed);
+
+    /**
      * @return true if the audio portion of the video source is allowed to play in the background.
      */
     boolean isAudioAllowedToPlayInBackground();
@@ -267,14 +288,4 @@ public interface IVideoPlayer {
      * Sets the player to be looping through a single video or not.
      */
     void setSingleVideoLoopPlayback(boolean looping);
-
-    /**
-     * @return the current playback speed of the video.
-     */
-    float getPlaybackSpeed();
-
-    /**
-     * Sets the playback speed for the video player.
-     */
-    void setPlaybackSpeed(float speed);
 }

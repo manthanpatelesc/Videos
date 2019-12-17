@@ -182,7 +182,7 @@ public class FileUtils {
                 } else if (isDownloadsDocument(uri)) {
                     final String id = DocumentsContract.getDocumentId(uri);
                     Uri contentUri = ContentUris.withAppendedId(
-                            Uri.parse("content://downloads/public_downloads"), Long.valueOf(id));
+                            Uri.parse("content://downloads/public_downloads"), Long.parseLong(id));
                     return getDataColumn(context, contentUri, null, null);
 
                     // MediaProvider

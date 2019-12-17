@@ -8,7 +8,6 @@ package com.liuzhenlin.videos.utils;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.text.TextPaint;
-import android.text.TextUtils;
 import android.util.Log;
 import android.widget.TextView;
 
@@ -56,7 +55,7 @@ public class TextViewUtils {
             return;
         }
         final String text = tv.getText().toString();
-        if (TextUtils.isEmpty(text)) {
+        if (text.isEmpty()) {
             return;
         }
         if (tv.getMeasuredWidth() == 0) {

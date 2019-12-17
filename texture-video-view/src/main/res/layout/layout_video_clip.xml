@@ -12,7 +12,6 @@
     android:paddingBottom="25dp"
     android:background="@color/bg_popup_dark"
     android:clickable="true"
-    android:focusable="false"
     tools:ignore="KeyboardInaccessibleWidget">
 
     <TextView

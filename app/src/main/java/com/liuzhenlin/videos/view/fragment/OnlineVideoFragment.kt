@@ -9,7 +9,6 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.text.TextUtils
 import android.util.Patterns
 import android.view.LayoutInflater
 import android.view.View
@@ -50,7 +49,7 @@ class OnlineVideoFragment : Fragment(), SlidingDrawerLayout.OnDrawerScrollListen
         mLinkEditor = contentView.findViewById<TextInputLayout>(R.id.textinput_videolink).editText!!
         contentView.findViewById<Button>(R.id.btn_ok).setOnClickListener {
             val link = mLinkEditor.text.trim().toString()
-            if (TextUtils.isEmpty(link)) {
+            if (link.isEmpty()) {
                 UiUtils.showUserCancelableSnackbar(contentView,
                         R.string.pleaseInputVideoLinkFirst, Snackbar.LENGTH_SHORT)
                 return@setOnClickListener

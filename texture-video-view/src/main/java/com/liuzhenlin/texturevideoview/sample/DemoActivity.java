@@ -42,10 +42,6 @@ public class DemoActivity extends AppCompatActivity {
 
         mVideoView.setTitle("Simplest Playback Demo for TextureVideoView");
         mVideoPlayer.setVideoUri(getIntent().getData());
-        // Sets fullscreenMode to true only for demonstration purpose, which, however, should
-        // normally not be set unless the onViewModeChange() method is called for the EventListener
-        // to perform some changes in the layout of our Activity as we see fit.
-        mVideoView.setFullscreenMode(true, 0);
         mVideoPlayer.addVideoListener(new IVideoPlayer.VideoListener() {
             @Override
             public void onVideoStarted() {
@@ -91,7 +87,22 @@ public class DemoActivity extends AppCompatActivity {
 
             @Override
             public void onViewModeChange(int oldMode, int newMode, boolean layoutMatches) {
-                // no-op
+                switch (newMode) {
+                    case TextureVideoView.VIEW_MODE_MINIMUM:
+                        if (!layoutMatches) {
+                            // do something like entering picture-in-picture mode
+                        }
+                        break;
+                    case TextureVideoView.VIEW_MODE_DEFAULT:
+                        mVideoView.setFullscreenMode(false, 0);
+                        break;
+                    case TextureVideoView.VIEW_MODE_FULLSCREEN:
+                    case TextureVideoView.VIEW_MODE_LOCKED_FULLSCREEN:
+                    case TextureVideoView.VIEW_MODE_VIDEO_STRETCHED_FULLSCREEN:
+                    case TextureVideoView.VIEW_MODE_VIDEO_STRETCHED_LOCKED_FULLSCREEN:
+                        mVideoView.setFullscreenMode(true, 0);
+                        break;
+                }
             }
 
             @Override

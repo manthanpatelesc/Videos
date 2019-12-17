@@ -677,8 +677,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     @Override
-    public void setTabItemsClickable(boolean clickable) {
-        UiUtils.setTabItemsClickable(mFragmentTabLayout, clickable);
+    public void setTabItemsEnabled(boolean enabled) {
+        UiUtils.setTabItemsEnabled(mFragmentTabLayout, enabled);
     }
 
     @Override

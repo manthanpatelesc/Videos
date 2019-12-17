@@ -642,7 +642,7 @@ public final class AppUpdateChecker {
                         URL url = new URL(mAppLink);
                         conn = (HttpURLConnection) url.openConnection();
                         conn.setConnectTimeout(TIMEOUT_CONNECTION);
-                        conn.setReadTimeout(TIMEOUT_READ);
+//                        conn.setReadTimeout(TIMEOUT_READ);
                         // 重要：请求服务器下载部分文件 指定文件的位置
                         conn.setRequestProperty("Range", "bytes=" + startIndex + "-" + endIndex);
 

@@ -28,6 +28,7 @@ import com.liuzhenlin.texturevideoview.receiver.HeadsetEventsReceiver;
 import com.liuzhenlin.texturevideoview.receiver.MediaButtonEventHandler;
 import com.liuzhenlin.texturevideoview.receiver.MediaButtonEventReceiver;
 import com.liuzhenlin.texturevideoview.utils.FileUtils;
+import com.liuzhenlin.texturevideoview.utils.TimeUtil;
 import com.liuzhenlin.texturevideoview.utils.Utils;
 
 import java.io.File;
@@ -39,7 +40,7 @@ import java.util.List;
 
 /**
  * Base implementation class to be extended, for you to create an {@link IVideoPlayer} component
- * that can be used for the {@link TextureVideoView} widget to play media contents.
+ * that can be used for the {@link AbsTextureVideoView} widget to play media contents.
  *
  * @author 刘振林
  */
@@ -113,8 +114,8 @@ public abstract class VideoPlayer implements IVideoPlayer {
     protected int mVideoDuration;
 
     /** The string representation of the video duration. */
-    protected String mVideoDurationString = DEFAULT_STRING_VIDEO_DURATION;
-    protected static final String DEFAULT_STRING_VIDEO_DURATION = "00:00";
+    /*package*/ String mVideoDurationString = DEFAULT_STRING_VIDEO_DURATION;
+    /*package*/ static final String DEFAULT_STRING_VIDEO_DURATION = "00:00";
 
     /**
      * Caches the speed at which the player works.
@@ -211,7 +212,7 @@ public abstract class VideoPlayer implements IVideoPlayer {
         if (!ObjectsCompat.equals(uri, mVideoUri)) {
             mVideoUri = uri;
             if (mVideoView != null) {
-                mVideoView.onVideoUriChanged();
+                mVideoView.onVideoUriChanged(uri);
             }
 
             mVideoDuration = 0;
@@ -239,6 +240,14 @@ public abstract class VideoPlayer implements IVideoPlayer {
      * @return whether or not the player object is created for playing the video(s)
      */
     protected abstract boolean isPlayerCreated();
+
+    /**
+     * Called when the surface used as a sink for the video portion of the media changes
+     *
+     * @param surface the new surface for videos to be drawing onto {@link AbsTextureVideoView},
+     *                maybe {@code null} indicating no surface should be used to draw them.
+     */
+    protected abstract void onVideoSurfaceChanged(@Nullable Surface surface);
 
     /** @see #openVideo(boolean) */
     @Override
@@ -285,14 +294,6 @@ public abstract class VideoPlayer implements IVideoPlayer {
      */
     protected abstract void closeVideoInternal(boolean fromUser);
 
-    /**
-     * Called when the surface used as a sink for the video portion of the media changes
-     *
-     * @param surface the new surface for videos to be drawing onto {@link AbsTextureVideoView},
-     *                maybe {@code null} indicating no surface should be used to draw them.
-     */
-    protected abstract void onVideoSurfaceChanged(@Nullable Surface surface);
-
     @Override
     public void fastForward(boolean fromUser) {
         seekTo(getVideoProgress() + FAST_FORWARD_REWIND_INTERVAL, fromUser);
@@ -335,6 +336,23 @@ public abstract class VideoPlayer implements IVideoPlayer {
     }
 
     @Override
+    public float getPlaybackSpeed() {
+        return isPlaying() ? mPlaybackSpeed : 0;
+    }
+
+    @VisibleForTesting(otherwise = VisibleForTesting.PROTECTED)
+    @CallSuper
+    @Override
+    public void setPlaybackSpeed(float speed) {
+        if (speed != mPlaybackSpeed) {
+            mPlaybackSpeed = speed;
+            if (mVideoView != null) {
+                mVideoView.onPlaybackSpeedChanged(speed);
+            }
+        }
+    }
+
+    @Override
     public final boolean isAudioAllowedToPlayInBackground() {
         return (mPrivateFlags & PFLAG_AUDIO_ALLOWED_TO_PLAY_IN_BACKGROUND) != 0;
     }
@@ -371,23 +389,6 @@ public abstract class VideoPlayer implements IVideoPlayer {
                     | (looping ? PFLAG_SINGLE_VIDEO_LOOP_PLAYBACK : 0);
             if (mVideoView != null) {
                 mVideoView.onSingleVideoLoopPlaybackModeChanged(looping);
-            }
-        }
-    }
-
-    @Override
-    public float getPlaybackSpeed() {
-        return isPlaying() ? mPlaybackSpeed : 0;
-    }
-
-    @VisibleForTesting(otherwise = VisibleForTesting.PROTECTED)
-    @CallSuper
-    @Override
-    public void setPlaybackSpeed(float speed) {
-        if (speed != mPlaybackSpeed) {
-            mPlaybackSpeed = speed;
-            if (mVideoView != null) {
-                mVideoView.onPlaybackSpeedChanged(speed);
             }
         }
     }
@@ -477,6 +478,41 @@ public abstract class VideoPlayer implements IVideoPlayer {
         }
     }
 
+    protected void onVideoDurationDetermined(int duration) {
+        mVideoDuration = duration;
+        mVideoDurationString = duration == UNKNOWN_DURATION ?
+                DEFAULT_STRING_VIDEO_DURATION : TimeUtil.formatTimeByColon(duration);
+
+        if (mVideoView != null) {
+            mVideoView.onVideoDurationDetermined(duration);
+        }
+
+        if (hasVideoListener()) {
+            for (int i = mVideoListeners.size() - 1; i >= 0; i--) {
+                mVideoListeners.get(i).onVideoDurationDetermined(duration);
+            }
+        }
+    }
+
+    protected void onVideoSizeChanged(int width, int height) {
+        final int oldWidth = mVideoWidth;
+        final int oldHeight = mVideoHeight;
+        if (oldWidth != width || oldHeight != height) {
+            mVideoWidth = width;
+            mVideoHeight = height;
+
+            if (hasVideoListener()) {
+                for (int i = mVideoListeners.size() - 1; i >= 0; i--) {
+                    mVideoListeners.get(i).onVideoSizeChanged(oldWidth, oldHeight, width, height);
+                }
+            }
+
+            if (mVideoView != null) {
+                mVideoView.onVideoSizeChanged(width, height);
+            }
+        }
+    }
+
     protected void onVideoStarted() {
         setPlaybackState(PLAYBACK_STATE_PLAYING);
 
@@ -547,28 +583,20 @@ public abstract class VideoPlayer implements IVideoPlayer {
         }
     }
 
-    protected void onVideoSeekProcessed() {
+    protected void onVideoRepeat() {
         if (mVideoView != null) {
-            mVideoView.onVideoSeekProcessed();
+            mVideoView.onVideoRepeat();
+        }
+        if (hasVideoListener()) {
+            for (int i = mVideoListeners.size() - 1; i >= 0; i--) {
+                mVideoListeners.get(i).onVideoRepeat();
+            }
         }
     }
 
-    protected void onVideoSizeChanged(int width, int height) {
-        final int oldWidth = mVideoWidth;
-        final int oldHeight = mVideoHeight;
-        if (oldWidth != width || oldHeight != height) {
-            mVideoWidth = width;
-            mVideoHeight = height;
-
-            if (hasVideoListener()) {
-                for (int i = mVideoListeners.size() - 1; i >= 0; i--) {
-                    mVideoListeners.get(i).onVideoSizeChanged(oldWidth, oldHeight, width, height);
-                }
-            }
-
-            if (mVideoView != null) {
-                mVideoView.onVideoSizeChanged(width, height);
-            }
+    protected void onVideoSeekProcessed() {
+        if (mVideoView != null) {
+            mVideoView.onVideoSeekProcessed();
         }
     }
 
@@ -602,14 +630,12 @@ public abstract class VideoPlayer implements IVideoPlayer {
         /**
          * Called when the previous video in the playlist (if any) needs to be played
          */
-        default void onSkipToPrevious() {
-        }
+        void onSkipToPrevious();
 
         /**
          * Called when the next video in the playlist (if any) needs to be played
          */
-        default void onSkipToNext() {
-        }
+        void onSkipToNext();
     }
 
     protected static class MsgHandler extends Handler {

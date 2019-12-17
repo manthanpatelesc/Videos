@@ -9,7 +9,6 @@
     android:layout_height="match_parent"
     android:background="@android:drawable/screen_background_dark_transparent"
     android:clickable="true"
-    android:focusable="false"
     tools:ignore="KeyboardInaccessibleWidget">
 
     <androidx.recyclerview.widget.RecyclerView

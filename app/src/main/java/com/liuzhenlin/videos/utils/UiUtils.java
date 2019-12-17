@@ -111,14 +111,14 @@ public class UiUtils {
         return heightDiff >= assumedKeyboardHeight;
     }
 
-    public static void setTabItemsClickable(@NonNull TabLayout tabLayout, boolean clickable) {
+    public static void setTabItemsEnabled(@NonNull TabLayout tabLayout, boolean enabled) {
         LinearLayout tabStrip = (LinearLayout) tabLayout.getChildAt(0);
         final int selection = tabLayout.getSelectedTabPosition();
         for (int i = tabStrip.getChildCount() - 1; i >= 0; i--) {
             if (i != selection) {
                 View tabView = tabStrip.getChildAt(i);
                 if (tabView != null) {
-                    tabView.setClickable(clickable);
+                    tabView.setEnabled(enabled);
                 }
             }
         }

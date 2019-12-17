@@ -168,10 +168,6 @@ import java.util.List;
  *
  *         mVideoView.setTitle("Simplest Playback Demo for TextureVideoView");
  *         mVideoPlayer.setVideoUri(getIntent().getData());
- *         // Sets fullscreenMode to true only for demonstration purpose, which, however, should
- *         // normally not be set unless the onViewModeChange() method is called for the EventListener
- *         // to perform some changes in the layout of our Activity as we see fit.
- *         mVideoView.setFullscreenMode(true, 0);
  *         mVideoPlayer.addVideoListener(new IVideoPlayer.VideoListener() {
  *             &#064;Override
  *             public void onVideoStarted() {
@@ -217,7 +213,22 @@ import java.util.List;
  *
  *             &#064;Override
  *             public void onViewModeChange(int oldMode, int newMode, boolean layoutMatches) {
- *                 // no-op
+ *                 switch (newMode) {
+ *                     case TextureVideoView.VIEW_MODE_MINIMUM:
+ *                         if (!layoutMatches) {
+ *                             // do something like entering picture-in-picture mode
+ *                         }
+ *                         break;
+ *                     case TextureVideoView.VIEW_MODE_DEFAULT:
+ *                         mVideoView.setFullscreenMode(false, 0);
+ *                         break;
+ *                     case TextureVideoView.VIEW_MODE_FULLSCREEN:
+ *                     case TextureVideoView.VIEW_MODE_LOCKED_FULLSCREEN:
+ *                     case TextureVideoView.VIEW_MODE_VIDEO_STRETCHED_FULLSCREEN:
+ *                     case TextureVideoView.VIEW_MODE_VIDEO_STRETCHED_LOCKED_FULLSCREEN:
+ *                         mVideoView.setFullscreenMode(true, 0);
+ *                         break;
+ *                 }
  *             }
  *
  *             &#064;Override
@@ -1632,11 +1643,14 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
             if (videoPlayer != null) {
                 if (lastVideoPlayer != null) {
                     if (!ObjectsCompat.equals(videoPlayer.mVideoUri, lastVideoPlayer.mVideoUri)) {
-                        onVideoUriChanged();
+                        onVideoUriChanged(videoPlayer.mVideoUri);
                     }
                     if (videoPlayer.mVideoWidth != lastVideoPlayer.mVideoWidth
                             || videoPlayer.mVideoHeight != lastVideoPlayer.mVideoHeight) {
                         onVideoSizeChanged(videoPlayer.mVideoWidth, videoPlayer.mVideoHeight);
+                    }
+                    if (videoPlayer.mPlaybackSpeed != lastVideoPlayer.mPlaybackSpeed) {
+                        onPlaybackSpeedChanged(videoPlayer.mPlaybackSpeed);
                     }
                     final boolean canAudioPlayInBackground = videoPlayer.isAudioAllowedToPlayInBackground();
                     if (canAudioPlayInBackground != lastVideoPlayer.isAudioAllowedToPlayInBackground()) {
@@ -1646,18 +1660,18 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                     if (singleVideoLoopPlayback != lastVideoPlayer.isSingleVideoLoopPlayback()) {
                         onSingleVideoLoopPlaybackModeChanged(singleVideoLoopPlayback);
                     }
-                    if (videoPlayer.mPlaybackSpeed != lastVideoPlayer.mPlaybackSpeed) {
-                        onPlaybackSpeedChanged(videoPlayer.mPlaybackSpeed);
-                    }
                     // Here we also synchronize the UI state when VideoPlayer set from null to nonnull.
                 } else {
-                    onVideoUriChanged();
+                    onVideoUriChanged(videoPlayer.mVideoUri);
                     onVideoSizeChanged(videoPlayer.mVideoWidth, videoPlayer.mVideoHeight);
+                    onPlaybackSpeedChanged(videoPlayer.mPlaybackSpeed);
                     onAudioAllowedToPlayInBackgroundChanged(videoPlayer.isAudioAllowedToPlayInBackground());
                     onSingleVideoLoopPlaybackModeChanged(videoPlayer.isSingleVideoLoopPlayback());
-                    onPlaybackSpeedChanged(videoPlayer.mPlaybackSpeed);
                 }
 
+                if ((videoPlayer.mPrivateFlags & VideoPlayer.PFLAG_VIDEO_INFO_RESOLVED) != 0) {
+                    onVideoDurationDetermined(videoPlayer.mVideoDuration);
+                }
                 videoPlayer.openVideo();
                 videoPlayer.play(false);
             }
@@ -1680,17 +1694,20 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                         new ArrayList<>(onPlaybackStateChangeListeners);
             }
             videoPlayer.mOnSkipPrevNextListener = lastVideoPlayer.mOnSkipPrevNextListener;
-            // videoPlayer.setVideoUri(lastVideoPlayer.mVideoUri) may do nothing if
-            // the encoded string representations of the new player's original Uri
-            // and the one to be set for it are equal.
-            videoPlayer.setVideoUri(lastVideoPlayer.mVideoUri);
             if ((lastVideoPlayer.mPrivateFlags & VideoPlayer.PFLAG_VIDEO_INFO_RESOLVED) != 0) {
                 videoPlayer.mPrivateFlags |= VideoPlayer.PFLAG_VIDEO_INFO_RESOLVED;
                 videoPlayer.mVideoWidth = lastVideoPlayer.mVideoWidth;
                 videoPlayer.mVideoHeight = lastVideoPlayer.mVideoHeight;
-                videoPlayer.mVideoDuration = lastVideoPlayer.mVideoDuration;
-                videoPlayer.mVideoDurationString = lastVideoPlayer.mVideoDurationString;
+                // Call videoPlayer.onVideoDurationDetermined instead of this.onVideoDurationDetermined,
+                // which ensures the onVideoDurationDetermined(int) methods of those VideoListeners
+                // to be called even if some of them may have already been notified for the same video
+                // that was being played.
+                videoPlayer.onVideoDurationDetermined(lastVideoPlayer.mVideoDuration);
             }
+            // videoPlayer.setVideoUri(lastVideoPlayer.mVideoUri) may do nothing if
+            // the encoded string representations of the new player's original Uri
+            // and the one to be set for it are equal.
+            videoPlayer.setVideoUri(lastVideoPlayer.mVideoUri);
             videoPlayer.seekTo(lastVideoPlayer.getVideoProgress(), false);
             videoPlayer.setPlaybackSpeed(lastPlaybackSpeed);
             videoPlayer.setAudioAllowedToPlayInBackground(lastVideoPlayer.isAudioAllowedToPlayInBackground());
@@ -3787,13 +3804,24 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
     }
 
     @Override
-    void onVideoUriChanged() {
+    void onVideoUriChanged(@Nullable Uri uri) {
         showTextureView(false);
 
         if (canAccessBackgroundPlaybackControllerService()) {
-            sBgPlaybackControllerServiceConn.service
-                    .onMediaUriChange(mVideoPlayer == null ? null : mVideoPlayer.mVideoUri);
+            sBgPlaybackControllerServiceConn.service.onMediaUriChange(uri);
         }
+    }
+
+    @Override
+    void onVideoDurationDetermined(int duration) {
+        if (canAccessBackgroundPlaybackControllerService()) {
+            sBgPlaybackControllerServiceConn.service.onMediaDurationDetermined(duration);
+        }
+    }
+
+    @Override
+    void onVideoSizeChanged(int width, int height) {
+        if (width != 0 && height != 0) requestLayout();
     }
 
     @Override
@@ -3816,8 +3844,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
         }
 
         if (canAccessBackgroundPlaybackControllerService()) {
-            sBgPlaybackControllerServiceConn.service.onMediaPlay(
-                    mVideoPlayer.getVideoProgress(), mVideoPlayer.getNoNegativeVideoDuration());
+            sBgPlaybackControllerServiceConn.service.onMediaPlay(mVideoPlayer.getVideoProgress());
         }
     }
 
@@ -3830,8 +3857,14 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
         }
 
         if (canAccessBackgroundPlaybackControllerService()) {
-            sBgPlaybackControllerServiceConn.service.onMediaPause(
-                    mVideoPlayer.getVideoProgress(), mVideoPlayer.getNoNegativeVideoDuration());
+            sBgPlaybackControllerServiceConn.service.onMediaPause(mVideoPlayer.getVideoProgress());
+        }
+    }
+
+    @Override
+    void onVideoRepeat() {
+        if (canAccessBackgroundPlaybackControllerService()) {
+            sBgPlaybackControllerServiceConn.service.onMediaRepeat();
         }
     }
 
@@ -3843,8 +3876,10 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
     }
 
     @Override
-    void onVideoSizeChanged(int width, int height) {
-        if (width != 0 && height != 0) requestLayout();
+    void onPlaybackSpeedChanged(float speed) {
+        if (mSpeedSpinner != null) {
+            mSpeedSpinner.setSelection(indexOfPlaybackSpeed(speed), true);
+        }
     }
 
     @Override
@@ -3882,13 +3917,6 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
         mPrivateFlags &= ~PFLAG_TURN_OFF_WHEN_THIS_EPISODE_ENDS;
         if (mMoreView != null) {
             mMoreView.findViewById(R.id.text_whenThisEpisodeEnds).setSelected(false);
-        }
-    }
-
-    @Override
-    void onPlaybackSpeedChanged(float speed) {
-        if (mSpeedSpinner != null) {
-            mSpeedSpinner.setSelection(indexOfPlaybackSpeed(speed), true);
         }
     }
 }

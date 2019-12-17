@@ -15,6 +15,7 @@ import android.view.Window;
 import android.view.WindowManager;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 
 /**
@@ -51,6 +52,7 @@ public class DisplayCutoutUtils {
     /**
      * 获取华为手机刘海的 宽、高
      */
+    @NonNull
     public static int[] getNotchSizeForEMUI(@NonNull Context context) {
         try {
             Class<?> HwNotchSizeUtil = context.getClassLoader()
@@ -108,6 +110,7 @@ public class DisplayCutoutUtils {
     /**
      * 获取OPPO手机刘海的 宽、高
      */
+    @NonNull
     public static int[] getNotchSizeForColorOS() {
         final String notchLocation = getNotchLocationOnScreenForColorOS();
         if (!TextUtils.isEmpty(notchLocation)) {
@@ -130,8 +133,9 @@ public class DisplayCutoutUtils {
     /**
      * 获取OPPO手机刘海在屏幕中的位置，例如 378,0:702,80
      */
+    @Nullable
     public static String getNotchLocationOnScreenForColorOS() {
-        return SystemProperties.getString("ro.oppo.screen.heteromorphism");
+        return SystemProperties.getString("ro.oppo.screen.heteromorphism", null);
     }
 
     /**

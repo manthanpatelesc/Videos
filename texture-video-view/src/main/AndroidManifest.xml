@@ -25,5 +25,9 @@
         </receiver>
 
         <service android:name=".service.BackgroundPlaybackControllerService" />
+
+        <activity
+            android:name=".sample.DemoActivity"
+            android:launchMode="singleTask" />
     </application>
 </manifest>

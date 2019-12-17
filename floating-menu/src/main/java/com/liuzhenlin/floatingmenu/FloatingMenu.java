@@ -212,6 +212,7 @@ public class FloatingMenu extends PopupWindow {
                     itemWidth, ViewGroup.LayoutParams.WRAP_CONTENT));
             ViewCompat.setPaddingRelative(textView, padding, padding, padding * 2, padding);
             textView.setBackgroundDrawable(ContextCompat.getDrawable(mContext, R.drawable.selector_item));
+            textView.setFocusable(true);
             textView.setClickable(true);
             textView.setText(menuItem.getText());
             textView.setTextSize(15);
