@@ -16,11 +16,9 @@ import com.liuzhenlin.videos.Consts;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import kotlin.sequences.Sequence;
 import kotlin.text.StringsKt;
 
 /**
@@ -102,13 +100,8 @@ public class FeedbackSharedPreferences {
             }
         }
         if (pathsString != null) {
-            paths = new ArrayList<>();
-            Sequence<String> strings = StringsKt.splitToSequence(
-                    pathsString, DELIMITER_ARRAY_PICTURE_PATHS, false, 0);
-            Iterator<String> it = strings.iterator();
-            while (it.hasNext()) {
-                paths.add(it.next());
-            }
+            paths = new ArrayList<>(
+                    StringsKt.split(pathsString, DELIMITER_ARRAY_PICTURE_PATHS, false, 0));
         }
 
         return paths;
