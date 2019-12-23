@@ -11,7 +11,7 @@ import android.content.SharedPreferences;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.liuzhenlin.videos.utils.Singleton;
+import com.liuzhenlin.texturevideoview.utils.Singleton;
 
 /**
  * @author 刘振林

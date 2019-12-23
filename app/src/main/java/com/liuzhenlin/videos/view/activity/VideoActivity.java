@@ -594,17 +594,6 @@ public class VideoActivity extends SwipeBackActivity {
     }
 
     @Override
-    protected void onResume() {
-        super.onResume();
-        // In Android 4.4 and above, the status bar is displayed and will not be automatically hidden
-        // when the Activity is redisplayed
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT
-                && mVideoView.isInFullscreenMode()) {
-            showSystemBars(false);
-        }
-    }
-
-    @Override
     public void onAttachedToWindow() {
         super.onAttachedToWindow();
         Window window = getWindow();
@@ -1013,23 +1002,24 @@ public class VideoActivity extends SwipeBackActivity {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
                 mStatusBarView.setVisibility(View.VISIBLE);
 
+                View decorView = window.getDecorView();
+                decorView.setOnSystemUiVisibilityChangeListener(null);
                 // Status bar is set to transparent
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                     SystemBarUtils.setStatusBackgroundColor(window, Color.TRANSPARENT);
                 } else {
                     SystemBarUtils.setTranslucentStatus(window, true);
                 }
-                View decorView = window.getDecorView();
-                int visibility = decorView.getVisibility();
-                // Makes the content view appear under the status bar
-                visibility |= View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN;
-                // Status bar and navigation bar appear
-                visibility &= ~(View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                        | View.SYSTEM_UI_FLAG_FULLSCREEN
-                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                        | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
-                decorView.setSystemUiVisibility(visibility);
+                decorView.setSystemUiVisibility(
+                        (decorView.getSystemUiVisibility()
+                                // Makes the content view appear under the status bar
+                                | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                                | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                                // Status bar and navigation bar appear
+                        ) & ~(View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                                | View.SYSTEM_UI_FLAG_FULLSCREEN
+                                | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                                | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY));
             } else {
                 SystemBarUtils.showSystemBars(window, true);
             }
@@ -1039,6 +1029,18 @@ public class VideoActivity extends SwipeBackActivity {
             }
 
             SystemBarUtils.showSystemBars(window, false);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                final View decorView = window.getDecorView();
+                final int visibility = decorView.getSystemUiVisibility();
+                decorView.setOnSystemUiVisibilityChangeListener(new View.OnSystemUiVisibilityChangeListener() {
+                    @Override
+                    public void onSystemUiVisibilityChange(int newVisibility) {
+                        if (newVisibility != visibility) {
+                            decorView.setSystemUiVisibility(visibility);
+                        }
+                    }
+                });
+            }
         }
     }
 

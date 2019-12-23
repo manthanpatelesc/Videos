@@ -16,6 +16,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.liuzhenlin.texturevideoview.utils.ParallelThreadExecutor;
 import com.liuzhenlin.videos.R;
 import com.liuzhenlin.videos.model.MailInfo;
 
@@ -40,7 +41,7 @@ public class MailUtil {
         MailInfo mailInfo = new MailInfo(HOST, PORT, true, USER_NAME, FROM_PSW,
                 FROM_ADDR, TO_ADDR, title, text, textRelatedImagePath, attachmentPaths);
         new SendMailAsyncTask(context)
-                .executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, mailInfo);
+                .executeOnExecutor(ParallelThreadExecutor.getInstance(), mailInfo);
     }
 
     private static final class SendMailAsyncTask extends AsyncTask<MailInfo, Void, Boolean>

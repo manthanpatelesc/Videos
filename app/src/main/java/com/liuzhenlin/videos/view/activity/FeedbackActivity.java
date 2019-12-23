@@ -591,7 +591,7 @@ public class FeedbackActivity extends SwipeBackActivity implements View.OnClickL
                 assert mWindow != null;
                 View view = View.inflate(mContext,
                         R.layout.dialog_picture_preview,
-                        mWindow.getDecorView().findViewById(Window.ID_ANDROID_CONTENT));
+                        (ViewGroup) mWindow.getDecorView().findViewById(Window.ID_ANDROID_CONTENT));
 
                 List<ImageView> images = new ArrayList<>(mPictures.size() - 1);
                 for (int i = 0, count = mPictures.size() - 1; i < count; i++) {

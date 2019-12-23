@@ -36,6 +36,8 @@ import androidx.core.content.FileProvider;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import com.liuzhenlin.texturevideoview.utils.ParallelThreadExecutor;
+import com.liuzhenlin.texturevideoview.utils.Singleton;
 import com.liuzhenlin.videos.App;
 import com.liuzhenlin.videos.BuildConfig;
 import com.liuzhenlin.videos.Consts;
@@ -56,7 +58,6 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @MainThread
@@ -67,7 +68,7 @@ public final class AppUpdateChecker {
     }
 
     private static final int TIMEOUT_CONNECTION = 10 * 1000; // ms
-    private static final int TIMEOUT_READ = 60 * 1000; // ms
+    private static final int TIMEOUT_READ = 30 * 1000; // ms
 
     private static final String LINK_APP_INFOS =
             "https://raw.githubusercontent.com/lzls/Videos/release/app.json";
@@ -176,7 +177,6 @@ public final class AppUpdateChecker {
                         }
                         json.append(buffer, 0, len);
                     }
-                    Objects.requireNonNull(json);
 
                     // 连接服务器超时
                 } catch (ConnectTimeoutException e) {
@@ -210,8 +210,8 @@ public final class AppUpdateChecker {
                 Map<String, Object> appInfos = (Map<String, Object>) infos.get("appInfos");
 
                 //noinspection ConstantConditions
-                final boolean findNewVersion =
-                        (Double) appInfos.get("versionCode") > BuildConfig.VERSION_CODE;
+                final boolean findNewVersion = Consts.DEBUG_APP_UPDATE
+                        || (Double) appInfos.get("versionCode") > BuildConfig.VERSION_CODE;
                 // 检测到版本更新
                 if (findNewVersion) {
                     mAppName = (String) appInfos.get("appName");
@@ -259,7 +259,7 @@ public final class AppUpdateChecker {
                         break;
                 }
             }
-        }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        }.executeOnExecutor(ParallelThreadExecutor.getInstance());
     }
 
     /**
@@ -309,7 +309,7 @@ public final class AppUpdateChecker {
         view.findViewById(R.id.btn_confirm).setOnClickListener(listener);
 
         mUpdateDialog = new AppCompatDialog(mContext, R.style.DialogStyle_MinWidth_NoTitle);
-        Objects.requireNonNull(mUpdateDialog.getWindow()).setType(
+        mUpdateDialog.getWindow().setType(
                 Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
                         ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
                         : WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);
@@ -377,7 +377,7 @@ public final class AppUpdateChecker {
         @Override
         public int onStartCommand(Intent intent, int flags, int startId) {
             mTask = new UpdateAppTask(this);
-            mTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,
+            mTask.executeOnExecutor(ParallelThreadExecutor.getInstance(),
                     intent.getStringExtra(AppUpdateChecker.EXTRA_APP_NAME),
                     intent.getStringExtra(AppUpdateChecker.EXTRA_VERSION_NAME),
                     intent.getStringExtra(AppUpdateChecker.EXTRA_APP_LINK));
@@ -551,7 +551,7 @@ public final class AppUpdateChecker {
                                 mApkLength : (i + 1) * blockSize - 1;
                         mDownloadAppTasks.add(new DownloadAppTask());
                         mDownloadAppTasks.get(i)
-                                .executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, start, end);
+                                .executeOnExecutor(ParallelThreadExecutor.getInstance(), start, end);
                     }
                 }
             }

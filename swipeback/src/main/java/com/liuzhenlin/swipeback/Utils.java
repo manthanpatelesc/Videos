@@ -11,6 +11,9 @@ import java.lang.reflect.Method;
 
 public class Utils {
 
+    private Utils() {
+    }
+
     /**
      * Convert a translucent themed Activity {@link android.R.attr#windowIsTranslucent} to
      * a fullscreen opaque Activity.

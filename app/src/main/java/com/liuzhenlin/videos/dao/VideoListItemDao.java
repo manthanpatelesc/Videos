@@ -17,11 +17,11 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.liuzhenlin.texturevideoview.utils.FileUtils;
+import com.liuzhenlin.texturevideoview.utils.Singleton;
 import com.liuzhenlin.videos.Consts;
 import com.liuzhenlin.videos.model.Video;
 import com.liuzhenlin.videos.model.VideoDirectory;
 import com.liuzhenlin.videos.model.VideoListItem;
-import com.liuzhenlin.videos.utils.Singleton;
 
 import java.io.File;
 

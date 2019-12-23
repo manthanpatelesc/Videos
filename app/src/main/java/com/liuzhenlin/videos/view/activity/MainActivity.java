@@ -56,7 +56,7 @@ import com.liuzhenlin.videos.R;
 import com.liuzhenlin.videos.dao.AppSharedPreferences;
 import com.liuzhenlin.videos.utils.AppUpdateChecker;
 import com.liuzhenlin.videos.utils.ColorUtils;
-import com.liuzhenlin.videos.utils.FloatingWindowPermissionUtil;
+import com.liuzhenlin.videos.utils.FloatingWindowPermissionUtils;
 import com.liuzhenlin.videos.utils.OSHelper;
 import com.liuzhenlin.videos.utils.TextViewUtils;
 import com.liuzhenlin.videos.utils.UiUtils;
@@ -479,8 +479,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private void checkUpdate() {
-        if (!FloatingWindowPermissionUtil.hasPermission(this)) {
-            FloatingWindowPermissionUtil.applyForPermission(
+        if (!FloatingWindowPermissionUtils.hasPermission(this)) {
+            FloatingWindowPermissionUtils.applyForPermission(
                     this, REQUEST_CODE_APPLY_FOR_FLOATING_WINDOW_PERMISSION);
             return;
         }
@@ -489,7 +489,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private void checkUpdateIfPermissionGranted(boolean toastResult) {
-        if (FloatingWindowPermissionUtil.hasPermission(this)) {
+        if (FloatingWindowPermissionUtils.hasPermission(this)) {
             baseCheckUpdate(toastResult);
         }
     }
@@ -530,8 +530,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         StringBuilder text = null;
 
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(
-                getAssets().open("updateLogs.txt"), "utf-8"))) {
+        BufferedReader reader = null;
+        try {
+            reader = new BufferedReader(new InputStreamReader(
+                    getAssets().open("updateLogs.txt"), "utf-8"));
             final char[] buffer = new char[1024];
             int len;
             while ((len = reader.read(buffer)) != -1) {
@@ -543,6 +545,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         } catch (IOException e) {
             e.printStackTrace();
             return;
+        } finally {
+            if (reader != null) {
+                try {
+                    reader.close();
+                } catch (IOException e) {
+                    //
+                }
+            }
         }
 
         if (text == null) return;

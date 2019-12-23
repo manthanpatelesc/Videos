@@ -39,6 +39,7 @@ import com.liuzhenlin.floatingmenu.DensityUtils
 import com.liuzhenlin.simrv.SlidingItemMenuRecyclerView
 import com.liuzhenlin.swipeback.SwipeBackFragment
 import com.liuzhenlin.texturevideoview.utils.FileUtils
+import com.liuzhenlin.texturevideoview.utils.ParallelThreadExecutor
 import com.liuzhenlin.videos.*
 import com.liuzhenlin.videos.dao.IVideoDao
 import com.liuzhenlin.videos.dao.VideoListItemDao
@@ -433,7 +434,7 @@ class LocalVideoListFragment : SwipeBackFragment(),
         // 不在加载视频时才加载
         if (mLoadVideosTask == null) {
             mLoadVideosTask = LoadVideosTask()
-            mLoadVideosTask!!.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR)
+            mLoadVideosTask!!.executeOnExecutor(ParallelThreadExecutor.getInstance())
         }
     }
 

@@ -803,10 +803,10 @@ public class VideoClipView extends FrameLayout {
                             // the selection frame has been the shortest, its right can only
                             // be moved after the left offset decreases.
                             if ((mTouchFlags & TFLAG_FRAME_LEFT_BEING_DRAGGED) != 0) {
-                                claimFrameLeftOffset(deltaX);
+                                clampFrameLeftOffset(deltaX);
                             }
                             if ((mTouchFlags & TFLAG_FRAME_RIGHT_BEING_DRAGGED) != 0) {
-                                claimFrameRightOffset(-deltaX);
+                                clampFrameRightOffset(-deltaX);
                             }
                         } else if (deltaX < 0 && !framebarShortest || deltaX > 0 && framebarShortest) {
                             // Order is important here:
@@ -817,10 +817,10 @@ public class VideoClipView extends FrameLayout {
                             // the selection frame has been the shortest, its left can only
                             // be moved after the right offset decreases.
                             if ((mTouchFlags & TFLAG_FRAME_RIGHT_BEING_DRAGGED) != 0) {
-                                claimFrameRightOffset(-deltaX);
+                                clampFrameRightOffset(-deltaX);
                             }
                             if ((mTouchFlags & TFLAG_FRAME_LEFT_BEING_DRAGGED) != 0) {
-                                claimFrameLeftOffset(deltaX);
+                                clampFrameLeftOffset(deltaX);
                             }
                         }
                         if ((mTouchFlags & TFLAG_FRAME_BEING_DRAGGED) == TFLAG_FRAME_BEING_DRAGGED &&
@@ -863,7 +863,7 @@ public class VideoClipView extends FrameLayout {
         return true;
     }
 
-    private void claimFrameLeftOffset(float deltaX) {
+    private void clampFrameLeftOffset(float deltaX) {
         final int originalRange = mThumbGalleryWidth;
         final float range = originalRange * (1.0f - mFrameRightOffset);
         mFrameLeftOffset = Util.constrainValue(
@@ -872,7 +872,7 @@ public class VideoClipView extends FrameLayout {
                 range - mMinimumClipBackwardsForwardGap) / originalRange;
     }
 
-    private void claimFrameRightOffset(float deltaX) {
+    private void clampFrameRightOffset(float deltaX) {
         final float originalRange = mThumbGalleryWidth;
         final float range = originalRange * (1.0f - mFrameLeftOffset);
         mFrameRightOffset = Util.constrainValue(

@@ -12,9 +12,8 @@ import androidx.core.content.ContextCompat
  * @author 刘振林
  */
 
-const val NO_ID = -1L
-
-internal const val TOLERANCE_VIDEO_DURATION = 100 // ms
+@JvmField
+internal val DEBUG_APP_UPDATE = BuildConfig.DEBUG && true
 
 internal const val KEY_DIRECTORY_PATH = "path_directory"
 internal const val KEY_VIDEODIR = "videodir"
@@ -36,6 +35,10 @@ internal const val RESULT_CODE_LOCAL_FOLDED_VIDEOS_FRAGMENT = 4
 
 internal const val REQUEST_CODE_ADD_PICTURE = 5
 internal const val RESULT_CODE_ADD_PICTURE = 5
+
+internal const val TOLERANCE_VIDEO_DURATION = 100 // ms
+
+const val NO_ID = -1L
 
 const val EMPTY_STRING = ""
 @JvmField

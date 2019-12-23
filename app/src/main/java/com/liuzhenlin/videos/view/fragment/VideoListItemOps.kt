@@ -14,6 +14,7 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import com.google.android.material.snackbar.Snackbar
 import com.liuzhenlin.texturevideoview.utils.FileUtils
+import com.liuzhenlin.texturevideoview.utils.ParallelThreadExecutor
 import com.liuzhenlin.videos.*
 import com.liuzhenlin.videos.dao.VideoListItemDao
 import com.liuzhenlin.videos.model.Video
@@ -28,12 +29,13 @@ import java.util.*
  * @author 刘振林
  */
 
-private val sDeleteItemTasks = ArrayDeque<AsyncTask<Unit, Unit, Unit>>()
+private val sDeleteItemTasks = LinkedList<AsyncTask<Unit, Unit, Unit>>()
 
 private fun deleteItemsInternal(items: Array<out VideoListItem>) {
     if (items.isEmpty()) return
 
     val dao = VideoListItemDao.getInstance(App.getInstanceUnsafe()!!)
+    val executor = ParallelThreadExecutor.getInstance()
     sDeleteItemTasks.offer(object : AsyncTask<Unit, Unit, Unit>() {
         override fun doInBackground(vararg units: Unit) {
             for (item in items)
@@ -60,11 +62,11 @@ private fun deleteItemsInternal(items: Array<out VideoListItem>) {
 
         override fun onPostExecute(unit: Unit) {
             sDeleteItemTasks.poll()
-            sDeleteItemTasks.peek()?.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR)
+            sDeleteItemTasks.peek()?.executeOnExecutor(executor)
         }
     })
     if (sDeleteItemTasks.size == 1) {
-        sDeleteItemTasks.peek()!!.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR)
+        sDeleteItemTasks.peek()!!.executeOnExecutor(executor)
     }
 }
 

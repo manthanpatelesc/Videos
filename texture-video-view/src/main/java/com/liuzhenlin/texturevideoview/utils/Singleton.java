@@ -3,7 +3,7 @@
  * Copyright © 2019 刘振林. All rights reserved.
  */
 
-package com.liuzhenlin.videos.utils;
+package com.liuzhenlin.texturevideoview.utils;
 
 import androidx.annotation.NonNull;
 

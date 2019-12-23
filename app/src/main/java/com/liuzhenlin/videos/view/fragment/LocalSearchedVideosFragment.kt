@@ -33,10 +33,11 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.NO_POSITION
 import com.liuzhenlin.floatingmenu.FloatingMenu
+import com.liuzhenlin.texturevideoview.utils.ParallelThreadExecutor
 import com.liuzhenlin.videos.*
 import com.liuzhenlin.videos.dao.VideoListItemDao
 import com.liuzhenlin.videos.model.Video
-import com.liuzhenlin.videos.utils.AlgorithmUtils
+import com.liuzhenlin.videos.utils.AlgorithmUtil
 import com.liuzhenlin.videos.utils.UiUtils
 import com.liuzhenlin.videos.utils.VideoUtils2
 import com.liuzhenlin.videos.view.adapter.HeaderAndFooterWrapper
@@ -216,7 +217,7 @@ class LocalSearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLon
                 R.drawable.ic_edit_24dp_menu -> mVideoOpCallback?.showRenameItemDialog(video) {
                     mVideos.sortByElementName()
 
-                    if (mSearchText.length == AlgorithmUtils.LCS(
+                    if (mSearchText.length == AlgorithmUtil.LCS(
                                     video.name, mSearchText, false).length) {
                         mSearchedVideos.sortByElementName()
                         val newIndex = mSearchedVideos.indexOf(video)
@@ -322,7 +323,7 @@ class LocalSearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLon
         var searchedVideos: MutableList<Video>? = null
         if (mSearchText.isNotEmpty()) {
             for (video in mVideos) {
-                if (mSearchText.length == AlgorithmUtils.LCS(
+                if (mSearchText.length == AlgorithmUtil.LCS(
                                 video.name, mSearchText, false).length) {
                     if (searchedVideos == null) searchedVideos = mutableListOf()
                     searchedVideos.add(video)
@@ -383,7 +384,7 @@ class LocalSearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLon
         }
         if (mLoadVideosTask == null) {
             mLoadVideosTask = LoadVideosTask()
-            mLoadVideosTask!!.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR)
+            mLoadVideosTask!!.executeOnExecutor(ParallelThreadExecutor.getInstance())
         }
     }
 

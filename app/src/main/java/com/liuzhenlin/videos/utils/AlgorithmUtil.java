@@ -12,8 +12,8 @@ import java.util.Stack;
 /**
  * @author 刘振林
  */
-public class AlgorithmUtils {
-    private AlgorithmUtils() {
+public class AlgorithmUtil {
+    private AlgorithmUtil() {
     }
 
     /**

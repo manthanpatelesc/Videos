@@ -94,6 +94,7 @@ import com.liuzhenlin.texturevideoview.drawable.CircularProgressDrawable;
 import com.liuzhenlin.texturevideoview.service.BackgroundPlaybackControllerService;
 import com.liuzhenlin.texturevideoview.utils.BitmapUtils;
 import com.liuzhenlin.texturevideoview.utils.FileUtils;
+import com.liuzhenlin.texturevideoview.utils.ParallelThreadExecutor;
 import com.liuzhenlin.texturevideoview.utils.ScreenUtils;
 import com.liuzhenlin.texturevideoview.utils.TimeUtil;
 import com.liuzhenlin.texturevideoview.utils.TransitionListenerAdapter;
@@ -626,593 +627,9 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
     private static final Interpolator sStretchShrinkVideoInterpolator = new OvershootInterpolator();
 
     private final OnChildTouchListener mOnChildTouchListener = new OnChildTouchListener();
-    private final OnClickListener mOnClickListener = new OnClickListener() {
-        @Override
-        public void onClick(View v) {
-            if (mTitleText == v) {
-                if (mEventListener != null) {
-                    mEventListener.onReturnClicked();
-                }
-            } else if (mShareButton == v) {
-                if (mEventListener != null) {
-                    showControls(false, false);
-                    mEventListener.onShareVideo();
-                }
-            } else if (mMoreButton == v) {
-                View view = LayoutInflater.from(mContext).inflate(
-                        R.layout.drawer_view_more, mDrawerView, false);
-                view.setMinimumHeight(mDrawerViewMinimumHeight);
-
-                SwitchCompat svb = view.findViewById(R.id.btn_stretchVideo);
-                SwitchCompat lsvb = view.findViewById(R.id.btn_loopSingleVideo);
-                SwitchCompat aatpibb = view.findViewById(R.id.btn_allowAudioToPlayInBackground);
-                TextView whenThisEpisodeEndsText = view.findViewById(R.id.text_whenThisEpisodeEnds);
-                TextView _30MinutesText = view.findViewById(R.id.text_30Minutes);
-                TextView anHourText = view.findViewById(R.id.text_anHour);
-                TextView _90MinutesText = view.findViewById(R.id.text_90Minutes);
-                TextView _2HoursText = view.findViewById(R.id.text_2Hours);
-                TextView mediaplayerText = view.findViewById(R.id.text_mediaplayer);
-                TextView exoplayerText = view.findViewById(R.id.text_exoplayer);
-
-                IVideoPlayer videoPlayer = mVideoPlayer;
-                TimedOffRunnable tor = mTimedOffRunnable;
-                svb.setChecked(isVideoStretchedToFitFullscreenLayout());
-                lsvb.setChecked(videoPlayer != null && videoPlayer.isSingleVideoLoopPlayback());
-                aatpibb.setChecked(videoPlayer != null && videoPlayer.isAudioAllowedToPlayInBackground());
-                whenThisEpisodeEndsText.setSelected((mPrivateFlags & PFLAG_TURN_OFF_WHEN_THIS_EPISODE_ENDS) != 0);
-                _30MinutesText.setSelected(tor != null && tor.offTime == TimedOffRunnable.OFF_TIME_30_MINUTES);
-                anHourText.setSelected(tor != null && tor.offTime == TimedOffRunnable.OFF_TIME_AN_HOUR);
-                _90MinutesText.setSelected(tor != null && tor.offTime == TimedOffRunnable.OFF_TIME_90_MINUTES);
-                _2HoursText.setSelected(tor != null && tor.offTime == TimedOffRunnable.OFF_TIME_2_HOURS);
-                mediaplayerText.setSelected(videoPlayer instanceof SystemVideoPlayer);
-                exoplayerText.setSelected(videoPlayer instanceof ExoVideoPlayer);
-                // Scrolls to a proper horizontal position to make the selected text user-visible
-                HorizontalScrollView hsv = (HorizontalScrollView) anHourText.getParent().getParent();
-                if (_30MinutesText.isSelected()) {
-                    _30MinutesText.post(() -> hsv.scrollTo(_30MinutesText.getLeft(), 0));
-                } else if (anHourText.isSelected()) {
-                    anHourText.post(() -> hsv.scrollTo(anHourText.getLeft(), 0));
-                } else if (_90MinutesText.isSelected()) {
-                    _90MinutesText.post(() -> hsv.scrollTo(_90MinutesText.getLeft(), 0));
-                } else if (_2HoursText.isSelected()) {
-                    _2HoursText.post(() -> hsv.scrollTo(_2HoursText.getLeft(), 0));
-                }
-
-                svb.setOnClickListener(this);
-                lsvb.setOnClickListener(this);
-                aatpibb.setOnClickListener(this);
-                whenThisEpisodeEndsText.setOnClickListener(this);
-                _30MinutesText.setOnClickListener(this);
-                anHourText.setOnClickListener(this);
-                _90MinutesText.setOnClickListener(this);
-                _2HoursText.setOnClickListener(this);
-                mediaplayerText.setOnClickListener(this);
-                exoplayerText.setOnClickListener(this);
-
-                mMoreView = view;
-                mDrawerView.addView(view);
-                openDrawer(mDrawerView);
-
-            } else if (mLockUnlockButton == v) {
-                setLocked(mStringUnlock.contentEquals(v.getContentDescription()));
-
-            } else if (mCameraButton == v) {
-                showControls(true, false);
-                captureVideoPhoto();
-
-            } else if (mVideoCameraButton == v) {
-                showClipView();
-
-            } else if (mToggleButton == v) {
-                if (mVideoPlayer != null) {
-                    mVideoPlayer.toggle(true);
-                }
-            } else if (mSkipNextButton == v) {
-                if (mVideoPlayer != null) {
-                    mVideoPlayer.skipToNextIfPossible();
-                }
-            } else if (mFullscreenButton == v) {
-                final int mode = isVideoStretchedToFitFullscreenLayout() ?
-                        VIEW_MODE_VIDEO_STRETCHED_FULLSCREEN : VIEW_MODE_FULLSCREEN;
-                setViewMode(mode, false);
-
-            } else if (mMinimizeButton == v) {
-                setViewMode(VIEW_MODE_MINIMUM, false);
-
-            } else if (mChooseEpisodeButton == v) {
-                if (ViewCompat.getMinimumHeight(mPlayList) != mDrawerViewMinimumHeight) {
-                    mPlayList.setMinimumHeight(mDrawerViewMinimumHeight);
-                }
-                mPlayList.setVisibility(VISIBLE);
-                openDrawer(mDrawerView);
-
-            } else {
-                final int id = v.getId();
-                if (id == R.id.btn_sharePhoto) {
-                    mMsgHandler.removeMessages(MsgHandler.MSG_HIDE_CAPTURED_PHOTO_VIEW);
-                    hideCapturedPhotoView(true);
-
-                } else if (id == R.id.btn_stretchVideo) {
-                    setVideoStretchedToFitFullscreenLayoutInternal(((Checkable) v).isChecked(), false);
-
-                } else if (id == R.id.btn_loopSingleVideo) {
-                    if (mVideoPlayer != null) {
-                        mVideoPlayer.setSingleVideoLoopPlayback(((Checkable) v).isChecked());
-                    }
-                } else if (id == R.id.btn_allowAudioToPlayInBackground) {
-                    if (mVideoPlayer != null) {
-                        mVideoPlayer.setAudioAllowedToPlayInBackground(((Checkable) v).isChecked());
-                    }
-                } else if (id == R.id.text_whenThisEpisodeEnds) {
-                    final boolean selected = !v.isSelected();
-                    v.setSelected(selected);
-                    mMoreView.findViewById(R.id.text_30Minutes).setSelected(false);
-                    mMoreView.findViewById(R.id.text_anHour).setSelected(false);
-                    mMoreView.findViewById(R.id.text_90Minutes).setSelected(false);
-                    mMoreView.findViewById(R.id.text_2Hours).setSelected(false);
-
-                    updateTimedOffSchedule(selected, -1);
-
-                } else if (id == R.id.text_30Minutes) {
-                    final boolean selected = !v.isSelected();
-                    v.setSelected(selected);
-                    mMoreView.findViewById(R.id.text_whenThisEpisodeEnds).setSelected(false);
-                    mMoreView.findViewById(R.id.text_anHour).setSelected(false);
-                    mMoreView.findViewById(R.id.text_90Minutes).setSelected(false);
-                    mMoreView.findViewById(R.id.text_2Hours).setSelected(false);
-
-                    updateTimedOffSchedule(selected, TimedOffRunnable.OFF_TIME_30_MINUTES);
-
-                } else if (id == R.id.text_anHour) {
-                    final boolean selected = !v.isSelected();
-                    v.setSelected(selected);
-                    mMoreView.findViewById(R.id.text_whenThisEpisodeEnds).setSelected(false);
-                    mMoreView.findViewById(R.id.text_30Minutes).setSelected(false);
-                    mMoreView.findViewById(R.id.text_90Minutes).setSelected(false);
-                    mMoreView.findViewById(R.id.text_2Hours).setSelected(false);
-
-                    updateTimedOffSchedule(selected, TimedOffRunnable.OFF_TIME_AN_HOUR);
-
-                } else if (id == R.id.text_90Minutes) {
-                    final boolean selected = !v.isSelected();
-                    v.setSelected(selected);
-                    mMoreView.findViewById(R.id.text_whenThisEpisodeEnds).setSelected(false);
-                    mMoreView.findViewById(R.id.text_30Minutes).setSelected(false);
-                    mMoreView.findViewById(R.id.text_anHour).setSelected(false);
-                    mMoreView.findViewById(R.id.text_2Hours).setSelected(false);
-
-                    updateTimedOffSchedule(selected, TimedOffRunnable.OFF_TIME_90_MINUTES);
-
-                } else if (id == R.id.text_2Hours) {
-                    final boolean selected = !v.isSelected();
-                    v.setSelected(selected);
-                    mMoreView.findViewById(R.id.text_whenThisEpisodeEnds).setSelected(false);
-                    mMoreView.findViewById(R.id.text_30Minutes).setSelected(false);
-                    mMoreView.findViewById(R.id.text_anHour).setSelected(false);
-                    mMoreView.findViewById(R.id.text_90Minutes).setSelected(false);
-
-                    updateTimedOffSchedule(selected, TimedOffRunnable.OFF_TIME_2_HOURS);
-
-                } else if (id == R.id.text_mediaplayer) {
-                    if (!v.isSelected()) {
-                        VideoPlayer videoPlayer = VideoPlayer.Factory.newInstance(
-                                SystemVideoPlayer.class, mContext);
-                        if (videoPlayer != null) {
-                            v.setSelected(true);
-                            mMoreView.findViewById(R.id.text_exoplayer).setSelected(false);
-
-                            videoPlayer.setVideoView(TextureVideoView.this);
-                            setVideoPlayer(videoPlayer);
-                        }
-                    }
-                } else if (id == R.id.text_exoplayer) {
-                    if (!v.isSelected()) {
-                        VideoPlayer videoPlayer = VideoPlayer.Factory.newInstance(
-                                ExoVideoPlayer.class, mContext);
-                        if (videoPlayer != null) {
-                            v.setSelected(true);
-                            mMoreView.findViewById(R.id.text_mediaplayer).setSelected(false);
-
-                            videoPlayer.setVideoView(TextureVideoView.this);
-                            setVideoPlayer(videoPlayer);
-                        }
-                    }
-                }
-            }
-        }
-
-        void updateTimedOffSchedule(boolean selected, int offTime) {
-            switch (offTime) {
-                case -1:
-                    mPrivateFlags = mPrivateFlags & ~PFLAG_TURN_OFF_WHEN_THIS_EPISODE_ENDS
-                            | (selected ? PFLAG_TURN_OFF_WHEN_THIS_EPISODE_ENDS : 0);
-                    if (mTimedOffRunnable != null) {
-                        removeCallbacks(mTimedOffRunnable);
-                        mTimedOffRunnable = null;
-                    }
-                    break;
-                case TimedOffRunnable.OFF_TIME_30_MINUTES:
-                case TimedOffRunnable.OFF_TIME_AN_HOUR:
-                case TimedOffRunnable.OFF_TIME_90_MINUTES:
-                case TimedOffRunnable.OFF_TIME_2_HOURS:
-                    mPrivateFlags &= ~PFLAG_TURN_OFF_WHEN_THIS_EPISODE_ENDS;
-                    if (selected) {
-                        if (mTimedOffRunnable == null) {
-                            mTimedOffRunnable = new TimedOffRunnable();
-                        } else {
-                            removeCallbacks(mTimedOffRunnable);
-                        }
-                        mTimedOffRunnable.offTime = offTime;
-                        postDelayed(mTimedOffRunnable, offTime);
-                    } else {
-                        if (mTimedOffRunnable != null) {
-                            removeCallbacks(mTimedOffRunnable);
-                            mTimedOffRunnable = null;
-                        }
-                    }
-                    break;
-            }
-        }
-    };
-    private final AdapterView.OnItemSelectedListener mOnItemSelectedListener = new AdapterView.OnItemSelectedListener() {
-        @Override
-        public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-            if (mSpeedSpinner == parent
-                    && view instanceof TextView /* This may be null during state restore */) {
-                TextView tv = (TextView) view;
-
-                ViewGroup.LayoutParams lp = tv.getLayoutParams();
-                lp.width = parent.getWidth();
-                lp.height = parent.getHeight();
-                tv.setLayoutParams(lp);
-
-                final String speed = tv.getText().toString();
-                if (mVideoPlayer != null) {
-                    mVideoPlayer.setPlaybackSpeed(
-                            Float.parseFloat(speed.substring(0, speed.lastIndexOf('x'))));
-                }
-                // Filter the non-user-triggered selection changes, so that the visibility of the
-                // controls stay unchanged.
-                if ((mPrivateFlags & PFLAG_CONTROLS_SHOW_STICKILY) != 0) {
-                    mPrivateFlags &= ~PFLAG_CONTROLS_SHOW_STICKILY;
-                    showControls(true, false);
-                    checkCameraButtonsVisibilities();
-                }
-            }
-        }
-
-        @Override
-        public void onNothingSelected(AdapterView<?> parent) {
-        }
-    };
-
-    private final SeekBar.OnSeekBarChangeListener mOnSeekBarChangeListener
-            = new SeekBar.OnSeekBarChangeListener() {
-        int start;
-        volatile int current;
-        MediaMetadataRetriever mmr;
-        AsyncTask<Void, Object, Void> task;
-        ParcelableSpan progressTextSpan;
-        ValueAnimator fadeAnimator;
-        ValueAnimator translateAnimator;
-        Animator.AnimatorListener animatorListener;
-        static final int DURATION = 800; // ms
-
-        @Override
-        public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-            if (fromUser) {
-                current = progress;
-                if (mmr == null) {
-                    mSeekingProgressDurationText.setText(getProgressDurationText(progress));
-                    mSeekingProgress.setProgress(progress);
-                }
-                refreshVideoProgress(progress, false);
-
-                if (translateAnimator == null) {
-                    final View target = mmr == null ? mSeekingTextProgressFrame : mSeekingVideoThumbText;
-                    final boolean rtl = Utils.isLayoutRtl(mContentView);
-                    final float end = !rtl && progress > start || rtl && progress < start ?
-                            mSeekingViewHorizontalOffset : -mSeekingViewHorizontalOffset;
-                    ValueAnimator ta;
-                    translateAnimator = ta = ValueAnimator.ofFloat(0, end);
-                    ta.addListener(animatorListener);
-                    ta.addUpdateListener(
-                            animation -> target.setTranslationX((float) animation.getAnimatedValue()));
-                    ta.setDuration(DURATION);
-                    ta.setRepeatMode(ValueAnimator.RESTART);
-                    ta.start();
-                }
-            }
-        }
-
-        @Override
-        public void onStartTrackingTouch(SeekBar seekBar) {
-            current = start = seekBar.getProgress();
-
-            mPrivateFlags |= PFLAG_CONTROLS_SHOW_STICKILY;
-            showControls(-1, true);
-            // Do not refresh the video progress bar with the current playback position
-            // while the user is dragging it.
-            mMsgHandler.removeMessages(MsgHandler.MSG_REFRESH_VIDEO_PROGRESS);
-
-            Animator.AnimatorListener listener = animatorListener;
-            ValueAnimator fa = fadeAnimator;
-            if (fa != null) {
-                // hide the currently showing view (mSeekingVideoThumbText/mSeekingTextProgressFrame)
-                fa.end();
-            }
-            if (translateAnimator != null) {
-                // Reset horizontal translation to 0 for the just hidden view
-                translateAnimator.end();
-            }
-            animatorListener = listener; // Reuse the animator listener if it is not recycled
-            // Decide which view to show
-            if (mVideoPlayer != null && mVideoPlayer.mVideoUri != null && isInFullscreenMode()) {
-                mmr = new MediaMetadataRetriever();
-                try {
-                    mmr.setDataSource(mContext, mVideoPlayer.mVideoUri);
-                } catch (IllegalArgumentException e) {
-                    e.printStackTrace();
-                    mmr.release();
-                    mmr = null;
-                    showSeekingTextProgress(true);
-                }
-                if (mmr != null) {
-                    // The media contains no video content
-                    if (mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_HAS_VIDEO) == null) {
-                        mmr.release();
-                        mmr = null;
-                        showSeekingTextProgress(true);
-                    } else {
-                        task = new UpdateVideoThumbTask();
-                        task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
-                        showSeekingVideoThumb(true);
-                    }
-                }
-            } else {
-                showSeekingTextProgress(true);
-            }
-            // Start the fade in animation
-            if (fa == null) {
-                if (animatorListener == null) {
-                    animatorListener = new AnimatorListenerAdapter() {
-                        // Override for compatibility with APIs below 26.
-                        // This will not get called on platforms O and higher.
-                        @Override
-                        public void onAnimationStart(Animator animation) {
-                            onAnimationStart(animation, isReverse(animation));
-                        }
-
-                        // Override for compatibility with APIs below 26.
-                        // This will not get called on platforms O and higher.
-                        @Override
-                        public void onAnimationEnd(Animator animation) {
-                            onAnimationEnd(animation, isReverse(animation));
-                        }
-
-                        boolean isReverse(Animator animation) {
-                            // When reversing, the animation's repeat mode was set to REVERSE
-                            // before it started.
-                            return ((ValueAnimator) animation).getRepeatMode() == ValueAnimator.REVERSE;
-                        }
-
-                        @TargetApi(Build.VERSION_CODES.O)
-                        @Override
-                        public void onAnimationStart(Animator animation, boolean isReverse) {
-                            final boolean isThumbVisible = mSeekingVideoThumbText.getVisibility() == VISIBLE;
-                            final boolean isFadeAnimation = animation == fadeAnimator;
-
-                            Animator other = isFadeAnimation ? translateAnimator : fadeAnimator;
-                            if (other == null || !other.isRunning()) {
-                                updateLayer(LAYER_TYPE_HARDWARE, isThumbVisible);
-                            }
-
-                            if (isFadeAnimation) {
-                                animation.setDuration(isReverse || isThumbVisible ?
-                                        DURATION : (long) (DURATION * 2f / 3f + 0.5f));
-                            }
-                        }
-
-                        @TargetApi(Build.VERSION_CODES.O)
-                        @Override
-                        public void onAnimationEnd(Animator animation, boolean isReverse) {
-                            final boolean isThumbVisible = mSeekingVideoThumbText.getVisibility() == VISIBLE;
-                            final boolean isFadeAnimation = animation == fadeAnimator;
-
-                            Animator other = isFadeAnimation ? translateAnimator : fadeAnimator;
-                            if (other == null || !other.isRunning()) {
-                                updateLayer(LAYER_TYPE_NONE, isThumbVisible);
-                            }
-
-                            if (isReverse) {
-                                if (isFadeAnimation) {
-                                    fadeAnimator = null;
-                                } else {
-                                    translateAnimator = null;
-                                }
-                                if (fadeAnimator == null && translateAnimator == null) {
-                                    animatorListener = null;
-                                    if (isThumbVisible) {
-                                        recycleVideoThumb();
-                                        // Clear the text to make sure it doesn't show anything
-                                        // the next time it appears, otherwise a separate text
-                                        // would be displayed on it, which we do not want.
-                                        mSeekingVideoThumbText.setText("");
-                                        showSeekingVideoThumb(false);
-                                    } else {
-                                        showSeekingTextProgress(false);
-                                    }
-                                }
-                            }
-                        }
-
-                        void updateLayer(int layerType, boolean isThumbVisible) {
-                            if (isThumbVisible) {
-                                mSeekingVideoThumbText.setLayerType(layerType, null);
-                                if (ViewCompat.isAttachedToWindow(mSeekingVideoThumbText)) {
-                                    mSeekingVideoThumbText.buildLayer();
-                                }
-                                mScrimView.setLayerType(layerType, null);
-                                if (ViewCompat.isAttachedToWindow(mScrimView)) {
-                                    mScrimView.buildLayer();
-                                }
-                            } else {
-//                                mSeekingTextProgressFrame.setLayerType(layerType, null);
-//                                if (ViewCompat.isAttachedToWindow(mSeekingTextProgressFrame)) {
-//                                    mSeekingTextProgressFrame.buildLayer();
-//                                }
-                            }
-                        }
-                    };
-                }
-                fadeAnimator = fa = ValueAnimator.ofFloat(0.0f, 1.0f);
-                fa.addListener(animatorListener);
-                fa.addUpdateListener(animation -> {
-                    final float alpha = (float) animation.getAnimatedValue();
-                    if (mSeekingVideoThumbText.getVisibility() == VISIBLE) {
-                        mScrimView.setAlpha(alpha);
-                        mSeekingVideoThumbText.setAlpha(alpha);
-                    } else {
-                        mSeekingTextProgressFrame.setAlpha(alpha);
-                    }
-                });
-            } else {
-                // If the fade in/out animator has not been released before we need one again,
-                // reuse it to avoid unnecessary memory re-allocations.
-                fadeAnimator = fa;
-            }
-            fa.setRepeatMode(ValueAnimator.RESTART);
-            fa.start();
-        }
-
-        @Override
-        public void onStopTrackingTouch(SeekBar seekBar) {
-            if (mVideoPlayer != null) {
-                final int progress = current;
-                if (progress != start)
-                    mVideoPlayer.seekTo(progress, true);
-            }
-
-            mPrivateFlags &= ~PFLAG_CONTROLS_SHOW_STICKILY;
-            showControls(true, false);
-
-            if (mmr != null) {
-                task.cancel(false);
-                task = null;
-                mmr.release();
-                mmr = null;
-            }
-            if (translateAnimator != null) {
-                translateAnimator.setRepeatMode(ValueAnimator.REVERSE);
-                translateAnimator.reverse();
-            }
-            fadeAnimator.setRepeatMode(ValueAnimator.REVERSE);
-            fadeAnimator.reverse();
-        }
-
-        void showSeekingVideoThumb(boolean show) {
-            if (show) {
-                mScrimView.setVisibility(VISIBLE);
-                mSeekingVideoThumbText.setVisibility(VISIBLE);
-            } else {
-                mScrimView.setVisibility(GONE);
-                mSeekingVideoThumbText.setVisibility(GONE);
-            }
-        }
-
-        void showSeekingTextProgress(boolean show) {
-            if (show) {
-                final int progress, duration;
-                if (mVideoPlayer == null) {
-                    duration = progress = 0;
-                } else {
-                    progress = current;
-                    duration = mVideoPlayer.getNoNegativeVideoDuration();
-                }
-                mSeekingProgressDurationText.setText(getProgressDurationText(progress));
-                mSeekingProgress.setMax(duration);
-                mSeekingProgress.setProgress(progress);
-                mSeekingTextProgressFrame.setVisibility(VISIBLE);
-            } else {
-                mSeekingTextProgressFrame.setVisibility(GONE);
-            }
-        }
-
-        CharSequence getProgressDurationText(int progress) {
-            if (progressTextSpan == null) {
-                progressTextSpan = new ForegroundColorSpan(mColorAccent);
-            }
-            final String vds;
-            if (mVideoPlayer == null) {
-                progress = 0;
-                vds = VideoPlayer.DEFAULT_STRING_VIDEO_DURATION;
-            } else {
-                vds = mVideoPlayer.mVideoDurationString;
-            }
-            final String ps = TimeUtil.formatTimeByColon(progress);
-            final SpannableString ss = new SpannableString(
-                    mResources.getString(R.string.progress_duration, ps, vds));
-            ss.setSpan(progressTextSpan, 0, ps.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            return ss;
-        }
-
-        void recycleVideoThumb() {
-            Drawable thumb = mSeekingVideoThumbText.getCompoundDrawables()[3];
-            // Removes the drawable that holds a reference to the bitmap to be recycled,
-            // in case we still use the recycled bitmap on the next drawing of the TextView.
-            mSeekingVideoThumbText.setCompoundDrawables(null, null, null, null);
-            if (thumb instanceof BitmapDrawable) {
-                ((BitmapDrawable) thumb).getBitmap().recycle();
-            }
-        }
-
-        @SuppressLint("StaticFieldLeak")
-        final class UpdateVideoThumbTask extends AsyncTask<Void, Object, Void> {
-            static final boolean RETRIEVE_SCALED_FRAME_FROM_MMR = false;
-            static final float RATIO = 0.25f;
-            int last = -1;
-
-            @Override
-            public Void doInBackground(Void... voids) {
-                while (!isCancelled()) {
-                    int now = current;
-                    if (now == last) continue;
-                    last = now;
-
-                    View tv = mTextureView;
-                    final int width = (int) (tv.getWidth() * tv.getScaleX() * RATIO + 0.5f);
-                    final int height = (int) (tv.getHeight() * tv.getScaleY() * RATIO + 0.5f);
-
-                    Bitmap thumb = null;
-                    if (RETRIEVE_SCALED_FRAME_FROM_MMR
-                            && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
-                        thumb = mmr.getScaledFrameAtTime(now * 1000L,
-                                MediaMetadataRetriever.OPTION_CLOSEST_SYNC, width, height);
-                    } else {
-                        Bitmap tmp = mmr.getFrameAtTime(now * 1000L,
-                                MediaMetadataRetriever.OPTION_CLOSEST_SYNC);
-                        if (tmp != null) {
-                            thumb = BitmapUtils.createScaledBitmap(tmp, width, height, true);
-                        }
-                    }
-                    if (thumb == null) continue;
-                    thumb = BitmapUtils.createRoundCornerBitmap(
-                            thumb, mSeekingVideoThumbCornerRadius, true);
-
-                    publishProgress(getProgressDurationText(now), new BitmapDrawable(mResources, thumb));
-                }
-                return null;
-            }
-
-            @Override
-            public void onProgressUpdate(Object... objs) {
-                recycleVideoThumb();
-                mSeekingVideoThumbText.setText((CharSequence) objs[0]);
-                mSeekingVideoThumbText.setCompoundDrawablesWithIntrinsicBounds(
-                        null, null, null, (Drawable) objs[1]);
-            }
-        }
-    };
+    private final OnChildClickListener mOnChildClickListener = new OnChildClickListener();
+    private final OnVideoSeekBarChangeListener mOnVideoSeekBarChangeListener =
+            new OnVideoSeekBarChangeListener();
 
     private final MsgHandler mMsgHandler = new MsgHandler(this);
 
@@ -1422,12 +839,12 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
         mContentView.setOnTouchListener(mOnChildTouchListener);
         mContentView.setTouchInterceptor(mOnChildTouchListener);
 
-        mTitleText.setOnClickListener(mOnClickListener);
-        mShareButton.setOnClickListener(mOnClickListener);
-        mMoreButton.setOnClickListener(mOnClickListener);
-        mLockUnlockButton.setOnClickListener(mOnClickListener);
-        mCameraButton.setOnClickListener(mOnClickListener);
-        mVideoCameraButton.setOnClickListener(mOnClickListener);
+        mTitleText.setOnClickListener(mOnChildClickListener);
+        mShareButton.setOnClickListener(mOnChildClickListener);
+        mMoreButton.setOnClickListener(mOnChildClickListener);
+        mLockUnlockButton.setOnClickListener(mOnChildClickListener);
+        mCameraButton.setOnClickListener(mOnChildClickListener);
+        mVideoCameraButton.setOnClickListener(mOnChildClickListener);
 
         // Prepare video playback
         mTextureView.setSurfaceTextureListener(new TextureView.SurfaceTextureListener() {
@@ -1513,13 +930,42 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                     mContext, R.layout.item_speed_spinner, mSpeedsStringArray);
             adapter.setDropDownViewResource(R.layout.dropdown_item_speed_spinner);
 
-            mSpeedSpinner.setOnItemSelectedListener(mOnItemSelectedListener);
             mSpeedSpinner.setPopupBackgroundResource(R.color.bg_popup);
             mSpeedSpinner.setAdapter(adapter);
             final float playbackSpeed = mVideoPlayer == null ?
                     IVideoPlayer.DEFAULT_PLAYBACK_SPEED : mVideoPlayer.mPlaybackSpeed;
             mSpeedSpinner.setSelection(indexOfPlaybackSpeed(playbackSpeed), false);
             mSpeedSpinner.setOnTouchListener(mOnChildTouchListener);
+            mSpeedSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                @Override
+                public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                    if (view instanceof TextView /* This may be null during state restore */) {
+                        TextView tv = (TextView) view;
+
+                        ViewGroup.LayoutParams lp = tv.getLayoutParams();
+                        lp.width = parent.getWidth();
+                        lp.height = parent.getHeight();
+                        tv.setLayoutParams(lp);
+
+                        final String speed = tv.getText().toString();
+                        if (mVideoPlayer != null) {
+                            mVideoPlayer.setPlaybackSpeed(
+                                    Float.parseFloat(speed.substring(0, speed.lastIndexOf('x'))));
+                        }
+                        // Filter the non-user-triggered selection changes, so that the visibility of
+                        // the controls stay unchanged.
+                        if ((mPrivateFlags & PFLAG_CONTROLS_SHOW_STICKILY) != 0) {
+                            mPrivateFlags &= ~PFLAG_CONTROLS_SHOW_STICKILY;
+                            showControls(true, false);
+                            checkCameraButtonsVisibilities();
+                        }
+                    }
+                }
+
+                @Override
+                public void onNothingSelected(AdapterView<?> parent) {
+                }
+            });
 
             if (sListPopupField != null && sPopupField != null) {
                 try {
@@ -1554,8 +1000,8 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                 }
             }
 
-            mSkipNextButton.setOnClickListener(mOnClickListener);
-            mChooseEpisodeButton.setOnClickListener(mOnClickListener);
+            mSkipNextButton.setOnClickListener(mOnChildClickListener);
+            mChooseEpisodeButton.setOnClickListener(mOnChildClickListener);
 
             mVideoProgressText = null;
             mVideoDurationText = null;
@@ -1568,8 +1014,8 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
             mMinimizeButton = root.findViewById(R.id.btn_minimize);
             mFullscreenButton = root.findViewById(R.id.btn_fullscreen);
 
-            mMinimizeButton.setOnClickListener(mOnClickListener);
-            mFullscreenButton.setOnClickListener(mOnClickListener);
+            mMinimizeButton.setOnClickListener(mOnChildClickListener);
+            mFullscreenButton.setOnClickListener(mOnChildClickListener);
 
             mSkipNextButton = null;
             mVideoProgressDurationText = null;
@@ -1580,10 +1026,10 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
         }
 
         mVideoSeekBar = root.findViewById(R.id.sb_video);
-        mVideoSeekBar.setOnSeekBarChangeListener(mOnSeekBarChangeListener);
+        mVideoSeekBar.setOnSeekBarChangeListener(mOnVideoSeekBarChangeListener);
 
         mToggleButton = root.findViewById(R.id.btn_toggle);
-        mToggleButton.setOnClickListener(mOnClickListener);
+        mToggleButton.setOnClickListener(mOnChildClickListener);
         adjustToggleState(mVideoPlayer != null && mVideoPlayer.isPlaying());
     }
 
@@ -2670,7 +2116,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                             }
 
                             TextView shareButton = cpv.findViewById(R.id.btn_sharePhoto);
-                            shareButton.setOnClickListener(mOnClickListener);
+                            shareButton.setOnClickListener(mOnChildClickListener);
 
                             ImageView photoImage = cpv.findViewById(R.id.image_videoPhoto);
                             photoImage.setImageBitmap(bitmap);
@@ -2724,7 +2170,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
 
                         mSaveCapturedPhotoTask = null;
                     }
-                }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                }.executeOnExecutor(ParallelThreadExecutor.getInstance());
             }
 
             @Override
@@ -2759,6 +2205,8 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
 
     @SuppressLint("StaticFieldLeak")
     private void showClipView() {
+        if (mClipView != null) return;
+
         VideoPlayer videoPlayer = mVideoPlayer;
         // Not available when video info is waiting to be known
         if (videoPlayer == null
@@ -3039,7 +2487,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                 public void onPostExecute(Void aVoid) {
                     mLoadClipThumbsTask = null;
                 }
-            }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+            }.executeOnExecutor(ParallelThreadExecutor.getInstance());
         });
         holder.addCallback(new SurfaceHolder.Callback() {
             @Override
@@ -3499,7 +2947,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                                     mVideoSeekBar, deltaX, 0.33333334f);
                             if (newProgress != progress) {
                                 mVideoSeekBar.setProgress(newProgress);
-                                mOnSeekBarChangeListener.onProgressChanged(
+                                mOnVideoSeekBarChangeListener.onProgressChanged(
                                         mVideoSeekBar, newProgress, true);
                             }
                         }
@@ -3541,7 +2989,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                                     mVideoSeekBar.setProgress(
                                             mVideoPlayer == null ? 0 : mVideoPlayer.getVideoProgress());
                                 }
-                                mOnSeekBarChangeListener.onStartTrackingTouch(mVideoSeekBar);
+                                mOnVideoSeekBarChangeListener.onStartTrackingTouch(mVideoSeekBar);
                             }
                             break;
                     }
@@ -3561,7 +3009,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                                     TIMEOUT_SHOW_BRIGHTNESS_OR_VOLUME);
                             break;
                         case TFLAG_ADJUSTING_VIDEO_PROGRESS:
-                            mOnSeekBarChangeListener.onStopTrackingTouch(mVideoSeekBar);
+                            mOnVideoSeekBarChangeListener.onStopTrackingTouch(mVideoSeekBar);
                             break;
                     }
                     touchFlags &= ~MASK_ADJUSTING_PROGRESS_FLAGS;
@@ -3596,6 +3044,586 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
             final int progress = progressBar.getProgress()
                     + Math.round((float) maxProgress / mContentView.getHeight() * deltaY * sensitivity);
             return Util.constrainValue(progress, 0, maxProgress);
+        }
+    }
+
+    private final class OnChildClickListener implements View.OnClickListener {
+        @Override
+        public void onClick(View v) {
+            if (mTitleText == v) {
+                if (mEventListener != null) {
+                    mEventListener.onReturnClicked();
+                }
+            } else if (mShareButton == v) {
+                if (mEventListener != null) {
+                    showControls(false, false);
+                    mEventListener.onShareVideo();
+                }
+            } else if (mMoreButton == v) {
+                showMoreView();
+
+            } else if (mLockUnlockButton == v) {
+                setLocked(mStringUnlock.contentEquals(v.getContentDescription()));
+
+            } else if (mCameraButton == v) {
+                showControls(true, false);
+                captureVideoPhoto();
+
+            } else if (mVideoCameraButton == v) {
+                showClipView();
+
+            } else if (mToggleButton == v) {
+                if (mVideoPlayer != null) {
+                    mVideoPlayer.toggle(true);
+                }
+            } else if (mSkipNextButton == v) {
+                if (mVideoPlayer != null) {
+                    mVideoPlayer.skipToNextIfPossible();
+                }
+            } else if (mFullscreenButton == v) {
+                final int mode = isVideoStretchedToFitFullscreenLayout() ?
+                        VIEW_MODE_VIDEO_STRETCHED_FULLSCREEN : VIEW_MODE_FULLSCREEN;
+                setViewMode(mode, false);
+
+            } else if (mMinimizeButton == v) {
+                setViewMode(VIEW_MODE_MINIMUM, false);
+
+            } else if (mChooseEpisodeButton == v) {
+                if (ViewCompat.getMinimumHeight(mPlayList) != mDrawerViewMinimumHeight) {
+                    mPlayList.setMinimumHeight(mDrawerViewMinimumHeight);
+                }
+                mPlayList.setVisibility(VISIBLE);
+                openDrawer(mDrawerView);
+
+            } else {
+                final int id = v.getId();
+                if (id == R.id.btn_sharePhoto) {
+                    mMsgHandler.removeMessages(MsgHandler.MSG_HIDE_CAPTURED_PHOTO_VIEW);
+                    hideCapturedPhotoView(true);
+
+                } else if (id == R.id.btn_stretchVideo) {
+                    setVideoStretchedToFitFullscreenLayoutInternal(((Checkable) v).isChecked(), false);
+
+                } else if (id == R.id.btn_loopSingleVideo) {
+                    if (mVideoPlayer != null) {
+                        mVideoPlayer.setSingleVideoLoopPlayback(((Checkable) v).isChecked());
+                    }
+                } else if (id == R.id.btn_allowAudioToPlayInBackground) {
+                    if (mVideoPlayer != null) {
+                        mVideoPlayer.setAudioAllowedToPlayInBackground(((Checkable) v).isChecked());
+                    }
+                } else if (id == R.id.text_whenThisEpisodeEnds) {
+                    final boolean selected = !v.isSelected();
+                    v.setSelected(selected);
+                    mMoreView.findViewById(R.id.text_30Minutes).setSelected(false);
+                    mMoreView.findViewById(R.id.text_anHour).setSelected(false);
+                    mMoreView.findViewById(R.id.text_90Minutes).setSelected(false);
+                    mMoreView.findViewById(R.id.text_2Hours).setSelected(false);
+
+                    updateTimedOffSchedule(selected, -1);
+
+                } else if (id == R.id.text_30Minutes) {
+                    final boolean selected = !v.isSelected();
+                    v.setSelected(selected);
+                    mMoreView.findViewById(R.id.text_whenThisEpisodeEnds).setSelected(false);
+                    mMoreView.findViewById(R.id.text_anHour).setSelected(false);
+                    mMoreView.findViewById(R.id.text_90Minutes).setSelected(false);
+                    mMoreView.findViewById(R.id.text_2Hours).setSelected(false);
+
+                    updateTimedOffSchedule(selected, TimedOffRunnable.OFF_TIME_30_MINUTES);
+
+                } else if (id == R.id.text_anHour) {
+                    final boolean selected = !v.isSelected();
+                    v.setSelected(selected);
+                    mMoreView.findViewById(R.id.text_whenThisEpisodeEnds).setSelected(false);
+                    mMoreView.findViewById(R.id.text_30Minutes).setSelected(false);
+                    mMoreView.findViewById(R.id.text_90Minutes).setSelected(false);
+                    mMoreView.findViewById(R.id.text_2Hours).setSelected(false);
+
+                    updateTimedOffSchedule(selected, TimedOffRunnable.OFF_TIME_AN_HOUR);
+
+                } else if (id == R.id.text_90Minutes) {
+                    final boolean selected = !v.isSelected();
+                    v.setSelected(selected);
+                    mMoreView.findViewById(R.id.text_whenThisEpisodeEnds).setSelected(false);
+                    mMoreView.findViewById(R.id.text_30Minutes).setSelected(false);
+                    mMoreView.findViewById(R.id.text_anHour).setSelected(false);
+                    mMoreView.findViewById(R.id.text_2Hours).setSelected(false);
+
+                    updateTimedOffSchedule(selected, TimedOffRunnable.OFF_TIME_90_MINUTES);
+
+                } else if (id == R.id.text_2Hours) {
+                    final boolean selected = !v.isSelected();
+                    v.setSelected(selected);
+                    mMoreView.findViewById(R.id.text_whenThisEpisodeEnds).setSelected(false);
+                    mMoreView.findViewById(R.id.text_30Minutes).setSelected(false);
+                    mMoreView.findViewById(R.id.text_anHour).setSelected(false);
+                    mMoreView.findViewById(R.id.text_90Minutes).setSelected(false);
+
+                    updateTimedOffSchedule(selected, TimedOffRunnable.OFF_TIME_2_HOURS);
+
+                } else if (id == R.id.text_mediaplayer) {
+                    if (!v.isSelected()) {
+                        VideoPlayer videoPlayer = VideoPlayer.Factory.newInstance(
+                                SystemVideoPlayer.class, mContext);
+                        if (videoPlayer != null) {
+                            v.setSelected(true);
+                            mMoreView.findViewById(R.id.text_exoplayer).setSelected(false);
+
+                            videoPlayer.setVideoView(TextureVideoView.this);
+                            setVideoPlayer(videoPlayer);
+                        }
+                    }
+                } else if (id == R.id.text_exoplayer) {
+                    if (!v.isSelected()) {
+                        VideoPlayer videoPlayer = VideoPlayer.Factory.newInstance(
+                                ExoVideoPlayer.class, mContext);
+                        if (videoPlayer != null) {
+                            v.setSelected(true);
+                            mMoreView.findViewById(R.id.text_mediaplayer).setSelected(false);
+
+                            videoPlayer.setVideoView(TextureVideoView.this);
+                            setVideoPlayer(videoPlayer);
+                        }
+                    }
+                }
+            }
+        }
+
+        void updateTimedOffSchedule(boolean selected, int offTime) {
+            switch (offTime) {
+                case -1:
+                    mPrivateFlags = mPrivateFlags & ~PFLAG_TURN_OFF_WHEN_THIS_EPISODE_ENDS
+                            | (selected ? PFLAG_TURN_OFF_WHEN_THIS_EPISODE_ENDS : 0);
+                    if (mTimedOffRunnable != null) {
+                        removeCallbacks(mTimedOffRunnable);
+                        mTimedOffRunnable = null;
+                    }
+                    break;
+                case TimedOffRunnable.OFF_TIME_30_MINUTES:
+                case TimedOffRunnable.OFF_TIME_AN_HOUR:
+                case TimedOffRunnable.OFF_TIME_90_MINUTES:
+                case TimedOffRunnable.OFF_TIME_2_HOURS:
+                    mPrivateFlags &= ~PFLAG_TURN_OFF_WHEN_THIS_EPISODE_ENDS;
+                    if (selected) {
+                        if (mTimedOffRunnable == null) {
+                            mTimedOffRunnable = new TimedOffRunnable();
+                        } else {
+                            removeCallbacks(mTimedOffRunnable);
+                        }
+                        mTimedOffRunnable.offTime = offTime;
+                        postDelayed(mTimedOffRunnable, offTime);
+                    } else {
+                        if (mTimedOffRunnable != null) {
+                            removeCallbacks(mTimedOffRunnable);
+                            mTimedOffRunnable = null;
+                        }
+                    }
+                    break;
+            }
+        }
+
+        void showMoreView() {
+            if (mMoreView != null) return;
+
+            View view;
+            mMoreView = view = LayoutInflater.from(mContext).inflate(
+                    R.layout.drawer_view_more, mDrawerView, false);
+            SwitchCompat svb = view.findViewById(R.id.btn_stretchVideo);
+            SwitchCompat lsvb = view.findViewById(R.id.btn_loopSingleVideo);
+            SwitchCompat aatpibb = view.findViewById(R.id.btn_allowAudioToPlayInBackground);
+            TextView whenThisEpisodeEndsText = view.findViewById(R.id.text_whenThisEpisodeEnds);
+            TextView _30MinutesText = view.findViewById(R.id.text_30Minutes);
+            TextView anHourText = view.findViewById(R.id.text_anHour);
+            TextView _90MinutesText = view.findViewById(R.id.text_90Minutes);
+            TextView _2HoursText = view.findViewById(R.id.text_2Hours);
+            TextView mediaplayerText = view.findViewById(R.id.text_mediaplayer);
+            TextView exoplayerText = view.findViewById(R.id.text_exoplayer);
+
+            IVideoPlayer videoPlayer = mVideoPlayer;
+            TimedOffRunnable tor = mTimedOffRunnable;
+            svb.setChecked(isVideoStretchedToFitFullscreenLayout());
+            lsvb.setChecked(videoPlayer != null && videoPlayer.isSingleVideoLoopPlayback());
+            aatpibb.setChecked(videoPlayer != null && videoPlayer.isAudioAllowedToPlayInBackground());
+            whenThisEpisodeEndsText.setSelected((mPrivateFlags & PFLAG_TURN_OFF_WHEN_THIS_EPISODE_ENDS) != 0);
+            _30MinutesText.setSelected(tor != null && tor.offTime == TimedOffRunnable.OFF_TIME_30_MINUTES);
+            anHourText.setSelected(tor != null && tor.offTime == TimedOffRunnable.OFF_TIME_AN_HOUR);
+            _90MinutesText.setSelected(tor != null && tor.offTime == TimedOffRunnable.OFF_TIME_90_MINUTES);
+            _2HoursText.setSelected(tor != null && tor.offTime == TimedOffRunnable.OFF_TIME_2_HOURS);
+            mediaplayerText.setSelected(videoPlayer instanceof SystemVideoPlayer);
+            exoplayerText.setSelected(videoPlayer instanceof ExoVideoPlayer);
+            // Scrolls to a proper horizontal position to make the selected text user-visible
+            ViewGroup hsvc = (ViewGroup) anHourText.getParent();
+            HorizontalScrollView hsv = (HorizontalScrollView) hsvc.getParent();
+            if (_30MinutesText.isSelected()) {
+                _30MinutesText.post(() -> {
+                    final boolean rtl = Utils.isLayoutRtl(hsvc);
+                    hsv.scrollTo(
+                            rtl ? anHourText.getRight() : anHourText.getLeft() - hsv.getWidth(),
+                            0);
+                });
+            } else if (anHourText.isSelected()) {
+                anHourText.post(() -> {
+                    final boolean rtl = Utils.isLayoutRtl(hsvc);
+                    hsv.scrollTo(
+                            rtl ? _90MinutesText.getRight() : _90MinutesText.getLeft() - hsv.getWidth(),
+                            0);
+                });
+            } else if (_90MinutesText.isSelected()) {
+                _90MinutesText.post(() -> {
+                    final boolean rtl = Utils.isLayoutRtl(hsvc);
+                    hsv.scrollTo(
+                            rtl ? _2HoursText.getRight() : _2HoursText.getLeft() - hsv.getWidth(),
+                            0);
+                });
+            } else if (_2HoursText.isSelected()) {
+                _2HoursText.post(() -> {
+                    final boolean rtl = Utils.isLayoutRtl(hsvc);
+                    hsv.fullScroll(rtl ? FOCUS_LEFT : FOCUS_RIGHT);
+                });
+            }
+
+            svb.setOnClickListener(this);
+            lsvb.setOnClickListener(this);
+            aatpibb.setOnClickListener(this);
+            whenThisEpisodeEndsText.setOnClickListener(this);
+            _30MinutesText.setOnClickListener(this);
+            anHourText.setOnClickListener(this);
+            _90MinutesText.setOnClickListener(this);
+            _2HoursText.setOnClickListener(this);
+            mediaplayerText.setOnClickListener(this);
+            exoplayerText.setOnClickListener(this);
+
+            view.setMinimumHeight(mDrawerViewMinimumHeight);
+            mDrawerView.addView(view);
+            openDrawer(mDrawerView);
+        }
+    }
+
+    private final class OnVideoSeekBarChangeListener implements SeekBar.OnSeekBarChangeListener {
+        int start;
+        volatile int current;
+        MediaMetadataRetriever mmr;
+        AsyncTask<Void, Object, Void> task;
+        ParcelableSpan progressTextSpan;
+        ValueAnimator fadeAnimator;
+        ValueAnimator translateAnimator;
+        Animator.AnimatorListener animatorListener;
+        static final int DURATION = 800; // ms
+
+        @Override
+        public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+            if (fromUser) {
+                current = progress;
+                if (mmr == null) {
+                    mSeekingProgressDurationText.setText(getProgressDurationText(progress));
+                    mSeekingProgress.setProgress(progress);
+                }
+                refreshVideoProgress(progress, false);
+
+                if (translateAnimator == null) {
+                    final View target = mmr == null ? mSeekingTextProgressFrame : mSeekingVideoThumbText;
+                    final boolean rtl = Utils.isLayoutRtl(mContentView);
+                    final float end = !rtl && progress > start || rtl && progress < start ?
+                            mSeekingViewHorizontalOffset : -mSeekingViewHorizontalOffset;
+                    ValueAnimator ta;
+                    translateAnimator = ta = ValueAnimator.ofFloat(0, end);
+                    ta.addListener(animatorListener);
+                    ta.addUpdateListener(
+                            animation -> target.setTranslationX((float) animation.getAnimatedValue()));
+                    ta.setDuration(DURATION);
+                    ta.setRepeatMode(ValueAnimator.RESTART);
+                    ta.start();
+                }
+            }
+        }
+
+        @Override
+        public void onStartTrackingTouch(SeekBar seekBar) {
+            current = start = seekBar.getProgress();
+
+            mPrivateFlags |= PFLAG_CONTROLS_SHOW_STICKILY;
+            showControls(-1, true);
+            // Do not refresh the video progress bar with the current playback position
+            // while the user is dragging it.
+            mMsgHandler.removeMessages(MsgHandler.MSG_REFRESH_VIDEO_PROGRESS);
+
+            Animator.AnimatorListener listener = animatorListener;
+            ValueAnimator fa = fadeAnimator;
+            if (fa != null) {
+                // hide the currently showing view (mSeekingVideoThumbText/mSeekingTextProgressFrame)
+                fa.end();
+            }
+            if (translateAnimator != null) {
+                // Reset horizontal translation to 0 for the just hidden view
+                translateAnimator.end();
+            }
+            animatorListener = listener; // Reuse the animator listener if it is not recycled
+            // Decide which view to show
+            if (mVideoPlayer != null && mVideoPlayer.mVideoUri != null && isInFullscreenMode()) {
+                mmr = new MediaMetadataRetriever();
+                try {
+                    mmr.setDataSource(mContext, mVideoPlayer.mVideoUri);
+                } catch (IllegalArgumentException e) {
+                    e.printStackTrace();
+                    mmr.release();
+                    mmr = null;
+                    showSeekingTextProgress(true);
+                }
+                if (mmr != null) {
+                    // The media contains no video content
+                    if (mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_HAS_VIDEO) == null) {
+                        mmr.release();
+                        mmr = null;
+                        showSeekingTextProgress(true);
+                    } else {
+                        task = new UpdateVideoThumbTask();
+                        task.executeOnExecutor(ParallelThreadExecutor.getInstance());
+                        showSeekingVideoThumb(true);
+                    }
+                }
+            } else {
+                showSeekingTextProgress(true);
+            }
+            // Start the fade in animation
+            if (fa == null) {
+                if (animatorListener == null) {
+                    animatorListener = new AnimatorListenerAdapter() {
+                        // Override for compatibility with APIs below 26.
+                        // This will not get called on platforms O and higher.
+                        @Override
+                        public void onAnimationStart(Animator animation) {
+                            onAnimationStart(animation, isReverse(animation));
+                        }
+
+                        // Override for compatibility with APIs below 26.
+                        // This will not get called on platforms O and higher.
+                        @Override
+                        public void onAnimationEnd(Animator animation) {
+                            onAnimationEnd(animation, isReverse(animation));
+                        }
+
+                        boolean isReverse(Animator animation) {
+                            // When reversing, the animation's repeat mode was set to REVERSE
+                            // before it started.
+                            return ((ValueAnimator) animation).getRepeatMode() == ValueAnimator.REVERSE;
+                        }
+
+                        @TargetApi(Build.VERSION_CODES.O)
+                        @Override
+                        public void onAnimationStart(Animator animation, boolean isReverse) {
+                            final boolean isThumbVisible = mSeekingVideoThumbText.getVisibility() == VISIBLE;
+                            final boolean isFadeAnimation = animation == fadeAnimator;
+
+                            Animator other = isFadeAnimation ? translateAnimator : fadeAnimator;
+                            if (other == null || !other.isRunning()) {
+                                updateLayer(LAYER_TYPE_HARDWARE, isThumbVisible);
+                            }
+
+                            if (isFadeAnimation) {
+                                animation.setDuration(isReverse || isThumbVisible ?
+                                        DURATION : (long) (DURATION * 2f / 3f + 0.5f));
+                            }
+                        }
+
+                        @TargetApi(Build.VERSION_CODES.O)
+                        @Override
+                        public void onAnimationEnd(Animator animation, boolean isReverse) {
+                            final boolean isThumbVisible = mSeekingVideoThumbText.getVisibility() == VISIBLE;
+                            final boolean isFadeAnimation = animation == fadeAnimator;
+
+                            Animator other = isFadeAnimation ? translateAnimator : fadeAnimator;
+                            if (other == null || !other.isRunning()) {
+                                updateLayer(LAYER_TYPE_NONE, isThumbVisible);
+                            }
+
+                            if (isReverse) {
+                                if (isFadeAnimation) {
+                                    fadeAnimator = null;
+                                } else {
+                                    translateAnimator = null;
+                                }
+                                if (fadeAnimator == null && translateAnimator == null) {
+                                    animatorListener = null;
+                                    if (isThumbVisible) {
+                                        recycleVideoThumb();
+                                        // Clear the text to make sure it doesn't show anything
+                                        // the next time it appears, otherwise a separate text
+                                        // would be displayed on it, which we do not want.
+                                        mSeekingVideoThumbText.setText("");
+                                        showSeekingVideoThumb(false);
+                                    } else {
+                                        showSeekingTextProgress(false);
+                                    }
+                                }
+                            }
+                        }
+
+                        void updateLayer(int layerType, boolean isThumbVisible) {
+                            if (isThumbVisible) {
+                                mSeekingVideoThumbText.setLayerType(layerType, null);
+                                if (ViewCompat.isAttachedToWindow(mSeekingVideoThumbText)) {
+                                    mSeekingVideoThumbText.buildLayer();
+                                }
+                                mScrimView.setLayerType(layerType, null);
+                                if (ViewCompat.isAttachedToWindow(mScrimView)) {
+                                    mScrimView.buildLayer();
+                                }
+                            } else {
+//                                mSeekingTextProgressFrame.setLayerType(layerType, null);
+//                                if (ViewCompat.isAttachedToWindow(mSeekingTextProgressFrame)) {
+//                                    mSeekingTextProgressFrame.buildLayer();
+//                                }
+                            }
+                        }
+                    };
+                }
+                fadeAnimator = fa = ValueAnimator.ofFloat(0.0f, 1.0f);
+                fa.addListener(animatorListener);
+                fa.addUpdateListener(animation -> {
+                    final float alpha = (float) animation.getAnimatedValue();
+                    if (mSeekingVideoThumbText.getVisibility() == VISIBLE) {
+                        mScrimView.setAlpha(alpha);
+                        mSeekingVideoThumbText.setAlpha(alpha);
+                    } else {
+                        mSeekingTextProgressFrame.setAlpha(alpha);
+                    }
+                });
+            } else {
+                // If the fade in/out animator has not been released before we need one again,
+                // reuse it to avoid unnecessary memory re-allocations.
+                fadeAnimator = fa;
+            }
+            fa.setRepeatMode(ValueAnimator.RESTART);
+            fa.start();
+        }
+
+        @Override
+        public void onStopTrackingTouch(SeekBar seekBar) {
+            if (mVideoPlayer != null) {
+                final int progress = current;
+                if (progress != start)
+                    mVideoPlayer.seekTo(progress, true);
+            }
+
+            mPrivateFlags &= ~PFLAG_CONTROLS_SHOW_STICKILY;
+            showControls(true, false);
+
+            if (mmr != null) {
+                task.cancel(false);
+                task = null;
+                mmr.release();
+                mmr = null;
+            }
+            if (translateAnimator != null) {
+                translateAnimator.setRepeatMode(ValueAnimator.REVERSE);
+                translateAnimator.reverse();
+            }
+            fadeAnimator.setRepeatMode(ValueAnimator.REVERSE);
+            fadeAnimator.reverse();
+        }
+
+        void showSeekingVideoThumb(boolean show) {
+            if (show) {
+                mScrimView.setVisibility(VISIBLE);
+                mSeekingVideoThumbText.setVisibility(VISIBLE);
+            } else {
+                mScrimView.setVisibility(GONE);
+                mSeekingVideoThumbText.setVisibility(GONE);
+            }
+        }
+
+        void showSeekingTextProgress(boolean show) {
+            if (show) {
+                final int progress, duration;
+                if (mVideoPlayer == null) {
+                    duration = progress = 0;
+                } else {
+                    progress = current;
+                    duration = mVideoPlayer.getNoNegativeVideoDuration();
+                }
+                mSeekingProgressDurationText.setText(getProgressDurationText(progress));
+                mSeekingProgress.setMax(duration);
+                mSeekingProgress.setProgress(progress);
+                mSeekingTextProgressFrame.setVisibility(VISIBLE);
+            } else {
+                mSeekingTextProgressFrame.setVisibility(GONE);
+            }
+        }
+
+        CharSequence getProgressDurationText(int progress) {
+            if (progressTextSpan == null) {
+                progressTextSpan = new ForegroundColorSpan(mColorAccent);
+            }
+            final String vds;
+            if (mVideoPlayer == null) {
+                progress = 0;
+                vds = VideoPlayer.DEFAULT_STRING_VIDEO_DURATION;
+            } else {
+                vds = mVideoPlayer.mVideoDurationString;
+            }
+            final String ps = TimeUtil.formatTimeByColon(progress);
+            final SpannableString ss = new SpannableString(
+                    mResources.getString(R.string.progress_duration, ps, vds));
+            ss.setSpan(progressTextSpan, 0, ps.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            return ss;
+        }
+
+        void recycleVideoThumb() {
+            Drawable thumb = mSeekingVideoThumbText.getCompoundDrawables()[3];
+            // Removes the drawable that holds a reference to the bitmap to be recycled,
+            // in case we still use the recycled bitmap on the next drawing of the TextView.
+            mSeekingVideoThumbText.setCompoundDrawables(null, null, null, null);
+            if (thumb instanceof BitmapDrawable) {
+                ((BitmapDrawable) thumb).getBitmap().recycle();
+            }
+        }
+
+        @SuppressLint("StaticFieldLeak")
+        final class UpdateVideoThumbTask extends AsyncTask<Void, Object, Void> {
+            static final boolean RETRIEVE_SCALED_FRAME_FROM_MMR = false;
+            static final float RATIO = 0.25f;
+            int last = -1;
+
+            @Override
+            public Void doInBackground(Void... voids) {
+                while (!isCancelled()) {
+                    int now = current;
+                    if (now == last) continue;
+                    last = now;
+
+                    View tv = mTextureView;
+                    final int width = (int) (tv.getWidth() * tv.getScaleX() * RATIO + 0.5f);
+                    final int height = (int) (tv.getHeight() * tv.getScaleY() * RATIO + 0.5f);
+
+                    Bitmap thumb = null;
+                    if (RETRIEVE_SCALED_FRAME_FROM_MMR
+                            && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+                        thumb = mmr.getScaledFrameAtTime(now * 1000L,
+                                MediaMetadataRetriever.OPTION_CLOSEST_SYNC, width, height);
+                    } else {
+                        Bitmap tmp = mmr.getFrameAtTime(now * 1000L,
+                                MediaMetadataRetriever.OPTION_CLOSEST_SYNC);
+                        if (tmp != null) {
+                            thumb = BitmapUtils.createScaledBitmap(tmp, width, height, true);
+                        }
+                    }
+                    if (thumb == null) continue;
+                    thumb = BitmapUtils.createRoundCornerBitmap(
+                            thumb, mSeekingVideoThumbCornerRadius, true);
+
+                    publishProgress(getProgressDurationText(now), new BitmapDrawable(mResources, thumb));
+                }
+                return null;
+            }
+
+            @Override
+            public void onProgressUpdate(Object... objs) {
+                recycleVideoThumb();
+                mSeekingVideoThumbText.setText((CharSequence) objs[0]);
+                mSeekingVideoThumbText.setCompoundDrawablesWithIntrinsicBounds(
+                        null, null, null, (Drawable) objs[1]);
+            }
         }
     }
 
@@ -3751,7 +3779,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                     .putExtra(InternalConsts.EXTRA_MEDIA_PROGRESS,
                             vp == null ? 0L : (long) vp.getVideoProgress())
                     .putExtra(InternalConsts.EXTRA_MEDIA_DURATION,
-                            vp == null ? 0L : vp.getNoNegativeVideoDuration());
+                            vp == null ? 0L : (long) vp.getNoNegativeVideoDuration());
             if (videoView.mOpCallback != null) {
                 Class<? extends Activity> hostActivityClass = videoView.mOpCallback.getHostActivityClass();
                 if (hostActivityClass != null) {

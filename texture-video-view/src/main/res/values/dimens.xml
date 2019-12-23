@@ -5,12 +5,16 @@
 
 <resources>
     <dimen name="video_title_text_size">16sp</dimen>
-    <dimen name="widget_large_text_size">15.5sp</dimen>
+    <dimen name="widget_large_text_size">15sp</dimen>
+    <dimen name="widget_middle_text_size">14.5sp</dimen>
     <dimen name="widget_small_text_size">14sp</dimen>
     <dimen name="spinner_item_text_size">@dimen/widget_large_text_size</dimen>
-    <dimen name="spinner_dropdown_item_text_size">15sp</dimen>
+    <dimen name="spinner_dropdown_item_text_size">@dimen/widget_middle_text_size</dimen>
     <dimen name="seeking_video_thumb_text_size">16sp</dimen>
     <dimen name="seeking_progress_duration_text_size">17sp</dimen>
+    <dimen name="video_clip_title_text_size">15.5sp</dimen>
+    <dimen name="video_clip_subtitle_text_size">15sp</dimen>
+    <dimen name="video_clip_text_size">14sp</dimen>
 
     <dimen name="progressbarHeight">2dp</dimen>
 
@@ -24,7 +28,7 @@
     <dimen name="brightness_or_volume_frame_height">90dp</dimen>
     <dimen name="brightness_or_volume_frame_corner_radius">3.33dp</dimen>
 
-    <dimen name="cutout_buttons_corner_radius">5dp</dimen>
+    <dimen name="cutout_buttons_corner_radius">2.5dp</dimen>
     <dimen name="cutout_buttons_stroke_width">1.25dp</dimen>
 
     <dimen name="notification_thumb_max_width">64dp</dimen>

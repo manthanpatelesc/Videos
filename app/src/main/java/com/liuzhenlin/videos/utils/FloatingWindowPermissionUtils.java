@@ -25,8 +25,8 @@ import com.liuzhenlin.videos.R;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
-public class FloatingWindowPermissionUtil {
-    private FloatingWindowPermissionUtil() {
+public class FloatingWindowPermissionUtils {
+    private FloatingWindowPermissionUtils() {
     }
 
     public static boolean hasPermission(@NonNull Context context) {
@@ -54,7 +54,7 @@ public class FloatingWindowPermissionUtil {
         return false;
     }
 
-    public static void applyForPermission(@NonNull Activity activity, int requestCode) {
+    public static void applyForPermission(@NonNull final Activity activity, final int requestCode) {
         DialogInterface.OnClickListener listener = new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
@@ -85,7 +85,7 @@ public class FloatingWindowPermissionUtil {
         }
     }
 
-    public static void applyForPermission(@NonNull Fragment fragment, int requestCode) {
+    public static void applyForPermission(@NonNull final Fragment fragment, final int requestCode) {
         DialogInterface.OnClickListener listener = new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
