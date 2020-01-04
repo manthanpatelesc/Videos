@@ -217,7 +217,7 @@ public class ExoVideoPlayer extends VideoPlayer {
     protected void openVideoInternal(@Nullable Surface surface) {
         if (mExoPlayer == null && mVideoUri != null
                 && !(mVideoView != null && surface == null)
-                && (mPrivateFlags & PFLAG_VIDEO_PAUSED_BY_USER) == 0) {
+                && (mInternalFlags & $FLAG_VIDEO_PAUSED_BY_USER) == 0) {
             mExoPlayer = ExoPlayerFactory.newSimpleInstance(mContext);
             mExoPlayer.setVideoSurface(surface);
             mExoPlayer.setAudioAttributes(sDefaultAudioAttrs);
@@ -234,11 +234,11 @@ public class ExoVideoPlayer extends VideoPlayer {
                     switch (playbackState) {
                         case Player.STATE_READY:
                             if (getPlaybackState() == PLAYBACK_STATE_PREPARING) {
-                                if ((mPrivateFlags & PFLAG_VIDEO_INFO_RESOLVED) == 0) {
+                                if ((mInternalFlags & $FLAG_VIDEO_INFO_RESOLVED) == 0) {
                                     final long duration = mExoPlayer.getDuration();
                                     onVideoDurationDetermined(duration == C.TIME_UNSET ?
                                             UNKNOWN_DURATION : (int) duration);
-                                    mPrivateFlags |= PFLAG_VIDEO_INFO_RESOLVED;
+                                    mInternalFlags |= $FLAG_VIDEO_INFO_RESOLVED;
                                 }
                                 setPlaybackState(PLAYBACK_STATE_PREPARED);
                                 play(false);
@@ -373,12 +373,12 @@ public class ExoVideoPlayer extends VideoPlayer {
         // This ensures the video to be started at its beginning position the next time it resumes.
         mSeekOnPlay = 0;
         if (mExoPlayer != null) {
-            if ((mPrivateFlags & PFLAG_VIDEO_IS_CLOSING) != 0) {
+            if ((mInternalFlags & $FLAG_VIDEO_IS_CLOSING) != 0) {
                 setPlaybackState(PLAYBACK_STATE_UNDEFINED);
             } else {
-                // Not clear the PFLAG_VIDEO_INFO_RESOLVED flag
-                mPrivateFlags &= ~(PFLAG_VIDEO_PAUSED_BY_USER
-                        | PFLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER);
+                // Not clear the $FLAG_VIDEO_INFO_RESOLVED flag
+                mInternalFlags &= ~($FLAG_VIDEO_PAUSED_BY_USER
+                        | $FLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER);
                 pause(false);
                 startVideo();
             }
@@ -387,7 +387,7 @@ public class ExoVideoPlayer extends VideoPlayer {
 
     @Override
     public void play(boolean fromUser) {
-        if ((mPrivateFlags & PFLAG_VIDEO_IS_CLOSING) != 0) {
+        if ((mInternalFlags & $FLAG_VIDEO_IS_CLOSING) != 0) {
             // In case the video playback is closing
             return;
         }
@@ -403,7 +403,7 @@ public class ExoVideoPlayer extends VideoPlayer {
                     return;
                 }
 
-                mPrivateFlags &= ~PFLAG_VIDEO_PAUSED_BY_USER;
+                mInternalFlags &= ~$FLAG_VIDEO_PAUSED_BY_USER;
                 openVideo(true);
             } else {
                 Log.w(TAG, "Cannot start playback programmatically before the video is opened");
@@ -458,8 +458,8 @@ public class ExoVideoPlayer extends VideoPlayer {
                         } else if (playbackState == PLAYBACK_STATE_COMPLETED) {
                             mExoPlayer.seekToDefaultPosition();
                         }
-                        mPrivateFlags &= ~PFLAG_VIDEO_PAUSED_BY_USER;
-                        mPrivateFlags |= PFLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER;
+                        mInternalFlags &= ~$FLAG_VIDEO_PAUSED_BY_USER;
+                        mInternalFlags |= $FLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER;
                         onVideoStarted();
 
                         // Register MediaButtonEventReceiver every time the video starts, which
@@ -487,15 +487,15 @@ public class ExoVideoPlayer extends VideoPlayer {
      */
     private void pauseInternal(boolean fromUser) {
         mExoPlayer.setPlayWhenReady(false);
-        mPrivateFlags = mPrivateFlags & ~PFLAG_VIDEO_PAUSED_BY_USER
-                | (fromUser ? PFLAG_VIDEO_PAUSED_BY_USER : 0);
+        mInternalFlags = mInternalFlags & ~$FLAG_VIDEO_PAUSED_BY_USER
+                | (fromUser ? $FLAG_VIDEO_PAUSED_BY_USER : 0);
         onVideoStopped();
     }
 
     @Override
     protected void closeVideoInternal(boolean fromUser) {
-        if (mExoPlayer != null && (mPrivateFlags & PFLAG_VIDEO_IS_CLOSING) == 0) {
-            mPrivateFlags |= PFLAG_VIDEO_IS_CLOSING;
+        if (mExoPlayer != null && (mInternalFlags & $FLAG_VIDEO_IS_CLOSING) == 0) {
+            mInternalFlags |= $FLAG_VIDEO_IS_CLOSING;
 
             if (getPlaybackState() != PLAYBACK_STATE_COMPLETED) {
                 mSeekOnPlay = getVideoProgress();
@@ -505,14 +505,14 @@ public class ExoVideoPlayer extends VideoPlayer {
             mExoPlayer.release();
             mExoPlayer = null;
             mTmpMediaSourceFactory = null;
-            mPrivateFlags &= ~PFLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER;
+            mInternalFlags &= ~$FLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER;
             // Resets the cached playback speed to prepare for the next resume of the video player
             mPlaybackSpeed = DEFAULT_PLAYBACK_SPEED;
 
             mHeadsetEventsReceiver.unregister();
             mHeadsetEventsReceiver = null;
 
-            mPrivateFlags &= ~PFLAG_VIDEO_IS_CLOSING;
+            mInternalFlags &= ~$FLAG_VIDEO_IS_CLOSING;
 
             if (mVideoView != null)
                 mVideoView.showLoadingView(false);
@@ -542,7 +542,7 @@ public class ExoVideoPlayer extends VideoPlayer {
 
     @Override
     public int getVideoProgress() {
-        if ((mPrivateFlags & PFLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER) != 0) {
+        if ((mInternalFlags & $FLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER) != 0) {
             return (int) mExoPlayer.getCurrentPosition();
         }
         if (getPlaybackState() == PLAYBACK_STATE_COMPLETED) {
@@ -588,9 +588,9 @@ public class ExoVideoPlayer extends VideoPlayer {
         if (closed) {
             // Since the playback completion state deters the pause(boolean) method from being called
             // within the closeVideoInternal(boolean) method, we need this extra step to add
-            // the PFLAG_VIDEO_PAUSED_BY_USER flag into mPrivateFlags to denote that the user pauses
+            // the $FLAG_VIDEO_PAUSED_BY_USER flag into mInternalFlags to denote that the user pauses
             // (closes) the video.
-            mPrivateFlags |= PFLAG_VIDEO_PAUSED_BY_USER;
+            mInternalFlags |= $FLAG_VIDEO_PAUSED_BY_USER;
             onVideoStopped();
         }
         return closed;

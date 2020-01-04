@@ -60,6 +60,7 @@ import android.view.animation.AlphaAnimation;
 import android.view.animation.Animation;
 import android.view.animation.Interpolator;
 import android.view.animation.OvershootInterpolator;
+import android.webkit.URLUtil;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Checkable;
@@ -108,6 +109,7 @@ import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -1115,7 +1117,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                     onSingleVideoLoopPlaybackModeChanged(videoPlayer.isSingleVideoLoopPlayback());
                 }
 
-                if ((videoPlayer.mPrivateFlags & VideoPlayer.PFLAG_VIDEO_INFO_RESOLVED) != 0) {
+                if ((videoPlayer.mInternalFlags & VideoPlayer.$FLAG_VIDEO_INFO_RESOLVED) != 0) {
                     onVideoDurationDetermined(videoPlayer.mVideoDuration);
                 }
                 videoPlayer.openVideo();
@@ -1140,8 +1142,8 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                         new ArrayList<>(onPlaybackStateChangeListeners);
             }
             videoPlayer.mOnSkipPrevNextListener = lastVideoPlayer.mOnSkipPrevNextListener;
-            if ((lastVideoPlayer.mPrivateFlags & VideoPlayer.PFLAG_VIDEO_INFO_RESOLVED) != 0) {
-                videoPlayer.mPrivateFlags |= VideoPlayer.PFLAG_VIDEO_INFO_RESOLVED;
+            if ((lastVideoPlayer.mInternalFlags & VideoPlayer.$FLAG_VIDEO_INFO_RESOLVED) != 0) {
+                videoPlayer.mInternalFlags |= VideoPlayer.$FLAG_VIDEO_INFO_RESOLVED;
                 videoPlayer.mVideoWidth = lastVideoPlayer.mVideoWidth;
                 videoPlayer.mVideoHeight = lastVideoPlayer.mVideoHeight;
                 // Call videoPlayer.onVideoDurationDetermined instead of this.onVideoDurationDetermined,
@@ -2210,7 +2212,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
         VideoPlayer videoPlayer = mVideoPlayer;
         // Not available when video info is waiting to be known
         if (videoPlayer == null
-                || (videoPlayer.mPrivateFlags & VideoPlayer.PFLAG_VIDEO_INFO_RESOLVED) == 0) {
+                || (videoPlayer.mInternalFlags & VideoPlayer.$FLAG_VIDEO_INFO_RESOLVED) == 0) {
             return;
         }
 
@@ -2453,11 +2455,16 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                 public Void doInBackground(Void... voids) {
                     MediaMetadataRetriever mmr = new MediaMetadataRetriever();
                     try {
-                        mmr.setDataSource(mContext, videoUri);
+                        final String videoUriString = videoUri.toString();
+                        if (URLUtil.isNetworkUrl(videoUriString)) {
+                            mmr.setDataSource(videoUriString, Collections.emptyMap());
+                        } else {
+                            mmr.setDataSource(mContext, videoUri);
+                        }
                         if (mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_HAS_VIDEO) != null) {
                             for (int i = 0; i < thumbCount && !isCancelled(); ) {
-                                Bitmap frame = mmr.getFrameAtTime(
-                                        (rangeOffset + ++i * range / thumbCount) * 1000L);
+                                Bitmap frame = mmr.getFrameAtTime((long)
+                                        (rangeOffset + (i++ + 0.5) * range / thumbCount) * 1000L);
                                 if (frame == null) {
                                     // If no frame at the specified time position is retrieved,
                                     // create a empty placeholder bitmap instead.
@@ -3360,27 +3367,29 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
             }
             animatorListener = listener; // Reuse the animator listener if it is not recycled
             // Decide which view to show
-            if (mVideoPlayer != null && mVideoPlayer.mVideoUri != null && isInFullscreenMode()) {
-                mmr = new MediaMetadataRetriever();
-                try {
-                    mmr.setDataSource(mContext, mVideoPlayer.mVideoUri);
-                } catch (IllegalArgumentException e) {
-                    e.printStackTrace();
+            if (isInFullscreenMode()) {
+                Uri videoUri = mVideoPlayer == null ? null : mVideoPlayer.mVideoUri;
+                if (videoUri != null && !URLUtil.isNetworkUrl(videoUri.toString())) {
+                    mmr = new MediaMetadataRetriever();
+                    try {
+                        mmr.setDataSource(mContext, videoUri);
+                    } catch (IllegalArgumentException e) {
+                        e.printStackTrace();
+                        mmr.release();
+                        mmr = null;
+                    }
+                }
+            }
+            if (mmr != null) {
+                // The media contains video content
+                if (mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_HAS_VIDEO) != null) {
+                    task = new UpdateVideoThumbTask();
+                    task.executeOnExecutor(ParallelThreadExecutor.getInstance());
+                    showSeekingVideoThumb(true);
+                } else {
                     mmr.release();
                     mmr = null;
                     showSeekingTextProgress(true);
-                }
-                if (mmr != null) {
-                    // The media contains no video content
-                    if (mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_HAS_VIDEO) == null) {
-                        mmr.release();
-                        mmr = null;
-                        showSeekingTextProgress(true);
-                    } else {
-                        task = new UpdateVideoThumbTask();
-                        task.executeOnExecutor(ParallelThreadExecutor.getInstance());
-                        showSeekingVideoThumb(true);
-                    }
                 }
             } else {
                 showSeekingTextProgress(true);

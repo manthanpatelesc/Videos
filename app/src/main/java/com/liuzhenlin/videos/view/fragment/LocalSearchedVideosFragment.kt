@@ -217,8 +217,8 @@ class LocalSearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLon
                 R.drawable.ic_edit_24dp_menu -> mVideoOpCallback?.showRenameItemDialog(video) {
                     mVideos.sortByElementName()
 
-                    if (mSearchText.length == AlgorithmUtil.LCS(
-                                    video.name, mSearchText, false).length) {
+                    if (mSearchText.length ==
+                            AlgorithmUtil.lcs(video.name, mSearchText, true).length) {
                         mSearchedVideos.sortByElementName()
                         val newIndex = mSearchedVideos.indexOf(video)
                         if (newIndex == index) {
@@ -323,8 +323,8 @@ class LocalSearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLon
         var searchedVideos: MutableList<Video>? = null
         if (mSearchText.isNotEmpty()) {
             for (video in mVideos) {
-                if (mSearchText.length == AlgorithmUtil.LCS(
-                                video.name, mSearchText, false).length) {
+                if (mSearchText.length ==
+                        AlgorithmUtil.lcs(video.name, mSearchText, true).length) {
                     if (searchedVideos == null) searchedVideos = mutableListOf()
                     searchedVideos.add(video)
                 }

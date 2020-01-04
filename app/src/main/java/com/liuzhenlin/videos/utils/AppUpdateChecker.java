@@ -6,6 +6,7 @@
 package com.liuzhenlin.videos.utils;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.app.Dialog;
 import android.app.Notification;
 import android.app.NotificationManager;
@@ -20,8 +21,8 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.IBinder;
 import android.os.Message;
+import android.util.Log;
 import android.view.View;
-import android.view.WindowManager;
 import android.widget.RemoteViews;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -67,6 +68,8 @@ public final class AppUpdateChecker {
         void onResult(boolean findNewVersion);
     }
 
+    private static final String TAG = "AppUpdateChecker";
+
     private static final int TIMEOUT_CONNECTION = 10 * 1000; // ms
     private static final int TIMEOUT_READ = 30 * 1000; // ms
 
@@ -77,8 +80,7 @@ public final class AppUpdateChecker {
     private String mVersionName;
     private String mAppLink;
     private StringBuilder mUpdateLog;
-
-    private Dialog mUpdateDialog;
+    private String mPromptDialogAnchorActivityClsName;
 
     private final Context mContext;
     private final Handler mHandler;
@@ -216,13 +218,18 @@ public final class AppUpdateChecker {
                 if (findNewVersion) {
                     mAppName = (String) appInfos.get("appName");
                     mVersionName = (String) appInfos.get("versionName");
+
                     mAppLink = (String) appInfos.get("appLink");
+
                     mUpdateLog = new StringBuilder();
                     //noinspection ConstantConditions
                     for (Object log : (List) appInfos.get("updateLogs")) {
                         mUpdateLog.append(log).append("\n");
                     }
                     mUpdateLog.deleteCharAt(mUpdateLog.length() - 1);
+
+                    mPromptDialogAnchorActivityClsName =
+                            (String) appInfos.get("promptDialogAnchorActivityClsName");
                 }
                 return findNewVersion ? RESULT_FIND_NEW_VERSION : RESULT_NO_NEW_VERSION;
             }
@@ -232,7 +239,7 @@ public final class AppUpdateChecker {
                 switch (result) {
                     case RESULT_FIND_NEW_VERSION:
                         mHandler.sendEmptyMessage(Handler.MSG_FIND_NEW_VERSION);
-                        showUpdateDialog();
+                        showUpdatePromptDialog();
                         break;
                     case RESULT_NO_NEW_VERSION:
                         mHandler.sendEmptyMessage(Handler.MSG_NO_NEW_VERSION);
@@ -265,10 +272,26 @@ public final class AppUpdateChecker {
     /**
      * 弹出对话框，提醒用户更新
      */
-    private void showUpdateDialog() {
-        View view = View.inflate(mContext, R.layout.dialog_update_app, null);
+    private void showUpdatePromptDialog() {
+        //@remove before next release
+        if (mPromptDialogAnchorActivityClsName == null) {
+            mPromptDialogAnchorActivityClsName = "com.liuzhenlin.videos.view.activity.MainActivity";
+        }
+        Activity anchorActivity = ActivityUtils.getActivityForName(mPromptDialogAnchorActivityClsName);
+        if (anchorActivity == null || anchorActivity.isFinishing()) {
+            Log.w(TAG, "The Activity in which the dialog should run does'nt exist, " +
+                    "so it will not be showed at all and this check finishes.");
+            reset();
+            return;
+        }
+
+        final Dialog dialog = new AppCompatDialog(anchorActivity, R.style.DialogStyle_MinWidth_NoTitle);
+
+        View view = View.inflate(anchorActivity, R.layout.dialog_app_update_prompt, null);
+
         view.<TextView>findViewById(R.id.text_updateLogTitle)
                 .setText(mContext.getString(R.string.updateLog, mAppName, mVersionName));
+
         final TextView tv = view.findViewById(R.id.text_updateLog);
         tv.setText(mUpdateLog);
         tv.post(new Runnable() {
@@ -277,14 +300,14 @@ public final class AppUpdateChecker {
                 TextViewUtils.setHangingIndents(tv, 4);
             }
         });
+
         View.OnClickListener listener = new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 switch (v.getId()) {
                     // 当点确定按钮时从服务器上下载新的apk，然后安装
                     case R.id.btn_confirm:
-                        mUpdateDialog.cancel();
-                        mUpdateDialog = null;
+                        dialog.cancel();
                         if (FileUtils2.isExternalStorageMounted()) {
                             mServiceIntent = new Intent(mContext, UpdateAppService.class)
                                     .putExtra(EXTRA_APP_NAME, mAppName)
@@ -299,7 +322,7 @@ public final class AppUpdateChecker {
                         break;
                     // 当点取消按钮时不做任何举动
                     case R.id.btn_cancel:
-                        mUpdateDialog.cancel();
+                        dialog.cancel();
                         reset();
                         break;
                 }
@@ -308,15 +331,14 @@ public final class AppUpdateChecker {
         view.findViewById(R.id.btn_cancel).setOnClickListener(listener);
         view.findViewById(R.id.btn_confirm).setOnClickListener(listener);
 
-        mUpdateDialog = new AppCompatDialog(mContext, R.style.DialogStyle_MinWidth_NoTitle);
-        mUpdateDialog.getWindow().setType(
-                Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
-                        ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-                        : WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);
-        mUpdateDialog.setContentView(view);
-        mUpdateDialog.setCancelable(false);
-        mUpdateDialog.setCanceledOnTouchOutside(false);
-        mUpdateDialog.show();
+//        dialog.getWindow().setType(
+//                Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+//                        ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+//                        : WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);
+        dialog.setContentView(view);
+        dialog.setCancelable(false);
+        dialog.setCanceledOnTouchOutside(false);
+        dialog.show();
     }
 
     private void reset() {
@@ -324,7 +346,7 @@ public final class AppUpdateChecker {
         mVersionName = null;
         mAppLink = null;
         mUpdateLog = null;
-        mUpdateDialog = null;
+        mPromptDialogAnchorActivityClsName = null;
         mCheckInProgress = false;
         mServiceIntent = null;
     }

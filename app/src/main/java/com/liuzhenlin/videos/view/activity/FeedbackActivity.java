@@ -108,7 +108,7 @@ public class FeedbackActivity extends SwipeBackActivity implements View.OnClickL
     @Nullable
     @Override
     public Activity getPreviousActivity() {
-        return App.getActivityByClassName(MainActivity.class.getName());
+        return MainActivity.this$;
     }
 
     @Override

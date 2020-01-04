@@ -3,34 +3,27 @@
   ~ Copyright © 2019 刘振林. All rights reserved.
   -->
 
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<com.google.android.material.textfield.TextInputLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/textinput_videolink"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingTop="200dp"
+    android:layout_marginLeft="5dp"
+    android:layout_marginRight="5dp"
+    android:hint="@string/videoLink"
     android:orientation="vertical">
 
-    <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/textinput_videolink"
+    <com.google.android.material.textfield.TextInputEditText
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="200dp"
-        android:layout_marginLeft="5dp"
-        android:layout_marginRight="5dp"
-        android:hint="@string/videoLink">
-
-        <com.google.android.material.textfield.TextInputEditText
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textSize="@dimen/primary_text_size" />
-    </com.google.android.material.textfield.TextInputLayout>
+        android:textSize="@dimen/primary_text_size" />
 
     <Button
         android:id="@+id/btn_ok"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"
-        android:layout_marginLeft="5dp"
-        android:layout_marginRight="5dp"
         android:text="@string/ok"
         android:textSize="@dimen/primary_text_size"
         android:textColor="@android:color/black" />
-</LinearLayout>
+</com.google.android.material.textfield.TextInputLayout>

@@ -18,7 +18,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.bumptech.glide.Glide;
-import com.liuzhenlin.texturevideoview.utils.BitmapUtils;
 import com.liuzhenlin.videos.App;
 import com.liuzhenlin.videos.Consts;
 import com.liuzhenlin.videos.R;
@@ -45,7 +44,7 @@ public class VideoUtils2 {
         final int thumbHeight /* maxHeight */ = (int) (thumbWidth * 9f / 16f + 0.5f);
 //        final int thumbHeight = height > maxHeight ? maxHeight : height;
 
-        Bitmap bitmap = BitmapUtils.createScaledBitmap(
+        Bitmap bitmap = BitmapUtils2.createScaledBitmap(
                 BitmapFactory.decodeResource(res, R.drawable.ic_default_thumb),
                 thumbWidth, thumbHeight, true);
         Glide.with(context)

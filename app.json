@@ -9,7 +9,8 @@
     "appLink": "https://raw.githubusercontent.com/ApksHolder/Videos/release/app-release.apk",
     "updateLogs": [
       "1. 修复单视频循环播放时，音频后台播放控制通知显示的剩余时长在视频第一次播完后出现负数的bug"
-    ]
+    ],
+    "promptDialogAnchorActivityClsName": "com.liuzhenlin.videos.view.activity.MainActivity"
   },
   "author": "刘振林"
 }

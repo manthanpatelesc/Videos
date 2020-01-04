@@ -5,6 +5,7 @@
 
 package com.liuzhenlin.videos.view.activity;
 
+import android.annotation.SuppressLint;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.Intent;
@@ -56,7 +57,6 @@ import com.liuzhenlin.videos.R;
 import com.liuzhenlin.videos.dao.AppSharedPreferences;
 import com.liuzhenlin.videos.utils.AppUpdateChecker;
 import com.liuzhenlin.videos.utils.ColorUtils;
-import com.liuzhenlin.videos.utils.FloatingWindowPermissionUtils;
 import com.liuzhenlin.videos.utils.OSHelper;
 import com.liuzhenlin.videos.utils.TextViewUtils;
 import com.liuzhenlin.videos.utils.UiUtils;
@@ -78,6 +78,10 @@ import java.io.InputStreamReader;
 public class MainActivity extends AppCompatActivity implements View.OnClickListener,
         AdapterView.OnItemClickListener, SlidingDrawerLayout.OnDrawerScrollListener,
         LocalVideosFragment.InteractionCallback {
+
+    @SuppressLint("StaticFieldLeak")
+    @Nullable
+    /*package*/ static MainActivity this$;
 
     private LocalVideosFragment mLocalVideosFragment;
     private OnlineVideoFragment mOnlineVideoFragment;
@@ -115,8 +119,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        this$ = this;
 
+        setContentView(R.layout.activity_main);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
             Window window = getWindow();
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -125,7 +130,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 SystemBarUtils.setTranslucentStatus(window, true);
             }
         }
-
         if (savedInstanceState == null) {
             mLocalVideosFragment = new LocalVideosFragment();
             mOnlineVideoFragment = new OnlineVideoFragment();
@@ -138,7 +142,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 }
             }
         }
-
         initViews();
     }
 
@@ -266,8 +269,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     protected void onPostCreate(@Nullable Bundle savedInstanceState) {
         super.onPostCreate(savedInstanceState);
-        // 打开应用时自动检测更新（有悬浮窗权限时才去检查，不然弹不出更新提示对话框）
-        checkUpdateIfPermissionGranted(false);
+//        // 打开应用时自动检测更新（有悬浮窗权限时才去检查，不然弹不出更新提示对话框）
+//        checkUpdateIfPermissionGranted(false);
+        checkUpdate(false);
     }
 
     @Override
@@ -297,6 +301,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        this$ = null;
         if (mDrawerList != null) {
             recycleDrawerImage();
         }
@@ -314,9 +319,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     setDrawerBackground(FileUtils.UriResolver.getPath(this, data.getData()));
                 }
                 break;
-            case REQUEST_CODE_APPLY_FOR_FLOATING_WINDOW_PERMISSION:
-                checkUpdateIfPermissionGranted(true);
-                break;
+//            case REQUEST_CODE_APPLY_FOR_FLOATING_WINDOW_PERMISSION:
+//                checkUpdateIfPermissionGranted(true);
+//                break;
         }
     }
 
@@ -461,7 +466,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public void onItemClick(AdapterView<?> listview, View view, int position, long id) {
         switch ((int) id) {
             case R.string.checkForUpdates:
-                checkUpdate();
+                checkUpdate(true);
                 break;
             case R.string.aboutApp:
                 showAboutAppDialog();
@@ -478,21 +483,21 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
-    private void checkUpdate() {
-        if (!FloatingWindowPermissionUtils.hasPermission(this)) {
-            FloatingWindowPermissionUtils.applyForPermission(
-                    this, REQUEST_CODE_APPLY_FOR_FLOATING_WINDOW_PERMISSION);
-            return;
-        }
+    private void checkUpdate(boolean toastResult) {
+//        if (!FloatingWindowPermissionUtils.hasPermission(this)) {
+//            FloatingWindowPermissionUtils.applyForPermission(
+//                    this, REQUEST_CODE_APPLY_FOR_FLOATING_WINDOW_PERMISSION);
+//            return;
+//        }
 
-        baseCheckUpdate(true);
+        baseCheckUpdate(toastResult);
     }
 
-    private void checkUpdateIfPermissionGranted(boolean toastResult) {
-        if (FloatingWindowPermissionUtils.hasPermission(this)) {
-            baseCheckUpdate(toastResult);
-        }
-    }
+//    private void checkUpdateIfPermissionGranted(boolean toastResult) {
+//        if (FloatingWindowPermissionUtils.hasPermission(this)) {
+//            baseCheckUpdate(toastResult);
+//        }
+//    }
 
     private void baseCheckUpdate(boolean toastResult) {
         AppUpdateChecker auc = AppUpdateChecker.getInstance(this);

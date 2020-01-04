@@ -13,7 +13,7 @@ import androidx.core.content.ContextCompat
  */
 
 @JvmField
-internal val DEBUG_APP_UPDATE = BuildConfig.DEBUG && true
+internal val DEBUG_APP_UPDATE = BuildConfig.DEBUG && false
 
 internal const val KEY_DIRECTORY_PATH = "path_directory"
 internal const val KEY_VIDEODIR = "videodir"

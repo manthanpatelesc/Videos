@@ -47,22 +47,22 @@ public class SystemVideoPlayer extends VideoPlayer {
      * Flag used to indicate that the volume of the video is auto-turned down by the system
      * when the player temporarily loses the audio focus.
      */
-    private static final int PFLAG_VIDEO_VOLUME_TURNED_DOWN_AUTOMATICALLY = 1 << 31;
+    private static final int $FLAG_VIDEO_VOLUME_TURNED_DOWN_AUTOMATICALLY = 1 << 31;
 
     /**
      * Flag indicates that a position seek request happens when the video is not playing.
      */
-    private static final int PFLAG_SEEK_POSITION_WHILE_VIDEO_PAUSED = 1 << 30;
+    private static final int $FLAG_SEEK_POSITION_WHILE_VIDEO_PAUSED = 1 << 30;
 
     /**
      * If true, MediaPlayer is moving the media to some specified time position
      */
-    private static final int PFLAG_SEEKING = 1 << 29;
+    private static final int $FLAG_SEEKING = 1 << 29;
 
     /**
      * If true, MediaPlayer is temporarily pausing playback internally in order to buffer more data.
      */
-    private static final int PFLAG_BUFFERING = 1 << 28;
+    private static final int $FLAG_BUFFERING = 1 << 28;
 
     private MediaPlayer mMediaPlayer;
 
@@ -81,8 +81,8 @@ public class SystemVideoPlayer extends VideoPlayer {
             switch (focusChange) {
                 // Audio focus gained
                 case AudioManager.AUDIOFOCUS_GAIN:
-                    if ((mPrivateFlags & PFLAG_VIDEO_VOLUME_TURNED_DOWN_AUTOMATICALLY) != 0) {
-                        mPrivateFlags &= ~PFLAG_VIDEO_VOLUME_TURNED_DOWN_AUTOMATICALLY;
+                    if ((mInternalFlags & $FLAG_VIDEO_VOLUME_TURNED_DOWN_AUTOMATICALLY) != 0) {
+                        mInternalFlags &= ~$FLAG_VIDEO_VOLUME_TURNED_DOWN_AUTOMATICALLY;
                         mMediaPlayer.setVolume(1.0f, 1.0f);
                     }
                     play(false);
@@ -112,7 +112,7 @@ public class SystemVideoPlayer extends VideoPlayer {
                 // Temporarily lose the audio focus but the playback can continue.
                 // The volume of the playback needs to be turned down.
                 case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK:
-                    mPrivateFlags |= PFLAG_VIDEO_VOLUME_TURNED_DOWN_AUTOMATICALLY;
+                    mInternalFlags |= $FLAG_VIDEO_VOLUME_TURNED_DOWN_AUTOMATICALLY;
                     mMediaPlayer.setVolume(0.5f, 0.5f);
                     break;
             }
@@ -163,7 +163,7 @@ public class SystemVideoPlayer extends VideoPlayer {
     protected void openVideoInternal(@Nullable Surface surface) {
         if (mMediaPlayer == null && mVideoUri != null
                 && !(mVideoView != null && surface == null)
-                && (mPrivateFlags & PFLAG_VIDEO_PAUSED_BY_USER) == 0) {
+                && (mInternalFlags & $FLAG_VIDEO_PAUSED_BY_USER) == 0) {
             mMediaPlayer = new MediaPlayer();
             mMediaPlayer.setSurface(surface);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -175,9 +175,9 @@ public class SystemVideoPlayer extends VideoPlayer {
                 if (mVideoView != null) {
                     mVideoView.showLoadingView(false);
                 }
-                if ((mPrivateFlags & PFLAG_VIDEO_INFO_RESOLVED) == 0) {
+                if ((mInternalFlags & $FLAG_VIDEO_INFO_RESOLVED) == 0) {
                     onVideoDurationDetermined(mp.getDuration());
-                    mPrivateFlags |= PFLAG_VIDEO_INFO_RESOLVED;
+                    mInternalFlags |= $FLAG_VIDEO_INFO_RESOLVED;
                 }
                 setPlaybackState(PLAYBACK_STATE_PREPARED);
                 play(false);
@@ -185,8 +185,8 @@ public class SystemVideoPlayer extends VideoPlayer {
             mMediaPlayer.setOnVideoSizeChangedListener((mp, width, height)
                     -> onVideoSizeChanged(width, height));
             mMediaPlayer.setOnSeekCompleteListener(mp -> {
-                mPrivateFlags &= ~PFLAG_SEEKING;
-                if ((mPrivateFlags & PFLAG_BUFFERING) == 0) {
+                mInternalFlags &= ~$FLAG_SEEKING;
+                if ((mInternalFlags & $FLAG_BUFFERING) == 0) {
                     if (mVideoView != null)
                         mVideoView.showLoadingView(false);
                 }
@@ -195,15 +195,15 @@ public class SystemVideoPlayer extends VideoPlayer {
             mMediaPlayer.setOnInfoListener((mp, what, extra) -> {
                 switch (what) {
                     case MediaPlayer.MEDIA_INFO_BUFFERING_START:
-                        mPrivateFlags |= PFLAG_BUFFERING;
-                        if ((mPrivateFlags & PFLAG_SEEKING) == 0) {
+                        mInternalFlags |= $FLAG_BUFFERING;
+                        if ((mInternalFlags & $FLAG_SEEKING) == 0) {
                             if (mVideoView != null)
                                 mVideoView.showLoadingView(true);
                         }
                         break;
                     case MediaPlayer.MEDIA_INFO_BUFFERING_END:
-                        mPrivateFlags &= ~PFLAG_BUFFERING;
-                        if ((mPrivateFlags & PFLAG_SEEKING) == 0) {
+                        mInternalFlags &= ~$FLAG_BUFFERING;
+                        if ((mInternalFlags & $FLAG_SEEKING) == 0) {
                             if (mVideoView != null)
                                 mVideoView.showLoadingView(false);
                         }
@@ -325,14 +325,14 @@ public class SystemVideoPlayer extends VideoPlayer {
         // This ensures the video to be started at its beginning position the next time it resumes.
         mSeekOnPlay = 0;
         if (mMediaPlayer != null) {
-            if ((mPrivateFlags & PFLAG_VIDEO_IS_CLOSING) != 0) {
+            if ((mInternalFlags & $FLAG_VIDEO_IS_CLOSING) != 0) {
                 setPlaybackState(PLAYBACK_STATE_UNDEFINED);
             } else {
-                // Not clear the PFLAG_VIDEO_INFO_RESOLVED flag
-                mPrivateFlags &= ~(PFLAG_VIDEO_PAUSED_BY_USER
-                        | PFLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER
-                        | PFLAG_SEEKING
-                        | PFLAG_BUFFERING);
+                // Not clear the $FLAG_VIDEO_INFO_RESOLVED flag
+                mInternalFlags &= ~($FLAG_VIDEO_PAUSED_BY_USER
+                        | $FLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER
+                        | $FLAG_SEEKING
+                        | $FLAG_BUFFERING);
                 pause(false);
                 // Resets below to prepare for the next resume of the video player
                 mPlaybackSpeed = DEFAULT_PLAYBACK_SPEED;
@@ -345,7 +345,7 @@ public class SystemVideoPlayer extends VideoPlayer {
 
     @Override
     public void play(boolean fromUser) {
-        if ((mPrivateFlags & PFLAG_VIDEO_IS_CLOSING) != 0) {
+        if ((mInternalFlags & $FLAG_VIDEO_IS_CLOSING) != 0) {
             // In case the video playback is closing
             return;
         }
@@ -361,7 +361,7 @@ public class SystemVideoPlayer extends VideoPlayer {
                     return;
                 }
 
-                mPrivateFlags &= ~PFLAG_VIDEO_PAUSED_BY_USER;
+                mInternalFlags &= ~$FLAG_VIDEO_PAUSED_BY_USER;
                 openVideo(true);
             } else {
                 Log.w(TAG, "Cannot start playback programmatically before the video is opened");
@@ -379,15 +379,15 @@ public class SystemVideoPlayer extends VideoPlayer {
 
             case PLAYBACK_STATE_ERROR:
                 // Retries the failed playback after error occurred
-                mPrivateFlags &= ~(PFLAG_SEEKING | PFLAG_BUFFERING);
+                mInternalFlags &= ~($FLAG_SEEKING | $FLAG_BUFFERING);
                 mPlaybackSpeed = DEFAULT_PLAYBACK_SPEED;
                 mBuffering = 0;
-                if ((mPrivateFlags & PFLAG_SEEK_POSITION_WHILE_VIDEO_PAUSED) == 0) {
+                if ((mInternalFlags & $FLAG_SEEK_POSITION_WHILE_VIDEO_PAUSED) == 0) {
                     // Record the current playback position only if there is no external program code
                     // requesting a position seek in this case.
                     mSeekOnPlay = getVideoProgress();
                 }
-                mPrivateFlags &= ~PFLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER;
+                mInternalFlags &= ~$FLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER;
                 mMediaPlayer.reset();
                 startVideo();
                 break;
@@ -424,12 +424,12 @@ public class SystemVideoPlayer extends VideoPlayer {
                             setPlaybackSpeedInternal(mUserPlaybackSpeed);
                         }
                         // Ensure the player's volume is at its maximum
-                        if ((mPrivateFlags & PFLAG_VIDEO_VOLUME_TURNED_DOWN_AUTOMATICALLY) != 0) {
-                            mPrivateFlags &= ~PFLAG_VIDEO_VOLUME_TURNED_DOWN_AUTOMATICALLY;
+                        if ((mInternalFlags & $FLAG_VIDEO_VOLUME_TURNED_DOWN_AUTOMATICALLY) != 0) {
+                            mInternalFlags &= ~$FLAG_VIDEO_VOLUME_TURNED_DOWN_AUTOMATICALLY;
                             mMediaPlayer.setVolume(1.0f, 1.0f);
                         }
-                        mPrivateFlags &= ~PFLAG_VIDEO_PAUSED_BY_USER;
-                        mPrivateFlags |= PFLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER;
+                        mInternalFlags &= ~$FLAG_VIDEO_PAUSED_BY_USER;
+                        mInternalFlags |= $FLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER;
                         onVideoStarted();
 
                         // Register MediaButtonEventReceiver every time the video starts, which
@@ -457,15 +457,15 @@ public class SystemVideoPlayer extends VideoPlayer {
      */
     private void pauseInternal(boolean fromUser) {
         mMediaPlayer.pause();
-        mPrivateFlags = mPrivateFlags & ~PFLAG_VIDEO_PAUSED_BY_USER
-                | (fromUser ? PFLAG_VIDEO_PAUSED_BY_USER : 0);
+        mInternalFlags = mInternalFlags & ~$FLAG_VIDEO_PAUSED_BY_USER
+                | (fromUser ? $FLAG_VIDEO_PAUSED_BY_USER : 0);
         onVideoStopped();
     }
 
     @Override
     protected void closeVideoInternal(boolean fromUser) {
-        if (mMediaPlayer != null && (mPrivateFlags & PFLAG_VIDEO_IS_CLOSING) == 0) {
-            mPrivateFlags |= PFLAG_VIDEO_IS_CLOSING;
+        if (mMediaPlayer != null && (mInternalFlags & $FLAG_VIDEO_IS_CLOSING) == 0) {
+            mInternalFlags |= $FLAG_VIDEO_IS_CLOSING;
 
             if (getPlaybackState() != PLAYBACK_STATE_COMPLETED) {
                 mSeekOnPlay = getVideoProgress();
@@ -474,11 +474,11 @@ public class SystemVideoPlayer extends VideoPlayer {
             abandonAudioFocus();
             mMediaPlayer.release();
             mMediaPlayer = null;
-            // Not clear the PFLAG_VIDEO_INFO_RESOLVED flag
-            mPrivateFlags &= ~(PFLAG_VIDEO_VOLUME_TURNED_DOWN_AUTOMATICALLY
-                    | PFLAG_SEEKING
-                    | PFLAG_BUFFERING
-                    | PFLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER);
+            // Not clear the $FLAG_VIDEO_INFO_RESOLVED flag
+            mInternalFlags &= ~($FLAG_VIDEO_VOLUME_TURNED_DOWN_AUTOMATICALLY
+                    | $FLAG_SEEKING
+                    | $FLAG_BUFFERING
+                    | $FLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER);
             // Resets below to prepare for the next resume of the video player
             mPlaybackSpeed = DEFAULT_PLAYBACK_SPEED;
             mBuffering = 0;
@@ -486,7 +486,7 @@ public class SystemVideoPlayer extends VideoPlayer {
             mHeadsetEventsReceiver.unregister();
             mHeadsetEventsReceiver = null;
 
-            mPrivateFlags &= ~PFLAG_VIDEO_IS_CLOSING;
+            mInternalFlags &= ~$FLAG_VIDEO_IS_CLOSING;
 
             if (mVideoView != null)
                 mVideoView.showLoadingView(false);
@@ -509,10 +509,10 @@ public class SystemVideoPlayer extends VideoPlayer {
         if (isPlaying()) {
             seekToInternal(positionMs);
         } else {
-            mPrivateFlags |= PFLAG_SEEK_POSITION_WHILE_VIDEO_PAUSED;
+            mInternalFlags |= $FLAG_SEEK_POSITION_WHILE_VIDEO_PAUSED;
             mSeekOnPlay = positionMs;
             play(fromUser);
-            mPrivateFlags &= ~PFLAG_SEEK_POSITION_WHILE_VIDEO_PAUSED;
+            mInternalFlags &= ~$FLAG_SEEK_POSITION_WHILE_VIDEO_PAUSED;
         }
     }
 
@@ -520,11 +520,11 @@ public class SystemVideoPlayer extends VideoPlayer {
      * Similar to {@link #seekTo(int, boolean)}, but without check to the playing state.
      */
     private void seekToInternal(int positionMs) {
-        if ((mPrivateFlags & PFLAG_BUFFERING) == 0) {
+        if ((mInternalFlags & $FLAG_BUFFERING) == 0) {
             if (mVideoView != null)
                 mVideoView.showLoadingView(true);
         }
-        mPrivateFlags |= PFLAG_SEEKING;
+        mInternalFlags |= $FLAG_SEEKING;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             // Precise seek with larger performance overhead compared to the default one.
             // Slow! Really slow!
@@ -543,7 +543,7 @@ public class SystemVideoPlayer extends VideoPlayer {
             // case of which instead, here is the duration returned to avoid progress inconsistencies.
             return mVideoDuration;
         }
-        if ((mPrivateFlags & PFLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER) != 0) {
+        if ((mInternalFlags & $FLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER) != 0) {
             return mMediaPlayer.getCurrentPosition();
         }
         return mSeekOnPlay;
@@ -610,9 +610,9 @@ public class SystemVideoPlayer extends VideoPlayer {
         if (closed) {
             // Since the playback completion state deters the pause(boolean) method from being called
             // within the closeVideoInternal(boolean) method, we need this extra step to add
-            // the PFLAG_VIDEO_PAUSED_BY_USER flag into mPrivateFlags to denote that the user pauses
+            // the $FLAG_VIDEO_PAUSED_BY_USER flag into mInternalFlags to denote that the user pauses
             // (closes) the video.
-            mPrivateFlags |= PFLAG_VIDEO_PAUSED_BY_USER;
+            mInternalFlags |= $FLAG_VIDEO_PAUSED_BY_USER;
             onVideoStopped();
         }
         return closed;

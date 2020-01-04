@@ -5,16 +5,13 @@
 
 package com.liuzhenlin.videos;
 
-import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
 import android.content.res.Configuration;
-import android.os.Bundle;
 import android.os.Environment;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.collection.SimpleArrayMap;
 import androidx.multidex.MultiDex;
 
 import com.bumptech.glide.Glide;
@@ -24,21 +21,17 @@ import com.squareup.leakcanary.LeakCanary;
 import com.squareup.leakcanary.RefWatcher;
 
 import java.io.File;
-import java.lang.ref.WeakReference;
 
 /**
  * @author 刘振林
  */
-public class App extends Application implements Application.ActivityLifecycleCallbacks {
+public class App extends Application {
 
     private static App sApp;
 
-    private static final SimpleArrayMap</* class name */ String, WeakReference<Activity>> sActivities
-            = new SimpleArrayMap<>(3);
+    private static volatile String sAppDirectory;
 
-    private static String sAppDirectory;
-
-    private String mAuthority;
+    private volatile String mAuthority;
 
     private int mStatusHeight;
 
@@ -75,7 +68,6 @@ public class App extends Application implements Application.ActivityLifecycleCal
 
         sApp = this;
         mStatusHeight = SystemBarUtils.getStatusHeight(this);
-        registerActivityLifecycleCallbacks(this);
         registerComponentCallbacks(Glide.get(this));
     }
 
@@ -92,7 +84,12 @@ public class App extends Application implements Application.ActivityLifecycleCal
     @NonNull
     public static String getAppDirectory() {
         if (sAppDirectory == null) {
-            sAppDirectory = Environment.getExternalStorageDirectory() + File.separator + "videos_lzl";
+            synchronized (App.class) {
+                if (sAppDirectory == null) {
+                    sAppDirectory = Environment.getExternalStorageDirectory() + File.separator
+                            + "videos_lzl";
+                }
+            }
         }
         return sAppDirectory;
     }
@@ -100,7 +97,11 @@ public class App extends Application implements Application.ActivityLifecycleCal
     @NonNull
     public String getAuthority() {
         if (mAuthority == null) {
-            mAuthority = getPackageName() + ".provider";
+            synchronized (this) {
+                if (mAuthority == null) {
+                    mAuthority = getPackageName() + ".provider";
+                }
+            }
         }
         return mAuthority;
     }
@@ -112,20 +113,24 @@ public class App extends Application implements Application.ActivityLifecycleCal
     @SuppressWarnings("SuspiciousNameCombination")
     public int getScreenWidthIgnoreOrientation() {
         if (mScreenWidth == -1) {
-            int screenWidth = DensityUtils.getScreenWidth(this);
-            if (getResources().getConfiguration().orientation
-                    != Configuration.ORIENTATION_PORTRAIT) {
-                //@formatter:off
-                int screenHeight  = DensityUtils.getScreenHeight(this);
-                if (screenWidth   > screenHeight) {
-                    screenWidth  ^= screenHeight;
-                    screenHeight ^= screenWidth;
-                    screenWidth  ^= screenHeight;
+            synchronized (this) {
+                if (mScreenWidth == -1) {
+                    int screenWidth = DensityUtils.getScreenWidth(this);
+                    if (getResources().getConfiguration().orientation
+                            != Configuration.ORIENTATION_PORTRAIT) {
+                        //@formatter:off
+                        int screenHeight  = DensityUtils.getScreenHeight(this);
+                        if (screenWidth   > screenHeight) {
+                            screenWidth  ^= screenHeight;
+                            screenHeight ^= screenWidth;
+                            screenWidth  ^= screenHeight;
+                        }
+                        //@formatter:on
+                        mScreenHeight = screenHeight;
+                    }
+                    mScreenWidth = screenWidth;
                 }
-                //@formatter:on
-                mScreenHeight = screenHeight;
             }
-            mScreenWidth = screenWidth;
         }
         return mScreenWidth;
     }
@@ -133,19 +138,23 @@ public class App extends Application implements Application.ActivityLifecycleCal
     @SuppressWarnings("SuspiciousNameCombination")
     public int getScreenHeightIgnoreOrientation() {
         if (mScreenHeight == -1) {
-            int screenHeight = DensityUtils.getScreenHeight(this);
-            if (getResources().getConfiguration().orientation
-                    != Configuration.ORIENTATION_PORTRAIT) {
-                //@formatter:off
-                int screenWidth   = DensityUtils.getScreenWidth(this);
-                if (screenWidth   > screenHeight) {
-                    screenWidth  ^= screenHeight;
-                    screenHeight ^= screenWidth;
+            synchronized (this) {
+                if (mScreenHeight == -1) {
+                    int screenHeight = DensityUtils.getScreenHeight(this);
+                    if (getResources().getConfiguration().orientation
+                            != Configuration.ORIENTATION_PORTRAIT) {
+                        //@formatter:off
+                        int screenWidth   = DensityUtils.getScreenWidth(this);
+                        if (screenWidth   > screenHeight) {
+                            screenWidth  ^= screenHeight;
+                            screenHeight ^= screenWidth;
+                        }
+                        //@formatter:on
+                        mScreenWidth = screenWidth;
+                    }
+                    mScreenHeight = screenHeight;
                 }
-                //@formatter:on
-                mScreenWidth = screenWidth;
             }
-            mScreenHeight = screenHeight;
         }
         return mScreenHeight;
     }
@@ -153,20 +162,24 @@ public class App extends Application implements Application.ActivityLifecycleCal
     @SuppressWarnings("SuspiciousNameCombination")
     public int getRealScreenWidthIgnoreOrientation() {
         if (mRealScreenWidth == -1) {
-            int screenWidth = DensityUtils.getRealScreenWidth(this);
-            if (getResources().getConfiguration().orientation
-                    != Configuration.ORIENTATION_PORTRAIT) {
-                //@formatter:off
-                int screenHeight  = DensityUtils.getRealScreenHeight(this);
-                if (screenWidth   > screenHeight) {
-                    screenWidth  ^= screenHeight;
-                    screenHeight ^= screenWidth;
-                    screenWidth  ^= screenHeight;
+            synchronized (this) {
+                if (mRealScreenWidth == -1) {
+                    int screenWidth = DensityUtils.getRealScreenWidth(this);
+                    if (getResources().getConfiguration().orientation
+                            != Configuration.ORIENTATION_PORTRAIT) {
+                        //@formatter:off
+                        int screenHeight  = DensityUtils.getRealScreenHeight(this);
+                        if (screenWidth   > screenHeight) {
+                            screenWidth  ^= screenHeight;
+                            screenHeight ^= screenWidth;
+                            screenWidth  ^= screenHeight;
+                        }
+                        //@formatter:on
+                        mRealScreenHeight = screenHeight;
+                    }
+                    mRealScreenWidth = screenWidth;
                 }
-                //@formatter:on
-                mRealScreenHeight = screenHeight;
             }
-            mRealScreenWidth = screenWidth;
         }
         return mRealScreenWidth;
     }
@@ -174,26 +187,34 @@ public class App extends Application implements Application.ActivityLifecycleCal
     @SuppressWarnings("SuspiciousNameCombination")
     public int getRealScreenHeightIgnoreOrientation() {
         if (mRealScreenHeight == -1) {
-            int screenHeight = DensityUtils.getRealScreenHeight(this);
-            if (getResources().getConfiguration().orientation
-                    != Configuration.ORIENTATION_PORTRAIT) {
-                //@formatter:off
-                int screenWidth   = DensityUtils.getRealScreenWidth(this);
-                if (screenWidth   > screenHeight) {
-                    screenWidth  ^= screenHeight;
-                    screenHeight ^= screenWidth;
+            synchronized (this) {
+                if (mRealScreenHeight == -1) {
+                    int screenHeight = DensityUtils.getRealScreenHeight(this);
+                    if (getResources().getConfiguration().orientation
+                            != Configuration.ORIENTATION_PORTRAIT) {
+                        //@formatter:off
+                        int screenWidth   = DensityUtils.getRealScreenWidth(this);
+                        if (screenWidth   > screenHeight) {
+                            screenWidth  ^= screenHeight;
+                            screenHeight ^= screenWidth;
+                        }
+                        //@formatter:on
+                        mRealScreenWidth = screenWidth;
+                    }
+                    mRealScreenHeight = screenHeight;
                 }
-                //@formatter:on
-                mRealScreenWidth = screenWidth;
             }
-            mRealScreenHeight = screenHeight;
         }
         return mRealScreenHeight;
     }
 
     public int getVideoThumbWidth() {
         if (mVideoThumbWidth == -1) {
-            mVideoThumbWidth = (int) (getScreenWidthIgnoreOrientation() * 0.2778f + 0.5f);
+            synchronized (this) {
+                if (mVideoThumbWidth == -1) {
+                    mVideoThumbWidth = (int) (getScreenWidthIgnoreOrientation() * 0.2778f + 0.5f);
+                }
+            }
         }
         return mVideoThumbWidth;
     }
@@ -201,49 +222,5 @@ public class App extends Application implements Application.ActivityLifecycleCal
     @NonNull
     public RefWatcher getRefWatcher() {
         return mRefWatcher;
-    }
-
-    @Nullable
-    public static <A extends Activity> A getActivityByClassName(@Nullable String clsName) {
-        WeakReference<Activity> activityRef = sActivities.get(clsName);
-        if (activityRef != null) {
-            //noinspection unchecked
-            A activity = (A) activityRef.get();
-            if (activity == null) {
-                sActivities.remove(clsName);
-            }
-            return activity;
-        }
-        return null;
-    }
-
-    @Override
-    public void onActivityCreated(@NonNull Activity activity, @Nullable Bundle savedInstanceState) {
-        sActivities.put(activity.getClass().getName(), new WeakReference<>(activity));
-    }
-
-    @Override
-    public void onActivityStarted(@NonNull Activity activity) {
-    }
-
-    @Override
-    public void onActivityResumed(@NonNull Activity activity) {
-    }
-
-    @Override
-    public void onActivityPaused(@NonNull Activity activity) {
-    }
-
-    @Override
-    public void onActivityStopped(@NonNull Activity activity) {
-    }
-
-    @Override
-    public void onActivitySaveInstanceState(@NonNull Activity activity, @NonNull Bundle outState) {
-    }
-
-    @Override
-    public void onActivityDestroyed(@NonNull Activity activity) {
-        sActivities.remove(activity.getClass().getName());
     }
 }

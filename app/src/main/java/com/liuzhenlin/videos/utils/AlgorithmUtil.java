@@ -7,7 +7,7 @@ package com.liuzhenlin.videos.utils;
 
 import androidx.annotation.NonNull;
 
-import java.util.Stack;
+import java.util.LinkedList;
 
 /**
  * @author 刘振林
@@ -20,41 +20,37 @@ public class AlgorithmUtil {
      * 求解str1 和 str2 的最长公共子序列（忽略字母大小写）
      */
     @NonNull
-    public static String LCS(@NonNull String str1, @NonNull String str2, boolean caseSensitive) {
-        if (!caseSensitive) {
+    public static String lcs(@NonNull String str1, @NonNull String str2, boolean ignoreCase) {
+        if (ignoreCase) {
             str1 = str1.toLowerCase();
             str2 = str2.toLowerCase();
         }
 
-        final char[] s1 = str1.toCharArray();
-        final char[] s2 = str2.toCharArray();
+        final char[] chars1 = str1.toCharArray();
+        final char[] chars2 = str2.toCharArray();
         // 此处的棋盘长度要比字符串长度多加1，需要多存储一行0和一列0
-        final int[][] array = new int[s1.length + 1][s2.length + 1];
+        final int[][] array = new int[chars1.length + 1][chars2.length + 1];
 
-        for (int i = 0; i < array.length; i++) { // 第i行，第0列全部为0
-            array[i][0] = 0;
+        for (int i = 0; i < array[0].length; i++) { // 第0行第i列全部赋值为0
+            array[0][i] = 0;
         }
-        for (int j = 0; j < array[0].length; j++) { // 第0行第j列全部赋值为0
-            array[0][j] = 0;
+        for (int j = 0; j < array.length; j++) { // 第j行，第0列全部为0
+            array[j][0] = 0;
         }
-
         for (int i = 1; i < array.length; i++) { // 利用动态规划将数组赋满值
             for (int j = 1; j < array[i].length; j++) {
-                if (s1[i - 1] == s2[j - 1]) {
-                    array[i][j] = array[i - 1][j - 1] + 1;
+                if (chars1[i - 1] == chars2[j - 1]) {
+                    array[i][j] = array[i - 1][j - 1] + 1; // 动态规划公式一
                 } else {
-                    array[i][j] = Math.max(array[i - 1][j], array[i][j - 1]);
+                    array[i][j] = Math.max(array[i - 1][j], array[i][j - 1]); // 动态规划公式二
                 }
             }
         }
 
-        Stack<Character> stack = new Stack<>();
-        int i = s1.length - 1;
-        int j = s2.length - 1;
-
-        while (i >= 0 && j >= 0) {
-            if (s1[i] == s2[j]) { // 字符串从后开始遍历，如若相等，则存入栈中
-                stack.push(s1[i]);
+        LinkedList<Character> stack = new LinkedList<>();
+        for (int i = chars1.length - 1, j = chars2.length - 1; i >= 0 && j >= 0; ) {
+            if (chars1[i] == chars2[j]) { // 字符串从后开始遍历，如若相等，则存入栈中
+                stack.push(chars1[i]);
                 i--;
                 j--;
             } else {

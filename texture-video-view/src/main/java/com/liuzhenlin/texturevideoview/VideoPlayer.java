@@ -51,24 +51,24 @@ public abstract class VideoPlayer implements IVideoPlayer {
     @Nullable
     protected AbsTextureVideoView mVideoView;
 
-    protected int mPrivateFlags;
+    protected int mInternalFlags;
 
     /** Set via {@link #setAudioAllowedToPlayInBackground(boolean)} */
-    private static final int PFLAG_AUDIO_ALLOWED_TO_PLAY_IN_BACKGROUND = 1;
+    private static final int $FLAG_AUDIO_ALLOWED_TO_PLAY_IN_BACKGROUND = 1;
 
     /** Set via {@link #setSingleVideoLoopPlayback(boolean)} */
-    private static final int PFLAG_SINGLE_VIDEO_LOOP_PLAYBACK = 1 << 1;
+    private static final int $FLAG_SINGLE_VIDEO_LOOP_PLAYBACK = 1 << 1;
 
     /** Indicates that the video info (width, height, duration, etc.) is now available. */
-    protected static final int PFLAG_VIDEO_INFO_RESOLVED = 1 << 2;
+    protected static final int $FLAG_VIDEO_INFO_RESOLVED = 1 << 2;
 
     /**
      * Whether we can now get the actual video playback position directly from the video player.
      */
-    protected static final int PFLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER = 1 << 3;
+    protected static final int $FLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER = 1 << 3;
 
     /** Indicates that the video is manually paused by the user. */
-    protected static final int PFLAG_VIDEO_PAUSED_BY_USER = 1 << 4;
+    protected static final int $FLAG_VIDEO_PAUSED_BY_USER = 1 << 4;
 
     /**
      * Flag indicates the video is being closed, i.e., we are releasing the player object,
@@ -76,7 +76,7 @@ public abstract class VideoPlayer implements IVideoPlayer {
      * (this may happen as we call the onVideoStopped() method of the VideoListener object in our
      * closeVideoInternal() method if the view is currently playing).
      */
-    protected static final int PFLAG_VIDEO_IS_CLOSING = 1 << 5;
+    protected static final int $FLAG_VIDEO_IS_CLOSING = 1 << 5;
 
     /**
      * Listener to be notified whenever it is necessary to change the video played to
@@ -217,13 +217,13 @@ public abstract class VideoPlayer implements IVideoPlayer {
 
             mVideoDuration = 0;
             mVideoDurationString = DEFAULT_STRING_VIDEO_DURATION;
-            mPrivateFlags &= ~PFLAG_VIDEO_INFO_RESOLVED;
+            mInternalFlags &= ~$FLAG_VIDEO_INFO_RESOLVED;
             if (isPlayerCreated()) {
                 restartVideo();
             } else {
-                // Removes the PFLAG_VIDEO_PAUSED_BY_USER flag and resets mSeekOnPlay to 0 in case
+                // Removes the $FLAG_VIDEO_PAUSED_BY_USER flag and resets mSeekOnPlay to 0 in case
                 // the player was previously released and has not been initialized yet.
-                mPrivateFlags &= ~PFLAG_VIDEO_PAUSED_BY_USER;
+                mInternalFlags &= ~$FLAG_VIDEO_PAUSED_BY_USER;
                 mSeekOnPlay = 0;
                 if (uri == null) {
                     // Sets the playback state to idle directly when the player is not created
@@ -306,7 +306,7 @@ public abstract class VideoPlayer implements IVideoPlayer {
 
     @Override
     public int getVideoDuration() {
-        if ((mPrivateFlags & PFLAG_VIDEO_INFO_RESOLVED) != 0) {
+        if ((mInternalFlags & $FLAG_VIDEO_INFO_RESOLVED) != 0) {
             return mVideoDuration;
         }
         return UNKNOWN_DURATION;
@@ -321,7 +321,7 @@ public abstract class VideoPlayer implements IVideoPlayer {
 
     @Override
     public int getVideoWidth() {
-        if ((mPrivateFlags & PFLAG_VIDEO_INFO_RESOLVED) != 0) {
+        if ((mInternalFlags & $FLAG_VIDEO_INFO_RESOLVED) != 0) {
             return mVideoWidth;
         }
         return 0;
@@ -329,7 +329,7 @@ public abstract class VideoPlayer implements IVideoPlayer {
 
     @Override
     public int getVideoHeight() {
-        if ((mPrivateFlags & PFLAG_VIDEO_INFO_RESOLVED) != 0) {
+        if ((mInternalFlags & $FLAG_VIDEO_INFO_RESOLVED) != 0) {
             return mVideoHeight;
         }
         return 0;
@@ -354,15 +354,15 @@ public abstract class VideoPlayer implements IVideoPlayer {
 
     @Override
     public final boolean isAudioAllowedToPlayInBackground() {
-        return (mPrivateFlags & PFLAG_AUDIO_ALLOWED_TO_PLAY_IN_BACKGROUND) != 0;
+        return (mInternalFlags & $FLAG_AUDIO_ALLOWED_TO_PLAY_IN_BACKGROUND) != 0;
     }
 
     @CallSuper
     @Override
     public void setAudioAllowedToPlayInBackground(boolean allowed) {
         if (allowed != isAudioAllowedToPlayInBackground()) {
-            mPrivateFlags = mPrivateFlags & ~PFLAG_AUDIO_ALLOWED_TO_PLAY_IN_BACKGROUND
-                    | (allowed ? PFLAG_AUDIO_ALLOWED_TO_PLAY_IN_BACKGROUND : 0);
+            mInternalFlags = mInternalFlags & ~$FLAG_AUDIO_ALLOWED_TO_PLAY_IN_BACKGROUND
+                    | (allowed ? $FLAG_AUDIO_ALLOWED_TO_PLAY_IN_BACKGROUND : 0);
             if (mVideoView != null) {
                 mVideoView.onAudioAllowedToPlayInBackgroundChanged(allowed);
             }
@@ -371,7 +371,7 @@ public abstract class VideoPlayer implements IVideoPlayer {
 
     @Override
     public final boolean isSingleVideoLoopPlayback() {
-        return (mPrivateFlags & PFLAG_SINGLE_VIDEO_LOOP_PLAYBACK) != 0;
+        return (mInternalFlags & $FLAG_SINGLE_VIDEO_LOOP_PLAYBACK) != 0;
     }
 
     /**
@@ -385,8 +385,8 @@ public abstract class VideoPlayer implements IVideoPlayer {
     @Override
     public void setSingleVideoLoopPlayback(boolean looping) {
         if (looping != isSingleVideoLoopPlayback()) {
-            mPrivateFlags = mPrivateFlags & ~PFLAG_SINGLE_VIDEO_LOOP_PLAYBACK
-                    | (looping ? PFLAG_SINGLE_VIDEO_LOOP_PLAYBACK : 0);
+            mInternalFlags = mInternalFlags & ~$FLAG_SINGLE_VIDEO_LOOP_PLAYBACK
+                    | (looping ? $FLAG_SINGLE_VIDEO_LOOP_PLAYBACK : 0);
             if (mVideoView != null) {
                 mVideoView.onSingleVideoLoopPlaybackModeChanged(looping);
             }

@@ -211,7 +211,7 @@ public class VideoActivity extends SwipeBackActivity {
     @Nullable
     @Override
     public Activity getPreviousActivity() {
-        return App.getActivityByClassName(MainActivity.class.getName());
+        return MainActivity.this$;
     }
 
     @Override
