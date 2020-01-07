@@ -1,5 +1,5 @@
 /*
- * Created on 12/6/19 3:09 PM.
+ * Created on 2019/12/6 3:09 PM.
  * Copyright © 2019 刘振林. All rights reserved.
  */
 
@@ -9,6 +9,8 @@ import androidx.annotation.NonNull;
 
 /**
  * Singleton helper class for lazily initialization.
+ *
+ * @author 刘振林
  */
 public abstract class Singleton<Params, Result> {
 

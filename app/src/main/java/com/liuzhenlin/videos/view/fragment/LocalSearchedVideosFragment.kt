@@ -1,6 +1,6 @@
 /*
  * Created on 2018/08/15.
- * Copyright © 2018 刘振林. All rights reserved.
+ * Copyright © 2018–2020 刘振林. All rights reserved.
  */
 
 package com.liuzhenlin.videos.view.fragment
@@ -27,7 +27,6 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.widget.SearchView
 import androidx.core.view.ViewCompat
-import androidx.core.view.get
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -384,14 +383,14 @@ class LocalSearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLon
         }
         if (mLoadVideosTask == null) {
             mLoadVideosTask = LoadVideosTask()
-            mLoadVideosTask!!.executeOnExecutor(ParallelThreadExecutor.getInstance())
+            mLoadVideosTask!!.executeOnExecutor(ParallelThreadExecutor.getSingleton())
         }
     }
 
     @SuppressLint("StaticFieldLeak")
     private inner class LoadVideosTask : AsyncTask<Void, Void, List<Video>?>() {
         override fun doInBackground(vararg voids: Void): List<Video>? {
-            val dao = VideoListItemDao.getInstance(contextRequired)
+            val dao = VideoListItemDao.getSingleton(contextRequired)
 
             var videos: MutableList<Video>? = null
 

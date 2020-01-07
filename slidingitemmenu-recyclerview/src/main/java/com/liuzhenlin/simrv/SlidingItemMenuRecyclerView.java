@@ -1,6 +1,6 @@
 /*
  * Created on 2017/12/16.
- * Copyright © 2017 刘振林. All rights reserved.
+ * Copyright © 2017–2020 刘振林. All rights reserved.
  */
 
 package com.liuzhenlin.simrv;

@@ -1,8 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><!--
-  ~ Created on 3/27/19 11:47 AM.
-  ~ Copyright © 2019 刘振林. All rights reserved.
-  -->
-
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string-array name="speeds">
         <item>0.75x</item>

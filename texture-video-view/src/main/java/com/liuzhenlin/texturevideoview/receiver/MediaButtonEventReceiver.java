@@ -1,5 +1,5 @@
 /*
- * Created on 11/5/19 10:46 AM.
+ * Created on 2019/11/5 10:46 AM.
  * Copyright © 2019 刘振林. All rights reserved.
  */
 
@@ -11,6 +11,9 @@ import android.content.Intent;
 
 import androidx.annotation.Nullable;
 
+/**
+ * @author 刘振林
+ */
 public class MediaButtonEventReceiver extends BroadcastReceiver {
 
     @Nullable

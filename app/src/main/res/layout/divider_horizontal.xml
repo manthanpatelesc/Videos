@@ -1,9 +1,6 @@
-<?xml version="1.0" encoding="utf-8"?><!--
-  ~ Created on 18-10-5 下午1:06.
-  ~ Copyright © 2018 刘振林. All rights reserved.
-  -->
+<?xml version="1.0" encoding="utf-8"?>
 
-<!-- 分割线 -->
+<!-- 水平分割线 -->
 <View xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="1dp"

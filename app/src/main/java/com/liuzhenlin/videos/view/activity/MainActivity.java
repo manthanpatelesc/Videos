@@ -1,6 +1,6 @@
 /*
  * Created on 2017/09/26.
- * Copyright © 2017 刘振林. All rights reserved.
+ * Copyright © 2017–2020 刘振林. All rights reserved.
  */
 
 package com.liuzhenlin.videos.view.activity;
@@ -169,7 +169,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 mDrawerList.setScrollEnabled(false);
 
                 mDrawerImage = findViewById(R.id.image_drawer);
-                AppSharedPreferences asp = AppSharedPreferences.getInstance(app);
+                AppSharedPreferences asp = AppSharedPreferences.getSingleton(app);
                 final String path = asp.getDrawerBackgroundPath();
                 // 未设置背景图片
                 if (path == null) {
@@ -227,7 +227,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private void setLightDrawerStatus(boolean light) {
         if (mIsDrawerStatusLight != light) {
             mIsDrawerStatusLight = light;
-            AppSharedPreferences.getInstance(this).setLightDrawerStatus(light);
+            AppSharedPreferences.getSingleton(this).setLightDrawerStatus(light);
             if (mSlidingDrawerLayout.hasOpenedDrawer()) {
                 setLightStatus(light);
             }
@@ -244,7 +244,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             mDrawerImage.setImageBitmap(bitmap);
             mDrawerImage.setTag(path);
 
-            AppSharedPreferences asp = AppSharedPreferences.getInstance(this);
+            AppSharedPreferences asp = AppSharedPreferences.getSingleton(this);
             final String savedPath = asp.getDrawerBackgroundPath();
             if (path.equals(savedPath)) {
                 setLightDrawerStatus(asp.isLightDrawerStatus());
@@ -306,7 +306,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             recycleDrawerImage();
         }
         if (mOnCheckUpdateResultListener != null) {
-            AppUpdateChecker.getInstance(this).removeOnResultListener(mOnCheckUpdateResultListener);
+            AppUpdateChecker.getSingleton(this).removeOnResultListener(mOnCheckUpdateResultListener);
         }
     }
 
@@ -377,7 +377,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         void setLightDrawerListForeground(boolean light) {
             if (mIsDrawerListForegroundLight != light) {
                 mIsDrawerListForegroundLight = light;
-                AppSharedPreferences.getInstance(MainActivity.this).setLightDrawerListForeground(light);
+                AppSharedPreferences.getSingleton(MainActivity.this).setLightDrawerListForeground(light);
 
                 if (light) {
                     mTextColor = Color.WHITE;
@@ -500,7 +500,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 //    }
 
     private void baseCheckUpdate(boolean toastResult) {
-        AppUpdateChecker auc = AppUpdateChecker.getInstance(this);
+        AppUpdateChecker auc = AppUpdateChecker.getSingleton(this);
         if (mOnCheckUpdateResultListener == null) {
             mOnCheckUpdateResultListener = new AppUpdateChecker.OnResultListener() {
                 @Override
@@ -652,7 +652,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                       @NonNull View drawer, float percent) {
         final boolean light = percent >= 0.5f;
         if ((light && mOldDrawerScrollPercent < 0.5f || !light && mOldDrawerScrollPercent >= 0.5f)
-                && AppSharedPreferences.getInstance(this).isLightDrawerStatus()) {
+                && AppSharedPreferences.getSingleton(this).isLightDrawerStatus()) {
             setLightStatus(light);
         }
         mOldDrawerScrollPercent = percent;

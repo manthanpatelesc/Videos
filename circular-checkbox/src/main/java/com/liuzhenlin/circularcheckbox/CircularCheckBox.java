@@ -1,6 +1,6 @@
 /*
  * Created on 2018/08/09.
- * Copyright © 2018 刘振林. All rights reserved.
+ * Copyright © 2018–2019 刘振林. All rights reserved.
  */
 
 package com.liuzhenlin.circularcheckbox;

@@ -1,8 +1,3 @@
-/*
- * Created on 5/17/19 6:25 PM.
- * Copyright © 2019 刘振林. All rights reserved.
- */
-
 package com.liuzhenlin.texturevideoview.utils;
 
 import android.os.Build;

@@ -1,5 +1,5 @@
 /*
- * Created on 3/23/19 3:12 PM.
+ * Created on 2019/3/23 3:12 PM.
  */
 
 package com.liuzhenlin.videos.view.adapter;

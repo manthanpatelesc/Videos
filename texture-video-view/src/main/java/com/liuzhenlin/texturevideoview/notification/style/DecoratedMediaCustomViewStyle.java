@@ -1,5 +1,5 @@
 /*
- * Created on 12/10/19 9:13 AM.
+ * Created on 2019/12/10 9:13 AM.
  * Copyright © 2019 刘振林. All rights reserved.
  */
 
@@ -61,6 +61,7 @@ import com.liuzhenlin.texturevideoview.R;
  * {@link androidx.media.R.style#TextAppearance_Compat_Notification_Title_Media} in
  * your custom views in order to get the correct styling on each platform version.
  *
+ * @author 刘振林
  * @see NotificationCompat.DecoratedCustomViewStyle
  * @see androidx.media.app.NotificationCompat.MediaStyle
  */

@@ -41,7 +41,7 @@ public class MailUtil {
         MailInfo mailInfo = new MailInfo(HOST, PORT, true, USER_NAME, FROM_PSW,
                 FROM_ADDR, TO_ADDR, title, text, textRelatedImagePath, attachmentPaths);
         new SendMailAsyncTask(context)
-                .executeOnExecutor(ParallelThreadExecutor.getInstance(), mailInfo);
+                .executeOnExecutor(ParallelThreadExecutor.getSingleton(), mailInfo);
     }
 
     private static final class SendMailAsyncTask extends AsyncTask<MailInfo, Void, Boolean>

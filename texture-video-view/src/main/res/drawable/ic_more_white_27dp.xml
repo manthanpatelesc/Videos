@@ -1,8 +1,4 @@
-<!--
-  ~ Created on 5/2/19 11:06 AM.
-  ~ Copyright © 2019 刘振林. All rights reserved.
-  -->
-
+<?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="27dp"
     android:height="27dp"

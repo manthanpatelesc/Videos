@@ -1,5 +1,5 @@
 /*
- * Created on 3/22/19 5:08 PM.
+ * Created on 2019/3/22 5:08 PM.
  * Copyright © 2019 刘振林. All rights reserved.
  */
 
@@ -16,6 +16,9 @@ import android.os.Build;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+/**
+ * @author 刘振林
+ */
 public abstract class HeadsetEventsReceiver extends BroadcastReceiver {
     public static final String ACTION_HEADSET_PLUG =
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP ?

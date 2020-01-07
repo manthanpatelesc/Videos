@@ -1,5 +1,5 @@
 /*
- * Created on 11/8/19 2:46 PM.
+ * Created on 2019/11/8 2:46 PM.
  * Copyright © 2019 刘振林. All rights reserved.
  */
 
@@ -25,6 +25,9 @@ import com.liuzhenlin.videos.R;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
+/**
+ * @author 刘振林
+ */
 public class FloatingWindowPermissionUtils {
     private FloatingWindowPermissionUtils() {
     }

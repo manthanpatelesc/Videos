@@ -1,8 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><!--
-  ~ Created on 4/4/19 2:46 PM.
-  ~ Copyright © 2019 刘振林. All rights reserved.
-  -->
-
+<?xml version="1.0" encoding="utf-8"?>
 <View xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="@dimen/actionbarElevationHeight"

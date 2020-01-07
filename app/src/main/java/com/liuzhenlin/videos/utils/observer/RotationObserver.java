@@ -1,5 +1,5 @@
 /*
- * Created on 3/23/19 5:33 PM.
+ * Created on 2019/3/23 5:33 PM.
  * Copyright © 2019 刘振林. All rights reserved.
  */
 
@@ -17,6 +17,8 @@ import com.liuzhenlin.texturevideoview.utils.ScreenUtils;
 
 /**
  * 观察屏幕旋转的设置是否改变，类似于注册动态广播的监听机制
+ *
+ * @author 刘振林
  */
 public abstract class RotationObserver extends ContentObserver {
 

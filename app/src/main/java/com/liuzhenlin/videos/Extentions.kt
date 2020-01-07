@@ -1,10 +1,11 @@
 /*
- * Created on 3/15/19 8:51 PM.
- * Copyright © 2019 刘振林. All rights reserved.
+ * Created on 2019/3/15 8:51 PM.
+ * Copyright © 2019–2020 刘振林. All rights reserved.
  */
 
 package com.liuzhenlin.videos
 
+import android.view.ViewGroup
 import androidx.collection.ArrayMap
 import androidx.fragment.app.Fragment
 import com.liuzhenlin.texturevideoview.utils.FileUtils
@@ -19,6 +20,9 @@ import java.util.*
 /**
  * @author 刘振林
  */
+
+inline val Fragment.contextThemedFirst get() = activity ?: contextRequired
+inline val Fragment.contextRequired get() = requireContext()
 
 private val sVideoListItemComparator = Comparator<VideoListItem> { item, item2 ->
     if (item is Video) {
@@ -138,7 +142,7 @@ fun Collection<Video>?.asVideoListItems(): MutableList<VideoListItem>? {
         if (videos.size == 1) {
             videosMap.setValueAt(index, videos[0])
         } else {
-            val dao = VideoListItemDao.getInstance(App.getInstanceUnsafe()!!)
+            val dao = VideoListItemDao.getSingleton(App.getInstanceUnsafe()!!)
 
             val dirPath = videosMap.keyAt(index)
             var videodir = dao.queryVideoDirByPath(dirPath)
@@ -202,5 +206,10 @@ fun Collection<Video>?.allVideoSize(): Long {
     return size
 }
 
-inline val Fragment.contextThemedFirst get() = activity ?: contextRequired
-inline val Fragment.contextRequired get() = requireContext()
+/**
+ * Returns the view at [index].
+ *
+ * @throws IndexOutOfBoundsException if index is less than 0 or greater than or equal to the count.
+ */
+operator fun ViewGroup.get(index: Int) =
+        getChildAt(index) ?: throw IndexOutOfBoundsException("Index: $index, Size: $childCount")

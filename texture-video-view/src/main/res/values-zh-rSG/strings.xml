@@ -1,7 +1,4 @@
-<!--
-  ~ Created on 5/9/19 8:56 PM.
-  ~ Copyright © 2019 刘振林. All rights reserved.
-  -->
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="close">关闭</string>
     <string name="back">返回</string>

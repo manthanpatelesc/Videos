@@ -1,6 +1,6 @@
 /*
- * Created on 3/18/19 8:45 PM.
- * Copyright © 2019 刘振林. All rights reserved.
+ * Created on 2019/3/18 8:45 PM.
+ * Copyright © 2019–2020 刘振林. All rights reserved.
  */
 @file:JvmName("Consts")
 

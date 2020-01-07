@@ -1,8 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><!--
-  ~ Created on 4/1/19 12:34 PM.
-  ~ Copyright © 2019 刘振林. All rights reserved.
-  -->
-
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <dimen name="video_title_text_size">16sp</dimen>
     <dimen name="widget_large_text_size">15sp</dimen>

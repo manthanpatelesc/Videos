@@ -1,5 +1,5 @@
 /*
- * Created on 12/8/19 6:38 PM.
+ * Created on 2019/12/8 6:38 PM.
  * Copyright © 2019 刘振林. All rights reserved.
  */
 
@@ -17,6 +17,9 @@ import androidx.annotation.Nullable;
 
 import com.liuzhenlin.videos.R;
 
+/**
+ * @author 刘振林
+ */
 public class NotificationChannelManager {
 
     private static String sDownloadNotificationChannelId;

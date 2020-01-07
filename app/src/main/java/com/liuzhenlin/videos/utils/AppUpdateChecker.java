@@ -1,6 +1,6 @@
 /*
- * Created on 11/3/19 2:23 PM.
- * Copyright © 2019 刘振林. All rights reserved.
+ * Created on 2019/11/3 2:23 PM.
+ * Copyright © 2019–2020 刘振林. All rights reserved.
  */
 
 package com.liuzhenlin.videos.utils;
@@ -61,6 +61,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * @author 刘振林
+ */
 @MainThread
 public final class AppUpdateChecker {
 
@@ -104,7 +107,7 @@ public final class AppUpdateChecker {
             };
 
     @NonNull
-    public static AppUpdateChecker getInstance(@NonNull Context context) {
+    public static AppUpdateChecker getSingleton(@NonNull Context context) {
         return sAppUpdateCheckerSingleton.get(context);
     }
 
@@ -266,7 +269,7 @@ public final class AppUpdateChecker {
                         break;
                 }
             }
-        }.executeOnExecutor(ParallelThreadExecutor.getInstance());
+        }.executeOnExecutor(ParallelThreadExecutor.getSingleton());
     }
 
     /**
@@ -399,7 +402,7 @@ public final class AppUpdateChecker {
         @Override
         public int onStartCommand(Intent intent, int flags, int startId) {
             mTask = new UpdateAppTask(this);
-            mTask.executeOnExecutor(ParallelThreadExecutor.getInstance(),
+            mTask.executeOnExecutor(ParallelThreadExecutor.getSingleton(),
                     intent.getStringExtra(AppUpdateChecker.EXTRA_APP_NAME),
                     intent.getStringExtra(AppUpdateChecker.EXTRA_VERSION_NAME),
                     intent.getStringExtra(AppUpdateChecker.EXTRA_APP_LINK));
@@ -428,7 +431,7 @@ public final class AppUpdateChecker {
 
             @Override
             public void onReceive(Context context, Intent intent) {
-                getInstance(context).mHandler.sendEmptyMessage(Handler.MSG_STOP_UPDATE_APP_SERVICE);
+                getSingleton(context).mHandler.sendEmptyMessage(Handler.MSG_STOP_UPDATE_APP_SERVICE);
             }
         }
 
@@ -573,7 +576,7 @@ public final class AppUpdateChecker {
                                 mApkLength : (i + 1) * blockSize - 1;
                         mDownloadAppTasks.add(new DownloadAppTask());
                         mDownloadAppTasks.get(i)
-                                .executeOnExecutor(ParallelThreadExecutor.getInstance(), start, end);
+                                .executeOnExecutor(ParallelThreadExecutor.getSingleton(), start, end);
                     }
                 }
             }
@@ -606,7 +609,7 @@ public final class AppUpdateChecker {
             }
 
             android.os.Handler getHandler() {
-                return getInstance(mContext).mHandler;
+                return getSingleton(mContext).mHandler;
             }
 
             private void onConnectionTimeout() {

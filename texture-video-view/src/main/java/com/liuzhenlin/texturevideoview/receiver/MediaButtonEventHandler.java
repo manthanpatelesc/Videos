@@ -1,5 +1,5 @@
 /*
- * Created on 11/9/19 4:47 PM.
+ * Created on 2019/11/9 4:47 PM.
  * Copyright © 2019 刘振林. All rights reserved.
  */
 
@@ -19,6 +19,9 @@ import androidx.annotation.NonNull;
 
 import com.liuzhenlin.texturevideoview.InternalConsts;
 
+/**
+ * @author 刘振林
+ */
 public class MediaButtonEventHandler implements Parcelable {
 
     public static final int MSG_PLAY_PAUSE_KEY_SINGLE_TAP = 1;

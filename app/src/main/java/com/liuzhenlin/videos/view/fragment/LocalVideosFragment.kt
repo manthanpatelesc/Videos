@@ -1,6 +1,6 @@
 /*
- * Created on 10/19/19 7:08 PM.
- * Copyright © 2019 刘振林. All rights reserved.
+ * Created on 2019/10/19 7:08 PM.
+ * Copyright © 2019–2020 刘振林. All rights reserved.
  */
 
 package com.liuzhenlin.videos.view.fragment
@@ -15,7 +15,6 @@ import android.widget.ImageButton
 import android.widget.TextView
 import androidx.appcompat.graphics.drawable.DrawerArrowDrawable
 import androidx.core.view.MarginLayoutParamsCompat
-import androidx.core.view.get
 import androidx.fragment.app.Fragment
 import com.liuzhenlin.floatingmenu.DensityUtils
 import com.liuzhenlin.slidingdrawerlayout.SlidingDrawerLayout
@@ -170,7 +169,7 @@ class LocalVideosFragment : Fragment(), ILocalVideosFragment, FragmentPartLifecy
                 mActionBar.visibility = View.GONE
                 mTmpActionBar = LayoutInflater.from(mActionBar.context).inflate(
                         R.layout.actionbar_local_folded_videos_fragment, mActionBarContainer, false) as ViewGroup
-                mActionBarContainer.addView(mTmpActionBar, 1)
+                mActionBarContainer.addView(mTmpActionBar)
                 insertTopPaddingToActionBarIfNeeded(mTmpActionBar!!)
 
                 mInteractionCallback.showTabItems(false)
@@ -189,7 +188,7 @@ class LocalVideosFragment : Fragment(), ILocalVideosFragment, FragmentPartLifecy
                     UiUtils.setViewMargins(mTmpActionBar!!,
                             0, App.getInstance(mActionBar.context).statusHeightInPortrait, 0, 0)
                 }
-                mActionBarContainer.addView(mTmpActionBar, 1)
+                mActionBarContainer.addView(mTmpActionBar)
 
                 mInteractionCallback.showTabItems(false)
             }

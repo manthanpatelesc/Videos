@@ -1,6 +1,6 @@
 /*
- * Created on 11/24/19 4:11 PM.
- * Copyright © 2019 刘振林. All rights reserved.
+ * Created on 2019/11/24 4:11 PM.
+ * Copyright © 2019–2020 刘振林. All rights reserved.
  */
 
 package com.liuzhenlin.texturevideoview;
@@ -22,20 +22,19 @@ import androidx.annotation.RestrictTo;
 
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.ExoPlaybackException;
-import com.google.android.exoplayer2.ExoPlayerFactory;
 import com.google.android.exoplayer2.PlaybackParameters;
 import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.database.ExoDatabaseProvider;
+import com.google.android.exoplayer2.source.MediaSourceFactory;
 import com.google.android.exoplayer2.source.ProgressiveMediaSource;
-import com.google.android.exoplayer2.source.ads.AdsMediaSource;
 import com.google.android.exoplayer2.source.dash.DashMediaSource;
 import com.google.android.exoplayer2.source.hls.HlsMediaSource;
 import com.google.android.exoplayer2.source.smoothstreaming.SsMediaSource;
 import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
 import com.google.android.exoplayer2.upstream.DefaultHttpDataSourceFactory;
-import com.google.android.exoplayer2.upstream.FileDataSourceFactory;
+import com.google.android.exoplayer2.upstream.FileDataSource;
 import com.google.android.exoplayer2.upstream.cache.Cache;
 import com.google.android.exoplayer2.upstream.cache.CacheDataSink;
 import com.google.android.exoplayer2.upstream.cache.CacheDataSinkFactory;
@@ -66,8 +65,8 @@ public class ExoVideoPlayer extends VideoPlayer {
     private String mUserAgent;
 
     private SimpleExoPlayer mExoPlayer;
-    private AdsMediaSource.MediaSourceFactory mMediaSourceFactory;
-    private AdsMediaSource.MediaSourceFactory mTmpMediaSourceFactory;
+    private MediaSourceFactory mMediaSourceFactory;
+    private MediaSourceFactory mTmpMediaSourceFactory;
     private static DataSource.Factory sDefaultDataSourceFactory;
 
     private final AudioManager.OnAudioFocusChangeListener mOnAudioFocusChangeListener
@@ -128,11 +127,11 @@ public class ExoVideoPlayer extends VideoPlayer {
     }
 
     /**
-     * @return the user (the person that may be using this class) specified
-     * {@link AdsMediaSource.MediaSourceFactory} for reading the media content(s)
+     * @return the user (the person that may be using this class) specified {@link MediaSourceFactory}
+     * for reading the media content(s)
      */
     @Nullable
-    public AdsMediaSource.MediaSourceFactory getMediaSourceFactory() {
+    public MediaSourceFactory getMediaSourceFactory() {
         return mMediaSourceFactory;
     }
 
@@ -142,9 +141,9 @@ public class ExoVideoPlayer extends VideoPlayer {
      * with {@link DefaultDataSourceFactory} will be created to read the media, based on
      * the corresponding media stream type.
      *
-     * @param factory a subclass instance of {@link AdsMediaSource.MediaSourceFactory}
+     * @param factory a subclass instance of {@link MediaSourceFactory}
      */
-    public void setMediaSourceFactory(@Nullable AdsMediaSource.MediaSourceFactory factory) {
+    public void setMediaSourceFactory(@Nullable MediaSourceFactory factory) {
         mMediaSourceFactory = factory;
         if (mMediaSourceFactory != null) {
             mTmpMediaSourceFactory = null;
@@ -153,7 +152,7 @@ public class ExoVideoPlayer extends VideoPlayer {
 
     /**
      * @return the default {@link DataSource.Factory} created by this class, which will be used for
-     * various of {@link AdsMediaSource.MediaSourceFactory}s (if the user specified one is not set).
+     * various of {@link MediaSourceFactory}s (if the user specified one is not set).
      */
     @NonNull
     public DataSource.Factory getDefaultDataSourceFactory() {
@@ -165,7 +164,7 @@ public class ExoVideoPlayer extends VideoPlayer {
             DataSource.Factory upstreamFactory =
                     new DefaultDataSourceFactory(mContext,
                             new DefaultHttpDataSourceFactory(getUserAgent()));
-            DataSource.Factory cacheReadDataSourceFactory = new FileDataSourceFactory();
+            DataSource.Factory cacheReadDataSourceFactory = new FileDataSource.Factory();
             CacheDataSinkFactory cacheWriteDataSourceFactory =
                     new CacheDataSinkFactory(cache, CacheDataSink.DEFAULT_FRAGMENT_SIZE, 1024);
             sDefaultDataSourceFactory = new CacheDataSourceFactory(
@@ -182,7 +181,7 @@ public class ExoVideoPlayer extends VideoPlayer {
      * @return a user agent string based on the application name resolved from the context object
      * of the view this player is bound to and the `exoplayer-core` library version,
      * which can be used to create a {@link com.google.android.exoplayer2.upstream.DataSource.Factory}
-     * instance for the {@link AdsMediaSource.MediaSourceFactory} subclasses.
+     * instance for the {@link MediaSourceFactory} subclasses.
      */
     @NonNull
     public String getUserAgent() {
@@ -218,7 +217,7 @@ public class ExoVideoPlayer extends VideoPlayer {
         if (mExoPlayer == null && mVideoUri != null
                 && !(mVideoView != null && surface == null)
                 && (mInternalFlags & $FLAG_VIDEO_PAUSED_BY_USER) == 0) {
-            mExoPlayer = ExoPlayerFactory.newSimpleInstance(mContext);
+            mExoPlayer = new SimpleExoPlayer.Builder(mContext).build();
             mExoPlayer.setVideoSurface(surface);
             mExoPlayer.setAudioAttributes(sDefaultAudioAttrs);
             setPlaybackSpeed(mUserPlaybackSpeed);
@@ -320,7 +319,7 @@ public class ExoVideoPlayer extends VideoPlayer {
         }
     }
 
-    /*package*/ AdsMediaSource.MediaSourceFactory obtainMediaSourceFactory(Uri uri) {
+    /*package*/ MediaSourceFactory obtainMediaSourceFactory(Uri uri) {
         if (mMediaSourceFactory != null) return mMediaSourceFactory;
 
         @C.ContentType int type = Util.inferContentType(uri, null);

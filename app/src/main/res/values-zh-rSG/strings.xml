@@ -1,7 +1,4 @@
-<!--
-  ~ Created on 5/9/19 9:12 PM.
-  ~ Copyright © 2019 刘振林. All rights reserved.
-  -->
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="aTotalOfSeveralVideos">共%d个视频</string>
     <string name="aboutApp">关于视频</string>
@@ -119,7 +116,7 @@
     <string name="updateLog">%1$sv%2$s 更新日志：</string>
     <string name="updateLogs">更新日志</string>
     <string name="userFeedback">用户反馈</string>
-    <string name="version">v1.8.2-beta02</string>
+    <string name="version">v1.8.2-beta03</string>
     <string name="videoCount">视频数：%d</string>
     <string name="videoDetails">视频详情</string>
     <string name="videoLink">视频链接</string>

@@ -1,8 +1,3 @@
-/*
- * Created on 18-9-28 下午11:30.
- * Copyright © 2018 刘振林. All rights reserved.
- */
-
 package com.liuzhenlin.texturevideoview;
 
 import org.junit.Test;

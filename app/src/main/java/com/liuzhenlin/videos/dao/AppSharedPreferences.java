@@ -1,6 +1,6 @@
 /*
  * Created on 2018/06/26.
- * Copyright © 2018 刘振林. All rights reserved.
+ * Copyright © 2018–2020 刘振林. All rights reserved.
  */
 
 package com.liuzhenlin.videos.dao;
@@ -33,7 +33,7 @@ public final class AppSharedPreferences {
                 }
             };
 
-    public static AppSharedPreferences getInstance(@NonNull Context context) {
+    public static AppSharedPreferences getSingleton(@NonNull Context context) {
         return sAppSharedPreferencesSingleton.get(context);
     }
 

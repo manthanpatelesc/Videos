@@ -1,6 +1,6 @@
 /*
  * Created on 2018/05/14.
- * Copyright © 2018 刘振林. All rights reserved.
+ * Copyright © 2018–2020 刘振林. All rights reserved.
  */
 
 package com.liuzhenlin.videos;

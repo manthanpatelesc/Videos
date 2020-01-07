@@ -1,5 +1,5 @@
 /*
- * Created on 12/4/19 5:27 PM.
+ * Created on 2019/12/4 5:27 PM.
  * Copyright © 2019 刘振林. All rights reserved.
  */
 
@@ -11,6 +11,9 @@ import androidx.annotation.Nullable;
 
 import com.liuzhenlin.videos.model.VideoDirectory;
 
+/**
+ * @author 刘振林
+ */
 public interface IVideoDirectoryDao {
     boolean insertVideoDir(@Nullable VideoDirectory videodir);
 

@@ -1,5 +1,5 @@
 /*
- * Created on 12/4/19 5:26 PM.
+ * Created on 2019/12/4 5:26 PM.
  * Copyright © 2019 刘振林. All rights reserved.
  */
 
@@ -13,6 +13,9 @@ import androidx.annotation.Nullable;
 
 import com.liuzhenlin.videos.model.Video;
 
+/**
+ * @author 刘振林
+ */
 public interface IVideoDao {
     Uri VIDEO_URI = MediaStore.Video.Media.EXTERNAL_CONTENT_URI;
     String VIDEO_ID = MediaStore.Video.Media._ID;

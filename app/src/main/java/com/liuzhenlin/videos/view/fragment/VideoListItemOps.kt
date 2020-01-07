@@ -1,6 +1,6 @@
 /*
  * Created on 2018/09/07.
- * Copyright © 2018 刘振林. All rights reserved.
+ * Copyright © 2018–2019 刘振林. All rights reserved.
  */
 
 package com.liuzhenlin.videos.view.fragment
@@ -34,8 +34,8 @@ private val sDeleteItemTasks = LinkedList<AsyncTask<Unit, Unit, Unit>>()
 private fun deleteItemsInternal(items: Array<out VideoListItem>) {
     if (items.isEmpty()) return
 
-    val dao = VideoListItemDao.getInstance(App.getInstanceUnsafe()!!)
-    val executor = ParallelThreadExecutor.getInstance()
+    val dao = VideoListItemDao.getSingleton(App.getInstanceUnsafe()!!)
+    val executor = ParallelThreadExecutor.getSingleton()
     sDeleteItemTasks.offer(object : AsyncTask<Unit, Unit, Unit>() {
         override fun doInBackground(vararg units: Unit) {
             for (item in items)
@@ -128,7 +128,7 @@ interface VideoListItemOpCallback<in T : VideoListItem> {
 
             item.name = newName
             item.path = newFile.absolutePath
-            return if (VideoListItemDao.getInstance(context).updateVideo(item)) {
+            return if (VideoListItemDao.getSingleton(context).updateVideo(item)) {
                 if (view == null) {
                     Toast.makeText(context, R.string.renameSuccessful, Toast.LENGTH_SHORT).show()
                 } else {
@@ -147,7 +147,7 @@ interface VideoListItemOpCallback<in T : VideoListItem> {
             }
         } else if (item is VideoDirectory) {
             item.name = newName
-            return if (VideoListItemDao.getInstance(context).updateVideoDir(item)) {
+            return if (VideoListItemDao.getSingleton(context).updateVideoDir(item)) {
                 if (view == null) {
                     Toast.makeText(context, R.string.renameSuccessful, Toast.LENGTH_SHORT).show()
                 } else {

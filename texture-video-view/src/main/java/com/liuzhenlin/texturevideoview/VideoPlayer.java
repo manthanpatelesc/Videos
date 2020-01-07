@@ -1,6 +1,6 @@
 /*
- * Created on 11/24/19 4:08 PM.
- * Copyright © 2019 刘振林. All rights reserved.
+ * Created on 2019/11/24 4:08 PM.
+ * Copyright © 2019–2020 刘振林. All rights reserved.
  */
 
 package com.liuzhenlin.texturevideoview;

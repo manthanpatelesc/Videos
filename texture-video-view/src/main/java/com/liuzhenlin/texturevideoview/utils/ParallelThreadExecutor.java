@@ -1,5 +1,5 @@
 /*
- * Created on 12/20/19 4:45 PM.
+ * Created on 2019/12/20 4:45 PM.
  * Copyright © 2019 刘振林. All rights reserved.
  */
 
@@ -20,6 +20,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * An {@link Executor} that can be used to execute tasks in parallel.
+ *
+ * @author 刘振林
  */
 public final class ParallelThreadExecutor extends ThreadPoolExecutor {
 
@@ -78,7 +80,7 @@ public final class ParallelThreadExecutor extends ThreadPoolExecutor {
                 }
             };
 
-    public static ParallelThreadExecutor getInstance() {
+    public static ParallelThreadExecutor getSingleton() {
         return sParallelThreadExecutorSingleton.get();
     }
 

@@ -1,6 +1,6 @@
 /*
  * Created on 2018/08/15.
- * Copyright © 2018 刘振林. All rights reserved.
+ * Copyright © 2018–2020 刘振林. All rights reserved.
  */
 
 package com.liuzhenlin.videos.view.fragment
@@ -30,7 +30,6 @@ import android.widget.*
 import androidx.appcompat.app.AppCompatDialog
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
-import androidx.core.view.get
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -298,7 +297,7 @@ class LocalVideoListFragment : SwipeBackFragment(),
                     loop@ for ((i, item) in mVideoListItems.withIndex()) {
                         if (item.path != dirPath) continue@loop
 
-                        val dao = VideoListItemDao.getInstance(contextRequired)
+                        val dao = VideoListItemDao.getSingleton(contextRequired)
                         when (videos.size) {
                             0 -> {
                                 if (item is VideoDirectory) {
@@ -434,7 +433,7 @@ class LocalVideoListFragment : SwipeBackFragment(),
         // 不在加载视频时才加载
         if (mLoadVideosTask == null) {
             mLoadVideosTask = LoadVideosTask()
-            mLoadVideosTask!!.executeOnExecutor(ParallelThreadExecutor.getInstance())
+            mLoadVideosTask!!.executeOnExecutor(ParallelThreadExecutor.getSingleton())
         }
     }
 
@@ -447,7 +446,7 @@ class LocalVideoListFragment : SwipeBackFragment(),
         }
 
         override fun doInBackground(vararg voids: Void): List<VideoListItem>? {
-            val dao = VideoListItemDao.getInstance(contextRequired)
+            val dao = VideoListItemDao.getSingleton(contextRequired)
 
             var videos: MutableList<Video>? = null
 
@@ -704,7 +703,7 @@ class LocalVideoListFragment : SwipeBackFragment(),
 
                 val topped = !item.isTopped
                 item.isTopped = topped
-                VideoListItemDao.getInstance(v.context).setVideoListItemTopped(item, topped)
+                VideoListItemDao.getSingleton(v.context).setVideoListItemTopped(item, topped)
 
                 val newPosition = mVideoListItems.reordered().indexOf(item)
                 if (newPosition == position) {

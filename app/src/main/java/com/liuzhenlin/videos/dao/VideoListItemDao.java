@@ -1,6 +1,6 @@
 /*
  * Created on 2017/12/07.
- * Copyright © 2017 刘振林. All rights reserved.
+ * Copyright © 2017–2019 刘振林. All rights reserved.
  */
 
 package com.liuzhenlin.videos.dao;
@@ -59,7 +59,7 @@ public final class VideoListItemDao implements IVideoListItemDao {
                 }
             };
 
-    public static VideoListItemDao getInstance(@NonNull Context context) {
+    public static VideoListItemDao getSingleton(@NonNull Context context) {
         return sVideoListItemDaoSingleton.get(context);
     }
 

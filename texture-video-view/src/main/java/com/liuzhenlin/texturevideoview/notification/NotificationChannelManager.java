@@ -1,5 +1,5 @@
 /*
- * Created on 12/10/19 9:12 AM.
+ * Created on 2019/12/10 9:12 AM.
  * Copyright © 2019 刘振林. All rights reserved.
  */
 
@@ -16,6 +16,9 @@ import androidx.annotation.Nullable;
 
 import com.liuzhenlin.texturevideoview.R;
 
+/**
+ * @author 刘振林
+ */
 public class NotificationChannelManager {
 
     private static String sPlaybackControlNotificationChannelId;

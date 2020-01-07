@@ -1,6 +1,6 @@
 /*
  * Created on 2017/09/24.
- * Copyright © 2017 刘振林. All rights reserved.
+ * Copyright © 2017–2020 刘振林. All rights reserved.
  */
 
 package com.liuzhenlin.videos.view.activity;
@@ -283,7 +283,7 @@ public class VideoActivity extends SwipeBackActivity {
                     Video video = (Video) parcelables[i];
                     if (stateRestore) {
                         video.setProgress(
-                                VideoListItemDao.getInstance(this).getVideoProgress(video.getId()));
+                                VideoListItemDao.getSingleton(this).getVideoProgress(video.getId()));
                     }
                     mVideos[i] = video;
                 }
@@ -304,7 +304,7 @@ public class VideoActivity extends SwipeBackActivity {
                 if (uri != null) {
                     final String path = FileUtils.UriResolver.getPath(this, uri);
                     if (path != null) {
-                        video = VideoListItemDao.getInstance(this).queryVideoByPath(path);
+                        video = VideoListItemDao.getSingleton(this).queryVideoByPath(path);
                         if (video == null) {
                             video = new Video();
                             video.setId(Consts.NO_ID);
@@ -317,7 +317,7 @@ public class VideoActivity extends SwipeBackActivity {
             if (video != null) {
                 if (stateRestore) {
                     video.setProgress(
-                            VideoListItemDao.getInstance(this).getVideoProgress(video.getId()));
+                            VideoListItemDao.getSingleton(this).getVideoProgress(video.getId()));
                 }
                 mVideos = new Video[]{video};
                 mVideoIndex = stateRestore ? savedInstanceState.getInt(KEY_VIDEO_INDEX) : 0;
@@ -733,7 +733,7 @@ public class VideoActivity extends SwipeBackActivity {
 
         final long id = video.getId();
         if (id != Consts.NO_ID) {
-            VideoListItemDao.getInstance(this).setVideoProgress(id, video.getProgress());
+            VideoListItemDao.getSingleton(this).setVideoProgress(id, video.getProgress());
         }
     }
 

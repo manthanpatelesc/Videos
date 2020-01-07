@@ -1,8 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><!--
-  ~ Created on 5/15/19 10:04 AM.
-  ~ Copyright © 2019 刘振林. All rights reserved.
-  -->
-
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <dimen name="actionbar_title_text_size">22.5dp</dimen>
 </resources>

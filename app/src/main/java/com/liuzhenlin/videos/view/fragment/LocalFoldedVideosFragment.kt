@@ -1,6 +1,6 @@
 /*
  * Created on 2018/08/15.
- * Copyright © 2018 刘振林. All rights reserved.
+ * Copyright © 2018–2019 刘振林. All rights reserved.
  */
 
 package com.liuzhenlin.videos.view.fragment
@@ -285,7 +285,7 @@ class LocalFoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, Vie
                 val topped = !video.isTopped
                 video.isTopped = topped
 
-                VideoListItemDao.getInstance(v.context).setVideoListItemTopped(video, topped)
+                VideoListItemDao.getSingleton(v.context).setVideoListItemTopped(video, topped)
 
                 val newIndex = mVideos.reordered().indexOf(video)
                 if (newIndex == index) {
@@ -533,7 +533,7 @@ class LocalFoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, Vie
 
         if (mLoadDirectoryVideosTask == null) {
             mLoadDirectoryVideosTask = LoadDirectoryVideosTask()
-            mLoadDirectoryVideosTask!!.executeOnExecutor(ParallelThreadExecutor.getInstance())
+            mLoadDirectoryVideosTask!!.executeOnExecutor(ParallelThreadExecutor.getSingleton())
         }
     }
 
@@ -545,7 +545,7 @@ class LocalFoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, Vie
         }
 
         override fun doInBackground(vararg params: Void?): List<Video>? {
-            val dao = VideoListItemDao.getInstance(contextRequired)
+            val dao = VideoListItemDao.getSingleton(contextRequired)
 
             var videos: MutableList<Video>? = null
 

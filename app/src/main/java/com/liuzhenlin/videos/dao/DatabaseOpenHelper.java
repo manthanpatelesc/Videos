@@ -1,5 +1,5 @@
 /*
- * Created on 12/4/19 5:35 PM.
+ * Created on 2019/12/4 5:35 PM.
  * Copyright © 2019 刘振林. All rights reserved.
  */
 
@@ -11,6 +11,9 @@ import android.database.sqlite.SQLiteOpenHelper;
 
 import androidx.annotation.NonNull;
 
+/**
+ * @author 刘振林
+ */
 /*package*/ class DatabaseOpenHelper extends SQLiteOpenHelper {
 
     public static final String TABLE_VIDEOS = "videos";

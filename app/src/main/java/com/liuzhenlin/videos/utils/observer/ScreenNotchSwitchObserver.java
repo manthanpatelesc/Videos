@@ -1,5 +1,5 @@
 /*
- * Created on 3/23/19 5:07 PM.
+ * Created on 2019/3/23 5:07 PM.
  * Copyright © 2019 刘振林. All rights reserved.
  */
 
@@ -19,6 +19,8 @@ import com.liuzhenlin.videos.utils.DisplayCutoutUtils;
 
 /**
  * 监听华为/小米手机的“隐藏屏幕刘海”开关
+ *
+ * @author 刘振林
  */
 public abstract class ScreenNotchSwitchObserver extends ContentObserver {
 

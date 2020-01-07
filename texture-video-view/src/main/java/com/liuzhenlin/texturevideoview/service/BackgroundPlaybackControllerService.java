@@ -1,5 +1,5 @@
 /*
- * Created on 12/3/19 3:41 PM.
+ * Created on 2019/12/3 3:41 PM.
  * Copyright © 2019 刘振林. All rights reserved.
  */
 
@@ -49,6 +49,9 @@ import com.liuzhenlin.texturevideoview.utils.BitmapUtils;
 
 import java.util.Objects;
 
+/**
+ * @author 刘振林
+ */
 @RestrictTo(RestrictTo.Scope.LIBRARY)
 public class BackgroundPlaybackControllerService extends Service {
 

@@ -1,6 +1,6 @@
 /*
- * Created on 18-9-16 下午4:09.
- * Copyright © 2018 刘振林. All rights reserved.
+ * Created on 2018/9/16 4:09 PM.
+ * Copyright © 2018–2020 刘振林. All rights reserved.
  */
 
 package com.liuzhenlin.texturevideoview;
@@ -88,7 +88,7 @@ import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.google.android.exoplayer2.source.ads.AdsMediaSource;
+import com.google.android.exoplayer2.source.MediaSourceFactory;
 import com.google.android.exoplayer2.util.Util;
 import com.google.android.material.snackbar.Snackbar;
 import com.liuzhenlin.texturevideoview.drawable.CircularProgressDrawable;
@@ -2172,7 +2172,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
 
                         mSaveCapturedPhotoTask = null;
                     }
-                }.executeOnExecutor(ParallelThreadExecutor.getInstance());
+                }.executeOnExecutor(ParallelThreadExecutor.getSingleton());
             }
 
             @Override
@@ -2345,7 +2345,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
 
         final SurfaceHolder holder = sv.getHolder();
         final Surface surface = holder.getSurface();
-        final AdsMediaSource.MediaSourceFactory factory =
+        final MediaSourceFactory factory =
                 Build.VERSION.SDK_INT >= 16 /* Jelly Bean */ && videoPlayer instanceof ExoVideoPlayer
                         ? ((ExoVideoPlayer) videoPlayer).obtainMediaSourceFactory(videoUri) : null;
         final VideoClipPlayer player = new VideoClipPlayer(mContext, surface, videoUri, mUserAgent, factory);
@@ -2494,7 +2494,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                 public void onPostExecute(Void aVoid) {
                     mLoadClipThumbsTask = null;
                 }
-            }.executeOnExecutor(ParallelThreadExecutor.getInstance());
+            }.executeOnExecutor(ParallelThreadExecutor.getSingleton());
         });
         holder.addCallback(new SurfaceHolder.Callback() {
             @Override
@@ -3384,7 +3384,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                 // The media contains video content
                 if (mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_HAS_VIDEO) != null) {
                     task = new UpdateVideoThumbTask();
-                    task.executeOnExecutor(ParallelThreadExecutor.getInstance());
+                    task.executeOnExecutor(ParallelThreadExecutor.getSingleton());
                     showSeekingVideoThumb(true);
                 } else {
                     mmr.release();
