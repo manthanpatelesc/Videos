@@ -168,7 +168,7 @@ public class BackgroundPlaybackControllerService extends Service {
                 .setStyle(new DecoratedMediaCustomViewStyle())
                 .setDefaults(0)
                 .setOnlyAlertOnce(true)
-                .setPriority(NotificationCompat.PRIORITY_MAX)
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 .setCategory(NotificationCompat.CATEGORY_TRANSPORT)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
         if (playbackActivityClass != null) {

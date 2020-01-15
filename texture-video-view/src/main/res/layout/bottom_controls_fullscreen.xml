@@ -66,8 +66,11 @@
             android:id="@+id/btn_chooseEpisode"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginRight="15dp"
-            android:layout_marginEnd="15dp"
+            android:padding="5dp"
+            android:layout_marginLeft="-5dp"
+            android:layout_marginStart="-5dp"
+            android:layout_marginRight="10dp"
+            android:layout_marginEnd="10dp"
             android:text="@string/playlist"
             android:textColor="@color/color_selector_white_color_accent"
             android:textSize="@dimen/widget_large_text_size" />

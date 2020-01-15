@@ -10,7 +10,6 @@ import android.app.Dialog;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
@@ -56,6 +55,7 @@ import com.liuzhenlin.videos.Consts;
 import com.liuzhenlin.videos.R;
 import com.liuzhenlin.videos.dao.AppSharedPreferences;
 import com.liuzhenlin.videos.utils.AppUpdateChecker;
+import com.liuzhenlin.videos.utils.BitmapUtils2;
 import com.liuzhenlin.videos.utils.ColorUtils;
 import com.liuzhenlin.videos.utils.OSHelper;
 import com.liuzhenlin.videos.utils.TextViewUtils;
@@ -238,7 +238,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if (path == null || path.equals(mDrawerImage.getTag())) {
             return;
         }
-        Bitmap bitmap = BitmapFactory.decodeFile(path, null);
+        Bitmap bitmap = BitmapUtils2.decodeRotatedBitmapFormFile(path);
         if (bitmap != null) {
             recycleDrawerImage();
             mDrawerImage.setImageBitmap(bitmap);

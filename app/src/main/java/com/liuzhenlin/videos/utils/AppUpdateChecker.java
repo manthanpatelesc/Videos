@@ -276,10 +276,6 @@ public final class AppUpdateChecker {
      * 弹出对话框，提醒用户更新
      */
     private void showUpdatePromptDialog() {
-        //@remove before next release
-        if (mPromptDialogAnchorActivityClsName == null) {
-            mPromptDialogAnchorActivityClsName = "com.liuzhenlin.videos.view.activity.MainActivity";
-        }
         Activity anchorActivity = ActivityUtils.getActivityForName(mPromptDialogAnchorActivityClsName);
         if (anchorActivity == null || anchorActivity.isFinishing()) {
             Log.w(TAG, "The Activity in which the dialog should run does'nt exist, " +

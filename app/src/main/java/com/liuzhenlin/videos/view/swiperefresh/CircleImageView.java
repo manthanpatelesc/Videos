@@ -27,8 +27,8 @@ import android.graphics.drawable.ShapeDrawable;
 import android.graphics.drawable.shapes.OvalShape;
 import android.view.View;
 import android.view.animation.Animation;
+import android.widget.ImageView;
 
-import androidx.appcompat.widget.AppCompatImageView;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.ViewCompat;
 
@@ -37,8 +37,8 @@ import androidx.core.view.ViewCompat;
  * called before the animation is actually complete and support shadows on older
  * platforms.
  */
-@SuppressLint("ViewConstructor")
-class CircleImageView extends AppCompatImageView {
+@SuppressLint({"ViewConstructor", "AppCompatCustomView"})
+class CircleImageView extends ImageView {
 
     private static final int KEY_SHADOW_COLOR = 0x1E000000;
     private static final int FILL_SHADOW_COLOR = 0x3D000000;

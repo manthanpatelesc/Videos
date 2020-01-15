@@ -364,8 +364,13 @@ public class SystemVideoPlayer extends VideoPlayer {
                 mInternalFlags &= ~$FLAG_VIDEO_PAUSED_BY_USER;
                 openVideo(true);
             } else {
-                Log.w(TAG, "Cannot start playback programmatically before the video is opened");
+                Log.e(TAG, "Cannot start playback programmatically before the video is opened.");
             }
+            return;
+        }
+
+        if (!fromUser && (mInternalFlags & $FLAG_VIDEO_PAUSED_BY_USER) != 0) {
+            Log.e(TAG, "Cannot start playback programmatically after it was paused by user.");
             return;
         }
 

@@ -48,8 +48,8 @@ dependencies {
 //    api 'org.mp4parser:muxer:1.9.41'
     api 'com.googlecode.mp4parser:isoparser:1.1.22'
 
-    api 'com.github.bumptech.glide:glide:4.10.0'
-    annotationProcessor 'com.github.bumptech.glide:compiler:4.10.0'
+    api 'com.github.bumptech.glide:glide:4.11.0'
+    annotationProcessor 'com.github.bumptech.glide:compiler:4.11.0'
 
     testImplementation "junit:junit:$rootProject.ext.testJunitVersion"
     androidTestImplementation "androidx.test:runner:$rootProject.ext.androidTestRunnerVersion"

@@ -12,9 +12,13 @@ import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
+import androidx.exifinterface.media.ExifInterface;
 
 import androidx.annotation.ColorInt;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
+import java.io.IOException;
 
 /**
  * @author 刘振林
@@ -24,12 +28,12 @@ public class BitmapUtils2 {
     }
 
     @NonNull
-    public static Bitmap getTintedBitmap(@NonNull Bitmap bitmap, @ColorInt int color) {
+    public static Bitmap getTintedBitmap(@NonNull Bitmap bitmap, @ColorInt int tint) {
         if (!bitmap.isMutable()) {
             bitmap = bitmap.copy(bitmap.getConfig(), true);
         }
         Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        paint.setColorFilter(new PorterDuffColorFilter(color, PorterDuff.Mode.SRC_IN));
+        paint.setColorFilter(new PorterDuffColorFilter(tint, PorterDuff.Mode.SRC_IN));
         Canvas canvas = new Canvas(bitmap);
         canvas.drawBitmap(bitmap, 0, 0, paint);
         return bitmap;
@@ -84,5 +88,57 @@ public class BitmapUtils2 {
             inSampleSize = Math.min(widthRatio, heightRatio);
         }
         return inSampleSize;
+    }
+
+    /**
+     * 返回根据给定路径图片文件的旋转角度旋转后的位图
+     */
+    @Nullable
+    public static Bitmap decodeRotatedBitmapFormFile(@NonNull String path) {
+        return decodeRotatedBitmapFormFile(path, null);
+    }
+
+    @Nullable
+    public static Bitmap decodeRotatedBitmapFormFile(@NonNull String path, @Nullable BitmapFactory.Options opts) {
+        Bitmap raw = BitmapFactory.decodeFile(path, opts);
+
+        if (raw != null) {
+            final int degrees = readPictureRotation(path);
+            if (degrees != 0) {
+                return rotateBitmap(raw, degrees);
+            }
+        }
+
+        return raw;
+    }
+
+    /**
+     * 读取图片旋转角度
+     */
+    public static int readPictureRotation(@NonNull String path) {
+        try {
+            switch (new ExifInterface(path)
+                    .getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)) {
+                case ExifInterface.ORIENTATION_ROTATE_90:
+                    return 90;
+                case ExifInterface.ORIENTATION_ROTATE_180:
+                    return 180;
+                case ExifInterface.ORIENTATION_ROTATE_270:
+                    return 270;
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    /**
+     * 旋转图片
+     */
+    @NonNull
+    public static Bitmap rotateBitmap(@NonNull Bitmap src, float degrees) {
+        Matrix matrix = new Matrix();
+        matrix.postRotate(degrees);
+        return Bitmap.createBitmap(src, 0, 0, src.getWidth(), src.getHeight(), matrix, true);
     }
 }

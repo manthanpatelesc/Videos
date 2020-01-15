@@ -5,19 +5,20 @@
 
 package com.liuzhenlin.videos.view.activity;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.DisplayCutout;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
@@ -36,6 +37,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatDialog;
 import androidx.appcompat.content.res.AppCompatResources;
+import androidx.core.widget.TextViewCompat;
 
 import com.google.android.material.snackbar.Snackbar;
 import com.liuzhenlin.floatingmenu.DensityUtils;
@@ -50,6 +52,7 @@ import com.liuzhenlin.videos.App;
 import com.liuzhenlin.videos.Consts;
 import com.liuzhenlin.videos.R;
 import com.liuzhenlin.videos.dao.FeedbackSharedPreferences;
+import com.liuzhenlin.videos.utils.BitmapUtils2;
 import com.liuzhenlin.videos.utils.DisplayCutoutUtils;
 import com.liuzhenlin.videos.utils.MailUtil;
 import com.liuzhenlin.videos.utils.NetworkUtil;
@@ -111,6 +114,7 @@ public class FeedbackActivity extends SwipeBackActivity implements View.OnClickL
         return MainActivity.this$;
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -175,6 +179,25 @@ public class FeedbackActivity extends SwipeBackActivity implements View.OnClickL
 
             @Override
             public void afterTextChanged(Editable s) {
+            }
+        });
+        mEnterProblemsOrAdviceEditor.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        EditText editText = (EditText) v;
+                        // 当触摸的是EditText且当前EditText可上下滚动时，不允许父布局ScrollView拦截事件
+                        if (editText.getLineCount() > TextViewCompat.getMaxLines(editText)) {
+                            v.getParent().requestDisallowInterceptTouchEvent(true);
+                        }
+                        break;
+                    case MotionEvent.ACTION_UP:
+                    case MotionEvent.ACTION_CANCEL:
+                        v.getParent().requestDisallowInterceptTouchEvent(false);
+                        break;
+                }
+                return false;
             }
         });
 
@@ -463,7 +486,7 @@ public class FeedbackActivity extends SwipeBackActivity implements View.OnClickL
     private void addPicture(String path) {
         if (path != null &&
                 (mGridAdapter.mPicturePaths == null || !mGridAdapter.mPicturePaths.contains(path))) {
-            Bitmap bitmap = BitmapFactory.decodeFile(path, null);
+            Bitmap bitmap = BitmapUtils2.decodeRotatedBitmapFormFile(path);
             if (bitmap != null) {
                 if (mGridAdapter.mPicturePaths == null)
                     mGridAdapter.mPicturePaths = new LinkedList<>();

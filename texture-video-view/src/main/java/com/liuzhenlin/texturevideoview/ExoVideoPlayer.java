@@ -5,6 +5,7 @@
 
 package com.liuzhenlin.texturevideoview;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.media.AudioFocusRequest;
 import android.media.AudioManager;
@@ -224,6 +225,7 @@ public class ExoVideoPlayer extends VideoPlayer {
             mExoPlayer.setRepeatMode(
                     isSingleVideoLoopPlayback() ? Player.REPEAT_MODE_ONE : Player.REPEAT_MODE_OFF);
             mExoPlayer.addListener(new Player.EventListener() {
+                @SuppressLint("SwitchIntDef")
                 @Override
                 public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
                     if (mVideoView != null) {
@@ -405,8 +407,13 @@ public class ExoVideoPlayer extends VideoPlayer {
                 mInternalFlags &= ~$FLAG_VIDEO_PAUSED_BY_USER;
                 openVideo(true);
             } else {
-                Log.w(TAG, "Cannot start playback programmatically before the video is opened");
+                Log.e(TAG, "Cannot start playback programmatically before the video is opened.");
             }
+            return;
+        }
+
+        if (!fromUser && (mInternalFlags & $FLAG_VIDEO_PAUSED_BY_USER) != 0) {
+            Log.e(TAG, "Cannot start playback programmatically after it was paused by user.");
             return;
         }
 

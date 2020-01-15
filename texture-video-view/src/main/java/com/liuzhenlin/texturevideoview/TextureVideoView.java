@@ -793,48 +793,55 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
         mNavInitialPaddingTop = mTopControlsFrame.getPaddingTop();
 
         setDrawerLockModeInternal(LOCK_MODE_LOCKED_CLOSED, mDrawerView);
-        addDrawerListener(new DrawerListener() {
+        addDrawerListener(new SimpleDrawerListener() {
             int scrollState;
             float slideOffset;
 
             @Override
             public void onDrawerSlide(@NonNull View drawerView, float slideOffset) {
-                if (!isControlsShowing()
-                        && scrollState == STATE_SETTLING
-                        && slideOffset < 0.5f && slideOffset < this.slideOffset) {
-                    showControls(true);
+                if (scrollState == STATE_SETTLING) {
+                    if (slideOffset < 0.5f && slideOffset < this.slideOffset) {
+                        if (!isControlsShowing()) {
+                            showControls(true);
+                        }
+                    } else if (slideOffset > 0.5f && slideOffset > this.slideOffset) {
+                        if (isControlsShowing()) {
+                            showControls(false);
+                        }
+                    }
                 }
                 this.slideOffset = slideOffset;
             }
 
+            @SuppressLint("SwitchIntDef")
             @Override
             public void onDrawerStateChanged(int newState) {
-                if (newState == STATE_SETTLING && sOpenStateField != null) {
-                    try {
-                        final int state = sOpenStateField.getInt(mDrawerView.getLayoutParams());
-                        if ((state & FLAG_IS_OPENING) != 0) {
-                            showControls(false);
-                        } else if ((state & FLAG_IS_CLOSING) != 0) {
-                            showControls(true);
+                switch (newState) {
+                    case STATE_SETTLING:
+                        if (sOpenStateField != null) {
+                            try {
+                                final int state = sOpenStateField.getInt(mDrawerView.getLayoutParams());
+                                if ((state & FLAG_IS_OPENING) != 0) {
+                                    showControls(false);
+                                } else if ((state & FLAG_IS_CLOSING) != 0) {
+                                    showControls(true);
+                                }
+                            } catch (IllegalAccessException e) {
+                                e.printStackTrace();
+                            }
                         }
-                    } catch (IllegalAccessException e) {
-                        e.printStackTrace();
-                    }
+                        break;
+                    case STATE_IDLE:
+                        if (slideOffset == 0) {
+                            mPlayList.setVisibility(GONE);
+                            if (mMoreView != null) {
+                                mDrawerView.removeView(mMoreView);
+                                mMoreView = null;
+                            }
+                        }
+                        break;
                 }
                 scrollState = newState;
-            }
-
-            @Override
-            public void onDrawerOpened(@NonNull View drawerView) {
-            }
-
-            @Override
-            public void onDrawerClosed(@NonNull View drawerView) {
-                mPlayList.setVisibility(GONE);
-                if (mMoreView != null) {
-                    mDrawerView.removeView(mMoreView);
-                    mMoreView = null;
-                }
             }
         });
 
@@ -1593,28 +1600,36 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
     @Override
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
         // Ensures the drawer view to be opened/closed normally during this layout change
-        int state = 0;
+        int openState = 0;
         if (changed && sOpenStateField != null) {
             LayoutParams lp = (LayoutParams) mDrawerView.getLayoutParams();
             try {
-                state = sOpenStateField.getInt(lp);
-                if ((state & (FLAG_IS_OPENING | FLAG_IS_CLOSING)) != 0) {
+                openState = sOpenStateField.getInt(lp);
+                if ((openState & (FLAG_IS_OPENING | FLAG_IS_CLOSING)) != 0) {
                     if (mDragHelper == null) {
                         final int absHG = Utils.getAbsoluteHorizontalGravity(this, lp.gravity);
                         mDragHelper = (ViewDragHelper) (absHG == Gravity.LEFT ?
                                 sLeftDraggerField.get(this) : sRightDraggerField.get(this));
                     }
-                    mDragHelper.abort();
+                    if (mDragHelper.getViewDragState() == ViewDragHelper.STATE_SETTLING) {
+                        mDragHelper.abort();
+                    } else {
+                        // Only when
+                        // `(openState & (FLAG_IS_OPENING | FLAG_IS_CLOSING)) != 0)
+                        //      && drawerState /* mDragHelper.getViewDragState() */ == STATE_SETTLING`
+                        // is the drawer view really being opened/closed.
+                        openState = 0;
+                    }
                 }
             } catch (IllegalAccessException e) {
                 e.printStackTrace();
             }
         }
         super.onLayout(changed, l, t, r, b);
-        if (changed && state != 0) {
-            if ((state & FLAG_IS_OPENING) != 0) {
+        if (changed && openState != 0) {
+            if ((openState & FLAG_IS_OPENING) != 0) {
                 openDrawer(mDrawerView);
-            } else if ((state & FLAG_IS_CLOSING) != 0) {
+            } else if ((openState & FLAG_IS_CLOSING) != 0) {
                 closeDrawer(mDrawerView);
             }
         }
@@ -1910,7 +1925,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                         mBottomControlsFrame);
             } else {
                 Utils.includeChildrenForTransition(transition, mContentView,
-                        mLockUnlockButton, mCameraButton, mVideoCameraButton,
+                        mLockUnlockButton,
                         mBottomControlsFrame);
             }
             TransitionManager.beginDelayedTransition(mContentView, transition);
@@ -2054,9 +2069,15 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
             if (aspectRatio >= 1 && oldAspectRatio >= 1
                     || aspectRatio < 1 && oldAspectRatio < 1) {
                 capturedPhotoViewValid = true;
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                    TransitionManager.beginDelayedTransition(
+                            content, (Transition) mCapturedPhotoView.getTag());
+                }
                 mCapturedPhotoView.setVisibility(INVISIBLE);
             } else {
                 capturedPhotoViewValid = false;
+
                 hideCapturedPhotoView(false);
             }
         }
@@ -2104,11 +2125,11 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
 
                             View cpv = mCapturedPhotoView;
                             if (capturedPhotoViewValid) {
-                                cpv.setVisibility(VISIBLE);
                                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
                                     TransitionManager.beginDelayedTransition(
                                             content, (Transition) cpv.getTag());
                                 }
+                                cpv.setVisibility(VISIBLE);
                             } else {
                                 mCapturedPhotoView = cpv = LayoutInflater.from(mContext).inflate(
                                         aspectRatio > 1
@@ -2181,7 +2202,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                 content.setTag(null);
 
                 if (playing && mVideoPlayer != null) {
-                    mVideoPlayer.play(false);
+                    mVideoPlayer.play(mVideoPlayer.isPlayerCreated());
                 }
             }
 
@@ -3063,7 +3084,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                 }
             } else if (mShareButton == v) {
                 if (mEventListener != null) {
-                    showControls(false, false);
+                    showControls(false);
                     mEventListener.onShareVideo();
                 }
             } else if (mMoreButton == v) {
