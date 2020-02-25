@@ -25,6 +25,7 @@
     <string name="connectionTimeout">Connection timeout</string>
     <string name="contactWay">Contact way</string>
     <string name="copyright">Copyright © 2017–present 刘振林.\nAll rights reserved.</string>
+    <string name="copyURL">Copy URL</string>
     <string name="delete">Delete</string>
     <string name="deleteFailed">Failed to delete %s</string>
     <string name="deletePicture">Delete picture</string>
@@ -59,7 +60,7 @@
     <string name="notOpenYet">Not Open Yet</string>
     <string name="notSave">Not Save</string>
     <string name="ok">OK</string>
-    <string name="onlineVideo">Online Video</string>
+    <string name="onlineVideos">Online Videos</string>
     <string name="openOrCloseSideDrawer">Open or close the side drawer</string>
     <string name="optionalForMeToContactWithYou">Optional, for me to contact with you</string>
     <string name="path">Path: %s</string>
@@ -85,6 +86,7 @@
         Please try it again after opening!
     </string>
     <string name="readTimeout">Read timeout</string>
+    <string name="refreshError">Refresh Error</string>
     <string name="refreshingVideos">Refreshing videos, please wait…</string>
     <string name="rename">Rename</string>
     <string name="renameDirectory">Rename Directory</string>
@@ -124,9 +126,10 @@
     <string name="updateLog">%1$sv%2$s update log: </string>
     <string name="updateLogs">Update Logs</string>
     <string name="userFeedback">User Feedback</string>
-    <string name="version">v1.8.2</string>
+    <string name="version">v1.9-beta01</string>
     <string name="videoCount">Video count: %d</string>
     <string name="videoDetails">Video Details</string>
+    <string name="videoTitle">Video Title</string>
     <string name="videoLink">Video Link</string>
     <string name="videoNotExists">That video does not exist</string>
     <string name="videoThumbnail">Video thumbnail</string>

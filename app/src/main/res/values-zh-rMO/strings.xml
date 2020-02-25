@@ -24,6 +24,7 @@
     <string name="connectionTimeout">连接超时</string>
     <string name="contactWay">联系方式</string>
     <string name="copyright">Copyright © 2017–present 刘振林.\nAll rights reserved.</string>
+    <string name="copyURL">复制链接</string>
     <string name="delete">删除</string>
     <string name="deleteFailed">删除 %s 失败</string>
     <string name="deletePicture">删除图片</string>
@@ -57,7 +58,7 @@
     <string name="notOpenYet">暂不开启</string>
     <string name="notSave">不保存</string>
     <string name="ok">确定</string>
-    <string name="onlineVideo">在线视频</string>
+    <string name="onlineVideos">在线视频</string>
     <string name="openOrCloseSideDrawer">打开或关闭侧边抽屉</string>
     <string name="optionalForMeToContactWithYou">选填，便于我与你联系</string>
     <string name="path">路径：%s</string>
@@ -78,6 +79,7 @@
     </string>
     <string name="rationale_askFloatingWindowPermission">此应用还没有被授予悬浮窗权限，请开启后再试！</string>
     <string name="readTimeout">读取超时</string>
+    <string name="refreshError">刷新异常</string>
     <string name="refreshingVideos">正在刷新数据，请稍候…</string>
     <string name="rename">重命名</string>
     <string name="renameDirectory">重命名目录</string>
@@ -116,9 +118,10 @@
     <string name="updateLog">%1$sv%2$s 更新日志：</string>
     <string name="updateLogs">更新日志</string>
     <string name="userFeedback">用户反馈</string>
-    <string name="version">v1.8.2</string>
+    <string name="version">v1.9-beta01</string>
     <string name="videoCount">视频数：%d</string>
     <string name="videoDetails">视频详情</string>
+    <string name="videoTitle">视频标题</string>
     <string name="videoLink">视频链接</string>
     <string name="videoNotExists">该视频不存在</string>
     <string name="videoThumbnail">视频缩略图</string>

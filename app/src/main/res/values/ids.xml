@@ -3,6 +3,9 @@
     <item name="btn_cancel_deleteVideoListItemDialog" type="id" />
     <item name="btn_confirm_deleteVideoListItemDialog" type="id" />
 
+    <item name="btn_search" type="id" />
+    <item name="btn_link" type="id" />
+
     <item name="setBackground" type="id" />
     <item name="setForeground" type="id" />
     <item name="changeTextColor" type="id" />

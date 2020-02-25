@@ -8,6 +8,7 @@ package com.liuzhenlin.videos.view.fragment
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.AsyncTask
 import android.view.View
 import android.widget.Toast
@@ -176,6 +177,22 @@ fun Fragment.shareVideo(video: Video) {
 fun Context?.shareVideo(video: Video) {
     val app = App.getInstanceUnsafe()!!
     FileUtils.shareFile(this ?: app, app.authority, File(video.path), "video/*")
+}
+
+@JvmOverloads
+fun Context.playVideo(uriString: String, videoTittle: String? = null) {
+    startActivity(
+            Intent(this, VideoActivity::class.java)
+                    .setData(Uri.parse(uriString))
+                    .putExtra(KEY_VIDEO_TITLE, videoTittle))
+}
+
+@JvmOverloads
+fun Context.playVideo(uri: Uri, videoTittle: String? = null) {
+    startActivity(
+            Intent(this, VideoActivity::class.java)
+                    .setData(uri)
+                    .putExtra(KEY_VIDEO_TITLE, videoTittle))
 }
 
 fun Fragment.playVideo(video: Video) {

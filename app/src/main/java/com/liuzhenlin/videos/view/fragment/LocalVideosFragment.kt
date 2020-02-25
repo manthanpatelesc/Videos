@@ -6,21 +6,14 @@
 package com.liuzhenlin.videos.view.fragment
 
 import android.content.Context
-import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageButton
-import android.widget.TextView
-import androidx.appcompat.graphics.drawable.DrawerArrowDrawable
-import androidx.core.view.MarginLayoutParamsCompat
 import androidx.fragment.app.Fragment
-import com.liuzhenlin.floatingmenu.DensityUtils
 import com.liuzhenlin.slidingdrawerlayout.SlidingDrawerLayout
 import com.liuzhenlin.swipeback.SwipeBackLayout
 import com.liuzhenlin.videos.*
-import com.liuzhenlin.videos.utils.UiUtils
 import com.liuzhenlin.videos.view.swiperefresh.SwipeRefreshLayout
 
 /**
@@ -35,18 +28,6 @@ class LocalVideosFragment : Fragment(), ILocalVideosFragment, FragmentPartLifecy
     private lateinit var mLocalVideoListFragment: LocalVideoListFragment
     private var mLocalFoldedVideosFragment: LocalFoldedVideosFragment? = null
     private var mLocalSearchedVideosFragment: LocalSearchedVideosFragment? = null
-
-    private lateinit var mActionBarContainer: ViewGroup
-
-    // LocalVideoListFragment的ActionBar
-    private lateinit var mActionBar: ViewGroup
-    private lateinit var mHomeAsUpIndicator: ImageButton
-    private lateinit var mTitleText: TextView
-    private lateinit var mSearchButton: ImageButton
-    private lateinit var mDrawerArrowDrawable: DrawerArrowDrawable
-
-    // 临时缓存LocalSearchedVideosFragment或LocalFoldedVideosFragment的ActionBar
-    private var mTmpActionBar: ViewGroup? = null
 
     private lateinit var mSwipeRefreshLayout: SwipeRefreshLayout
 
@@ -72,53 +53,9 @@ class LocalVideosFragment : Fragment(), ILocalVideosFragment, FragmentPartLifecy
     }
 
     private fun initViews(contentView: View) {
-        mActionBarContainer = contentView.findViewById(R.id.container_actionbar)
-        mActionBar = contentView.findViewById(R.id.actionbar)
-        insertTopPaddingToActionBarIfNeeded(mActionBar)
-
-        mDrawerArrowDrawable = DrawerArrowDrawable(contentView.context)
-        mDrawerArrowDrawable.gapSize = 12.5f
-        mDrawerArrowDrawable.color = Color.WHITE
-
-        mHomeAsUpIndicator = mActionBar.findViewById(R.id.btn_homeAsUpIndicator)
-        mHomeAsUpIndicator.setImageDrawable(mDrawerArrowDrawable)
-        mHomeAsUpIndicator.setOnClickListener(this)
-
-        mTitleText = mActionBar.findViewById(R.id.text_title)
-        mTitleText.post {
-            val app = App.getInstance(contentView.context)
-            val hauilp = mHomeAsUpIndicator.layoutParams as ViewGroup.MarginLayoutParams
-            val ttlp = mTitleText.layoutParams as ViewGroup.MarginLayoutParams
-            MarginLayoutParamsCompat.setMarginStart(ttlp,
-                    ((DensityUtils.dp2px(app, 10f) /* margin */ + app.videoThumbWidth
-                            - hauilp.leftMargin - hauilp.rightMargin
-                            - mHomeAsUpIndicator.width - mTitleText.width) + 0.5f).toInt())
-            mTitleText.layoutParams = ttlp
-        }
-
-        mSearchButton = mActionBar.findViewById(R.id.btn_search)
-        mSearchButton.setOnClickListener(this)
-
         mSwipeRefreshLayout = contentView.findViewById(R.id.swipeRefreshLayout)
         mSwipeRefreshLayout.setColorSchemeResources(R.color.pink, R.color.lightBlue, R.color.purple)
         mSwipeRefreshLayout.setOnRequestDisallowInterceptTouchEventCallback { true }
-    }
-
-    private fun insertTopPaddingToActionBarIfNeeded(actionbar: View) {
-        if (mInteractionCallback.isLayoutUnderStatusBar()) {
-            val statusHeight = App.getInstance(actionbar.context).statusHeightInPortrait
-            when (actionbar.layoutParams.height) {
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.MATCH_PARENT -> {
-                }
-                else -> actionbar.layoutParams.height += statusHeight
-            }
-            actionbar.setPadding(
-                    actionbar.paddingLeft,
-                    actionbar.paddingTop + statusHeight,
-                    actionbar.paddingRight,
-                    actionbar.paddingBottom)
-        }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -165,13 +102,7 @@ class LocalVideosFragment : Fragment(), ILocalVideosFragment, FragmentPartLifecy
                 mSwipeRefreshLayout.setOnRefreshListener(childFragment)
 
                 mInteractionCallback.setSideDrawerEnabled(false)
-
-                mActionBar.visibility = View.GONE
-                mTmpActionBar = LayoutInflater.from(mActionBar.context).inflate(
-                        R.layout.actionbar_local_folded_videos_fragment, mActionBarContainer, false) as ViewGroup
-                mActionBarContainer.addView(mTmpActionBar)
-                insertTopPaddingToActionBarIfNeeded(mTmpActionBar!!)
-
+                mInteractionCallback.onLocalFoldedVideosFragmentAttached()
                 mInteractionCallback.showTabItems(false)
                 mInteractionCallback.setTabItemsEnabled(false)
             }
@@ -181,15 +112,7 @@ class LocalVideosFragment : Fragment(), ILocalVideosFragment, FragmentPartLifecy
                 mSwipeRefreshLayout.setOnRefreshListener(childFragment)
 
                 mInteractionCallback.setSideDrawerEnabled(false)
-
-                mTmpActionBar = LayoutInflater.from(mActionBar.context).inflate(
-                        R.layout.actionbar_local_searched_videos_fragment, mActionBarContainer, false) as ViewGroup
-                if (mInteractionCallback.isLayoutUnderStatusBar()) {
-                    UiUtils.setViewMargins(mTmpActionBar!!,
-                            0, App.getInstance(mActionBar.context).statusHeightInPortrait, 0, 0)
-                }
-                mActionBarContainer.addView(mTmpActionBar)
-
+                mInteractionCallback.onLocalSearchedVideosFragmentAttached()
                 mInteractionCallback.showTabItems(false)
             }
         }
@@ -211,11 +134,7 @@ class LocalVideosFragment : Fragment(), ILocalVideosFragment, FragmentPartLifecy
                 mSwipeRefreshLayout.setOnRefreshListener(mLocalVideoListFragment)
 
                 mInteractionCallback.setSideDrawerEnabled(true)
-
-//                mActionBar.setVisibility(View.VISIBLE)
-                mActionBarContainer.removeView(mTmpActionBar)
-                mTmpActionBar = null
-
+                mInteractionCallback.onLocalFoldedVideosFragmentDetached()
                 mInteractionCallback.setTabItemsEnabled(true)
 //                mInteractionCallback.showTabItems(true)
             }
@@ -225,10 +144,7 @@ class LocalVideosFragment : Fragment(), ILocalVideosFragment, FragmentPartLifecy
                 mSwipeRefreshLayout.setOnRefreshListener(mLocalVideoListFragment)
 
                 mInteractionCallback.setSideDrawerEnabled(true)
-
-                mActionBarContainer.removeView(mTmpActionBar)
-                mTmpActionBar = null
-
+                mInteractionCallback.onLocalSearchedVideosFragmentDetached()
                 mInteractionCallback.showTabItems(true)
             }
         }
@@ -281,13 +197,14 @@ class LocalVideosFragment : Fragment(), ILocalVideosFragment, FragmentPartLifecy
 
     override fun onClick(v: View) {
         when (v.id) {
-            R.id.btn_homeAsUpIndicator -> mInteractionCallback.onClickHomeAsUpIndicator()
             R.id.btn_search -> goToLocalSearchedVideosFragment()
         }
     }
 
     override fun getActionBar(fragment: Fragment): ViewGroup =
-            if (fragment === mLocalVideoListFragment) mActionBar else mTmpActionBar!!
+            mInteractionCallback.getActionBar(
+                    fragment === mLocalFoldedVideosFragment
+                            || fragment === mLocalSearchedVideosFragment)
 
     override fun isRefreshLayoutEnabled() = mSwipeRefreshLayout.isEnabled
 
@@ -309,12 +226,12 @@ class LocalVideosFragment : Fragment(), ILocalVideosFragment, FragmentPartLifecy
         when (state) {
             SwipeBackLayout.STATE_DRAGGING,
             SwipeBackLayout.STATE_SETTLING -> {
-                mActionBar.visibility = View.VISIBLE
+                mInteractionCallback.showActionBar(true)
                 mInteractionCallback.showTabItems(true)
             }
             SwipeBackLayout.STATE_IDLE ->
                 if (mSwipeBackScrollPercent == 0.0f) {
-                    mActionBar.visibility = View.GONE
+                    mInteractionCallback.showActionBar(false)
                     mInteractionCallback.showTabItems(false)
                 }
         }
@@ -322,8 +239,8 @@ class LocalVideosFragment : Fragment(), ILocalVideosFragment, FragmentPartLifecy
 
     override fun onScrollPercentChange(edge: Int, percent: Float) {
         mSwipeBackScrollPercent = percent
-        mActionBar.alpha = percent
-        mTmpActionBar!!.alpha = 1 - percent
+        mInteractionCallback.setActionBarAlpha(percent)
+        mInteractionCallback.setTmpActionBarAlpha(1 - percent)
     }
 
     override fun onDrawerOpened(parent: SlidingDrawerLayout, drawer: View) {
@@ -334,8 +251,6 @@ class LocalVideosFragment : Fragment(), ILocalVideosFragment, FragmentPartLifecy
 
     override fun onScrollPercentChange(parent: SlidingDrawerLayout, drawer: View, percent: Float) {
         if (view == null) return
-
-        mDrawerArrowDrawable.progress = percent
     }
 
     override fun onScrollStateChange(parent: SlidingDrawerLayout, drawer: View, state: Int) {
@@ -344,14 +259,10 @@ class LocalVideosFragment : Fragment(), ILocalVideosFragment, FragmentPartLifecy
         when (state) {
             SlidingDrawerLayout.SCROLL_STATE_TOUCH_SCROLL,
             SlidingDrawerLayout.SCROLL_STATE_AUTO_SCROLL -> {
-                mTitleText.setLayerType(View.LAYER_TYPE_HARDWARE, null)
-                mSearchButton.setLayerType(View.LAYER_TYPE_HARDWARE, null)
                 mSwipeRefreshLayout[0] /* fragment container */
                         .setLayerType(View.LAYER_TYPE_HARDWARE, null)
             }
             SlidingDrawerLayout.SCROLL_STATE_IDLE -> {
-                mTitleText.setLayerType(View.LAYER_TYPE_NONE, null)
-                mSearchButton.setLayerType(View.LAYER_TYPE_NONE, null)
                 mSwipeRefreshLayout[0] /* fragment container */
                         .setLayerType(View.LAYER_TYPE_NONE, null)
             }
@@ -365,11 +276,18 @@ class LocalVideosFragment : Fragment(), ILocalVideosFragment, FragmentPartLifecy
     }
 
     interface InteractionCallback : LocalVideoListFragment.InteractionCallback {
-        fun isLayoutUnderStatusBar(): Boolean
-
-        fun onClickHomeAsUpIndicator()
+        fun getActionBar(tmp: Boolean): ViewGroup
+        fun showActionBar(show: Boolean)
+        fun setActionBarAlpha(alpha: Float)
+        fun setTmpActionBarAlpha(alpha: Float)
 
         fun showTabItems(show: Boolean)
         fun setTabItemsEnabled(enabled: Boolean)
+
+        fun onLocalSearchedVideosFragmentAttached()
+        fun onLocalSearchedVideosFragmentDetached()
+
+        fun onLocalFoldedVideosFragmentAttached()
+        fun onLocalFoldedVideosFragmentDetached()
     }
 }

@@ -32,7 +32,7 @@
         android:layout_weight="1" />
 
     <ImageButton
-        android:id="@+id/btn_search"
+        android:id="@+id/img_btn"
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
         android:layout_marginLeft="10dp"

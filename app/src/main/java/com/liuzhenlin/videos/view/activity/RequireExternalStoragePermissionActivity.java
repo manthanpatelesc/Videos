@@ -18,6 +18,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.liuzhenlin.videos.R;
+import com.liuzhenlin.videos.view.fragment.VideoListItemOpsKt;
 
 import java.util.List;
 
@@ -84,7 +85,7 @@ public class RequireExternalStoragePermissionActivity extends AppCompatActivity
         if (uri == null) {
             startActivity(new Intent(this, MainActivity.class));
         } else {
-            startActivity(new Intent(this, VideoActivity.class).setData(uri));
+            VideoListItemOpsKt.playVideo(this, uri);
         }
 
         finish();

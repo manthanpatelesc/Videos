@@ -308,8 +308,14 @@ public class VideoActivity extends SwipeBackActivity {
                         if (video == null) {
                             video = new Video();
                             video.setId(Consts.NO_ID);
-                            video.setName(FileUtils.getFileNameFromFilePath(path));
                             video.setPath(path);
+
+                            final String videoTitle = intent.getStringExtra(Consts.KEY_VIDEO_TITLE);
+                            if (videoTitle != null) {
+                                video.setName(videoTitle);
+                            } else {
+                                video.setName(FileUtils.getFileNameFromFilePath(path));
+                            }
                         }
                     }
                 }

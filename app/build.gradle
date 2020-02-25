@@ -10,8 +10,8 @@ android {
         applicationId "com.liuzhenlin.videos"
         minSdkVersion 14
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 35
-        versionName "1.8.2"
+        versionCode 35 // 35 -> 36
+        versionName "1.9-beta01"
 
         vectorDrawables.useSupportLibrary = true
 
@@ -36,6 +36,8 @@ dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     implementation "androidx.appcompat:appcompat:$rootProject.ext.appcompatVersion"
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+
+    implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.0.0'
 
     implementation project(':slidingitemmenu-recyclerview')
     implementation project(':sliding-drawer-layout')

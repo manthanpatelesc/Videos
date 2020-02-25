@@ -46,6 +46,7 @@ import android.util.AttributeSet;
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.Gravity;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.Surface;
@@ -60,7 +61,6 @@ import android.view.animation.AlphaAnimation;
 import android.view.animation.Animation;
 import android.view.animation.Interpolator;
 import android.view.animation.OvershootInterpolator;
-import android.webkit.URLUtil;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Checkable;
@@ -99,6 +99,7 @@ import com.liuzhenlin.texturevideoview.utils.ParallelThreadExecutor;
 import com.liuzhenlin.texturevideoview.utils.ScreenUtils;
 import com.liuzhenlin.texturevideoview.utils.TimeUtil;
 import com.liuzhenlin.texturevideoview.utils.TransitionListenerAdapter;
+import com.liuzhenlin.texturevideoview.utils.URLUtils;
 import com.liuzhenlin.texturevideoview.utils.Utils;
 import com.liuzhenlin.texturevideoview.utils.VideoUtils;
 
@@ -1149,6 +1150,10 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                         new ArrayList<>(onPlaybackStateChangeListeners);
             }
             videoPlayer.mOnSkipPrevNextListener = lastVideoPlayer.mOnSkipPrevNextListener;
+            // videoPlayer.setVideoUri(lastVideoPlayer.mVideoUri) may do nothing if
+            // the encoded string representations of the new player's original Uri
+            // and the one to be set for it are equal.
+            videoPlayer.setVideoUri(lastVideoPlayer.mVideoUri);
             if ((lastVideoPlayer.mInternalFlags & VideoPlayer.$FLAG_VIDEO_INFO_RESOLVED) != 0) {
                 videoPlayer.mInternalFlags |= VideoPlayer.$FLAG_VIDEO_INFO_RESOLVED;
                 videoPlayer.mVideoWidth = lastVideoPlayer.mVideoWidth;
@@ -1159,10 +1164,6 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                 // that was being played.
                 videoPlayer.onVideoDurationDetermined(lastVideoPlayer.mVideoDuration);
             }
-            // videoPlayer.setVideoUri(lastVideoPlayer.mVideoUri) may do nothing if
-            // the encoded string representations of the new player's original Uri
-            // and the one to be set for it are equal.
-            videoPlayer.setVideoUri(lastVideoPlayer.mVideoUri);
             videoPlayer.seekTo(lastVideoPlayer.getVideoProgress(), false);
             videoPlayer.setPlaybackSpeed(lastPlaybackSpeed);
             videoPlayer.setAudioAllowedToPlayInBackground(lastVideoPlayer.isAudioAllowedToPlayInBackground());
@@ -1683,6 +1684,18 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
         if (mVideoPlayer != null) {
             mVideoPlayer.closeVideoInternal(false);
         }
+    }
+
+    @Override
+    public boolean onKeyUp(int keyCode, KeyEvent event) {
+        final boolean handled = super.onKeyUp(keyCode, event);
+        if (handled && keyCode == KeyEvent.KEYCODE_BACK) {
+            // Fix a bug in Android 8.1 and below: we used the LOCKED_CLOSED drawer lock mode,
+            // but as long as the drawer view is visible, the event is consumed,
+            // resulting in the onBackPressed() method to be not called from the host.
+            return false;
+        }
+        return handled;
     }
 
     /**
@@ -2477,7 +2490,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                     MediaMetadataRetriever mmr = new MediaMetadataRetriever();
                     try {
                         final String videoUriString = videoUri.toString();
-                        if (URLUtil.isNetworkUrl(videoUriString)) {
+                        if (URLUtils.isNetworkUrl(videoUriString)) {
                             mmr.setDataSource(videoUriString, Collections.emptyMap());
                         } else {
                             mmr.setDataSource(mContext, videoUri);
@@ -3390,7 +3403,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
             // Decide which view to show
             if (isInFullscreenMode()) {
                 Uri videoUri = mVideoPlayer == null ? null : mVideoPlayer.mVideoUri;
-                if (videoUri != null && !URLUtil.isNetworkUrl(videoUri.toString())) {
+                if (videoUri != null && !URLUtils.isNetworkUrl(videoUri.toString())) {
                     mmr = new MediaMetadataRetriever();
                     try {
                         mmr.setDataSource(mContext, videoUri);

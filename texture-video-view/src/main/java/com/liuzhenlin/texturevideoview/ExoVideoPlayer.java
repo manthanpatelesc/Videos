@@ -26,7 +26,6 @@ import com.google.android.exoplayer2.ExoPlaybackException;
 import com.google.android.exoplayer2.PlaybackParameters;
 import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.SimpleExoPlayer;
-import com.google.android.exoplayer2.database.ExoDatabaseProvider;
 import com.google.android.exoplayer2.source.MediaSourceFactory;
 import com.google.android.exoplayer2.source.ProgressiveMediaSource;
 import com.google.android.exoplayer2.source.dash.DashMediaSource;
@@ -35,22 +34,12 @@ import com.google.android.exoplayer2.source.smoothstreaming.SsMediaSource;
 import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
 import com.google.android.exoplayer2.upstream.DefaultHttpDataSourceFactory;
-import com.google.android.exoplayer2.upstream.FileDataSource;
-import com.google.android.exoplayer2.upstream.cache.Cache;
-import com.google.android.exoplayer2.upstream.cache.CacheDataSink;
-import com.google.android.exoplayer2.upstream.cache.CacheDataSinkFactory;
-import com.google.android.exoplayer2.upstream.cache.CacheDataSource;
-import com.google.android.exoplayer2.upstream.cache.CacheDataSourceFactory;
-import com.google.android.exoplayer2.upstream.cache.LeastRecentlyUsedCacheEvictor;
-import com.google.android.exoplayer2.upstream.cache.SimpleCache;
 import com.google.android.exoplayer2.util.Util;
 import com.google.android.material.snackbar.Snackbar;
 import com.liuzhenlin.texturevideoview.receiver.HeadsetEventsReceiver;
 import com.liuzhenlin.texturevideoview.receiver.MediaButtonEventHandler;
 import com.liuzhenlin.texturevideoview.receiver.MediaButtonEventReceiver;
 import com.liuzhenlin.texturevideoview.utils.Utils;
-
-import java.io.File;
 
 /**
  * A sub implementation class of {@link VideoPlayer} to deal with the audio/video playback logic
@@ -158,22 +147,24 @@ public class ExoVideoPlayer extends VideoPlayer {
     @NonNull
     public DataSource.Factory getDefaultDataSourceFactory() {
         if (sDefaultDataSourceFactory == null) {
-            Cache cache = new SimpleCache(
-                    new File(getBaseVideoCacheDirectory(), "exo"),
-                    new LeastRecentlyUsedCacheEvictor(DEFAULT_MAXIMUM_CACHE_SIZE),
-                    new ExoDatabaseProvider(mContext));
-            DataSource.Factory upstreamFactory =
-                    new DefaultDataSourceFactory(mContext,
-                            new DefaultHttpDataSourceFactory(getUserAgent()));
-            DataSource.Factory cacheReadDataSourceFactory = new FileDataSource.Factory();
-            CacheDataSinkFactory cacheWriteDataSourceFactory =
-                    new CacheDataSinkFactory(cache, CacheDataSink.DEFAULT_FRAGMENT_SIZE, 1024);
-            sDefaultDataSourceFactory = new CacheDataSourceFactory(
-                    cache,
-                    upstreamFactory, cacheReadDataSourceFactory, cacheWriteDataSourceFactory,
-                    CacheDataSource.FLAG_BLOCK_ON_CACHE
-                            | CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR,
-                    null);
+            sDefaultDataSourceFactory = new DefaultDataSourceFactory(mContext,
+                    new DefaultHttpDataSourceFactory(getUserAgent()));
+//            Cache cache = new SimpleCache(
+//                    new File(getBaseVideoCacheDirectory(), "exo"),
+//                    new LeastRecentlyUsedCacheEvictor(DEFAULT_MAXIMUM_CACHE_SIZE),
+//                    new ExoDatabaseProvider(mContext));
+//            DataSource.Factory upstreamFactory =
+//                    new DefaultDataSourceFactory(mContext,
+//                            new DefaultHttpDataSourceFactory(getUserAgent()));
+//            DataSource.Factory cacheReadDataSourceFactory = new FileDataSource.Factory();
+//            CacheDataSinkFactory cacheWriteDataSourceFactory =
+//                    new CacheDataSinkFactory(cache, CacheDataSink.DEFAULT_FRAGMENT_SIZE, 1024);
+//            sDefaultDataSourceFactory = new CacheDataSourceFactory(
+//                    cache,
+//                    upstreamFactory, cacheReadDataSourceFactory, cacheWriteDataSourceFactory,
+//                    CacheDataSource.FLAG_BLOCK_ON_CACHE
+//                            | CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR,
+//                    null);
         }
         return sDefaultDataSourceFactory;
     }

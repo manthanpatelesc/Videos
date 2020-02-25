@@ -25,6 +25,8 @@ import com.liuzhenlin.videos.model.VideoListItem;
 
 import java.io.File;
 
+import kotlin.text.StringsKt;
+
 import static com.liuzhenlin.videos.dao.DatabaseOpenHelper.TABLE_VIDEODIRS;
 import static com.liuzhenlin.videos.dao.DatabaseOpenHelper.TABLE_VIDEOS;
 import static com.liuzhenlin.videos.dao.DatabaseOpenHelper.VIDEODIRS_COL_IS_TOPPED;
@@ -174,7 +176,7 @@ public final class VideoListItemDao implements IVideoListItemDao {
 
         Cursor cursor = mContentResolver.query(VIDEO_URI,
                 PROJECTION_VIDEO_URI,
-                VIDEO_PATH + "='" + path + "' COLLATE NOCASE", null,
+                VIDEO_PATH + "='" + escapedComparisionString(path) + "' COLLATE NOCASE", null,
                 null);
         if (cursor != null) {
             try {
@@ -186,6 +188,10 @@ public final class VideoListItemDao implements IVideoListItemDao {
             }
         }
         return null;
+    }
+
+    private String escapedComparisionString(String string) {
+        return StringsKt.replace(string, "'", "''", false);
     }
 
     @Nullable
@@ -202,8 +208,9 @@ public final class VideoListItemDao implements IVideoListItemDao {
         final int strlength = directory.length();
         return mContentResolver.query(VIDEO_URI,
                 PROJECTION_VIDEO_URI,
-                "SUBSTR(" + VIDEO_PATH + ",1," + strlength + ")='" + directory + "' " +
-                        "COLLATE NOCASE AND SUBSTR(" + VIDEO_PATH + "," + (strlength + 2) + ") " +
+                "SUBSTR(" + VIDEO_PATH + ",1," + strlength + ")='" +
+                        escapedComparisionString(directory) + "' COLLATE NOCASE " +
+                        "AND SUBSTR(" + VIDEO_PATH + "," + (strlength + 2) + ") " +
                         "NOT LIKE '%" + File.separator + "%'", null,
                 null);
     }
@@ -224,7 +231,8 @@ public final class VideoListItemDao implements IVideoListItemDao {
         if (directory == null) return false;
 
         return mDataBase.delete(TABLE_VIDEODIRS,
-                VIDEODIRS_COL_PATH + "='" + directory + "'", null) == 1;
+                VIDEODIRS_COL_PATH + "='" + escapedComparisionString(directory) + "'", null)
+                == 1;
     }
 
     @Override
@@ -236,7 +244,8 @@ public final class VideoListItemDao implements IVideoListItemDao {
         values.put(VIDEODIRS_COL_IS_TOPPED, videodir.isTopped() ? 1 : 0);
         return mDataBase.update(TABLE_VIDEODIRS,
                 values,
-                VIDEODIRS_COL_PATH + "='" + videodir.getPath() + "'", null) == 1;
+                VIDEODIRS_COL_PATH + "='" + escapedComparisionString(videodir.getPath()) + "'", null)
+                == 1;
     }
 
     @Nullable
@@ -245,7 +254,7 @@ public final class VideoListItemDao implements IVideoListItemDao {
         if (path == null) return null;
 
         Cursor cursor = mDataBase.rawQuery("SELECT * FROM " + TABLE_VIDEODIRS +
-                " WHERE " + VIDEODIRS_COL_PATH + "='" + path + "'", null);
+                " WHERE " + VIDEODIRS_COL_PATH + "='" + escapedComparisionString(path) + "'", null);
         if (cursor != null) {
             try {
                 if (cursor.moveToFirst()) {
@@ -420,7 +429,8 @@ public final class VideoListItemDao implements IVideoListItemDao {
             values.put(VIDEODIRS_COL_IS_TOPPED, topped ? 1 : 0);
             return mDataBase.update(TABLE_VIDEODIRS,
                     values,
-                    VIDEODIRS_COL_PATH + "='" + item.getPath() + "'", null) == 1;
+                    VIDEODIRS_COL_PATH + "='" + escapedComparisionString(item.getPath()) + "'", null)
+                    == 1;
         }
     }
 
@@ -431,7 +441,7 @@ public final class VideoListItemDao implements IVideoListItemDao {
                     " WHERE " + VIDEOS_COL_ID + "=" + ((Video) item).getId(), null);
         } else {
             cursor = mDataBase.rawQuery("SELECT " + VIDEODIRS_COL_IS_TOPPED + " FROM " + TABLE_VIDEODIRS +
-                    " WHERE " + VIDEODIRS_COL_PATH + "='" + item.getPath() + "'", null);
+                    " WHERE " + VIDEODIRS_COL_PATH + "='" + escapedComparisionString(item.getPath()) + "'", null);
         }
         if (cursor != null) {
             try {

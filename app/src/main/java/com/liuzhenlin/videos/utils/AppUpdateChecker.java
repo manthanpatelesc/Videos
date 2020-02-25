@@ -35,8 +35,9 @@ import androidx.appcompat.app.AppCompatDialog;
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.FileProvider;
 
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.liuzhenlin.texturevideoview.utils.ParallelThreadExecutor;
 import com.liuzhenlin.texturevideoview.utils.Singleton;
 import com.liuzhenlin.videos.App;
@@ -58,7 +59,6 @@ import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -208,31 +208,26 @@ public final class AppUpdateChecker {
                     }
                 }
 
-                Gson gson = new Gson();
-                Map<String, Object> infos = gson.fromJson(json.toString(),  //@formatter:off
-                            new TypeToken<Map<String, Object>>() {}.getType()); //@formatter:on
-                //noinspection unchecked
-                Map<String, Object> appInfos = (Map<String, Object>) infos.get("appInfos");
+                JsonObject appInfos = JsonParser.parseString(json.toString()).getAsJsonObject()
+                        .get("appInfos").getAsJsonObject();
 
-                //noinspection ConstantConditions
                 final boolean findNewVersion = Consts.DEBUG_APP_UPDATE
-                        || (Double) appInfos.get("versionCode") > BuildConfig.VERSION_CODE;
+                        || appInfos.get("versionCode").getAsInt() > BuildConfig.VERSION_CODE;
                 // 检测到版本更新
                 if (findNewVersion) {
-                    mAppName = (String) appInfos.get("appName");
-                    mVersionName = (String) appInfos.get("versionName");
+                    mAppName = appInfos.get("appName").getAsString();
+                    mVersionName = appInfos.get("versionName").getAsString();
 
-                    mAppLink = (String) appInfos.get("appLink");
+                    mAppLink = appInfos.get("appLink").getAsString();
 
                     mUpdateLog = new StringBuilder();
-                    //noinspection ConstantConditions
-                    for (Object log : (List) appInfos.get("updateLogs")) {
-                        mUpdateLog.append(log).append("\n");
+                    for (JsonElement log : appInfos.get("updateLogs").getAsJsonArray()) {
+                        mUpdateLog.append(log.getAsString()).append("\n");
                     }
                     mUpdateLog.deleteCharAt(mUpdateLog.length() - 1);
 
                     mPromptDialogAnchorActivityClsName =
-                            (String) appInfos.get("promptDialogAnchorActivityClsName");
+                            appInfos.get("promptDialogAnchorActivityClsName").getAsString();
                 }
                 return findNewVersion ? RESULT_FIND_NEW_VERSION : RESULT_NO_NEW_VERSION;
             }

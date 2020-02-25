@@ -18,6 +18,17 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
+        <FrameLayout
+            android:id="@+id/container_actionbar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="?android:attr/windowBackground"
+            android:elevation="@dimen/actionbarElevationHeight"
+            tools:ignore="UnusedAttribute">
+
+            <include layout="@layout/actionbar" />
+        </FrameLayout>
+
         <com.liuzhenlin.videos.view.ScrollDisableViewPager
             android:id="@+id/viewpager_fragments"
             android:layout_width="match_parent"
@@ -41,7 +52,7 @@
             <com.google.android.material.tabs.TabItem
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/onlineVideo" />
+                android:text="@string/onlineVideos" />
         </com.google.android.material.tabs.TabLayout>
     </LinearLayout>
 </com.liuzhenlin.slidingdrawerlayout.SlidingDrawerLayout>

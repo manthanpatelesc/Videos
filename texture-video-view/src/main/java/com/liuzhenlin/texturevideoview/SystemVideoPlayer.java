@@ -15,7 +15,6 @@ import android.os.Build;
 import android.os.Messenger;
 import android.util.Log;
 import android.view.Surface;
-import android.webkit.URLUtil;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -23,14 +22,12 @@ import androidx.annotation.Nullable;
 import androidx.annotation.RawRes;
 import androidx.annotation.RestrictTo;
 
-import com.danikula.videocache.HttpProxyCacheServer;
 import com.google.android.material.snackbar.Snackbar;
 import com.liuzhenlin.texturevideoview.receiver.HeadsetEventsReceiver;
 import com.liuzhenlin.texturevideoview.receiver.MediaButtonEventHandler;
 import com.liuzhenlin.texturevideoview.receiver.MediaButtonEventReceiver;
 import com.liuzhenlin.texturevideoview.utils.Utils;
 
-import java.io.File;
 import java.io.IOException;
 
 /**
@@ -66,7 +63,7 @@ public class SystemVideoPlayer extends VideoPlayer {
 
     private MediaPlayer mMediaPlayer;
 
-    private static HttpProxyCacheServer sCacheServer;
+//    private static HttpProxyCacheServer sCacheServer;
 
     /**
      * How much of the network-based video has been buffered from the media stream received
@@ -127,15 +124,15 @@ public class SystemVideoPlayer extends VideoPlayer {
                             .build()
                     : null;
 
-    private HttpProxyCacheServer getCacheServer() {
-        if (sCacheServer == null) {
-            sCacheServer = new HttpProxyCacheServer.Builder(mContext)
-                    .cacheDirectory(new File(getBaseVideoCacheDirectory(), "sm"))
-                    .maxCacheSize(DEFAULT_MAXIMUM_CACHE_SIZE)
-                    .build();
-        }
-        return sCacheServer;
-    }
+//    private HttpProxyCacheServer getCacheServer() {
+//        if (sCacheServer == null) {
+//            sCacheServer = new HttpProxyCacheServer.Builder(mContext)
+//                    .cacheDirectory(new File(getBaseVideoCacheDirectory(), "sm"))
+//                    .maxCacheSize(DEFAULT_MAXIMUM_CACHE_SIZE)
+//                    .build();
+//        }
+//        return sCacheServer;
+//    }
 
     public SystemVideoPlayer(@NonNull Context context) {
         super(context);
@@ -279,12 +276,13 @@ public class SystemVideoPlayer extends VideoPlayer {
     private void startVideo() {
         if (mVideoUri != null) {
             try {
-                final String url = mVideoUri.toString();
-                if (URLUtil.isNetworkUrl(url)) {
-                    mMediaPlayer.setDataSource(getCacheServer().getProxyUrl(url));
-                } else {
-                    mMediaPlayer.setDataSource(mContext, mVideoUri);
-                }
+                mMediaPlayer.setDataSource(mContext, mVideoUri);
+//                final String url = mVideoUri.toString();
+//                if (URLUtils.isNetworkUrl(url)) {
+//                    mMediaPlayer.setDataSource(getCacheServer().getProxyUrl(url));
+//                } else {
+//                    mMediaPlayer.setDataSource(mContext, mVideoUri);
+//                }
                 if (mVideoView != null) {
                     mVideoView.showLoadingView(true);
                 }
