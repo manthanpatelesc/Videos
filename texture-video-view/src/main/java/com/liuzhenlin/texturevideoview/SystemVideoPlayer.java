@@ -32,7 +32,7 @@ import java.io.IOException;
 
 /**
  * A sub implementation class of {@link VideoPlayer} to deal with the audio/video playback logic
- * related to the media player component through a {@link MediaPlayer} object.
+ * related to the media player component through a {@link android.media.MediaPlayer} object.
  *
  * @author 刘振林
  */
@@ -62,8 +62,6 @@ public class SystemVideoPlayer extends VideoPlayer {
     private static final int $FLAG_BUFFERING = 1 << 28;
 
     private MediaPlayer mMediaPlayer;
-
-//    private static HttpProxyCacheServer sCacheServer;
 
     /**
      * How much of the network-based video has been buffered from the media stream received
@@ -124,6 +122,8 @@ public class SystemVideoPlayer extends VideoPlayer {
                             .build()
                     : null;
 
+//    private static HttpProxyCacheServer sCacheServer;
+
 //    private HttpProxyCacheServer getCacheServer() {
 //        if (sCacheServer == null) {
 //            sCacheServer = new HttpProxyCacheServer.Builder(mContext)
@@ -172,9 +172,9 @@ public class SystemVideoPlayer extends VideoPlayer {
                 if (mVideoView != null) {
                     mVideoView.showLoadingView(false);
                 }
-                if ((mInternalFlags & $FLAG_VIDEO_INFO_RESOLVED) == 0) {
+                if ((mInternalFlags & $FLAG_VIDEO_DURATION_DETERMINED) == 0) {
                     onVideoDurationDetermined(mp.getDuration());
-                    mInternalFlags |= $FLAG_VIDEO_INFO_RESOLVED;
+                    mInternalFlags |= $FLAG_VIDEO_DURATION_DETERMINED;
                 }
                 setPlaybackState(PLAYBACK_STATE_PREPARED);
                 play(false);
@@ -209,7 +209,7 @@ public class SystemVideoPlayer extends VideoPlayer {
                 return false;
             });
             mMediaPlayer.setOnBufferingUpdateListener((mp, percent)
-                    -> mBuffering = (int) (mVideoDuration * percent / 100f + 0.5f));
+                    -> mBuffering = clampedPositionMs((int) (mVideoDuration * percent / 100f + 0.5f)));
             mMediaPlayer.setOnErrorListener((mp, what, extra) -> {
                 if (InternalConsts.DEBUG) {
                     Log.e(TAG, "Error occurred while playing video:" +
@@ -326,7 +326,7 @@ public class SystemVideoPlayer extends VideoPlayer {
             if ((mInternalFlags & $FLAG_VIDEO_IS_CLOSING) != 0) {
                 setPlaybackState(PLAYBACK_STATE_UNDEFINED);
             } else {
-                // Not clear the $FLAG_VIDEO_INFO_RESOLVED flag
+                // Not clear the $FLAG_VIDEO_DURATION_DETERMINED flag
                 mInternalFlags &= ~($FLAG_VIDEO_PAUSED_BY_USER
                         | $FLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER
                         | $FLAG_SEEKING
@@ -335,6 +335,7 @@ public class SystemVideoPlayer extends VideoPlayer {
                 // Resets below to prepare for the next resume of the video player
                 mPlaybackSpeed = DEFAULT_PLAYBACK_SPEED;
                 mBuffering = 0;
+                mMediaPlayer.stop();
                 mMediaPlayer.reset();
                 startVideo();
             }
@@ -391,6 +392,7 @@ public class SystemVideoPlayer extends VideoPlayer {
                     mSeekOnPlay = getVideoProgress();
                 }
                 mInternalFlags &= ~$FLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER;
+                mMediaPlayer.stop();
                 mMediaPlayer.reset();
                 startVideo();
                 break;
@@ -475,9 +477,10 @@ public class SystemVideoPlayer extends VideoPlayer {
             }
             pause(fromUser);
             abandonAudioFocus();
+            mMediaPlayer.stop();
             mMediaPlayer.release();
             mMediaPlayer = null;
-            // Not clear the $FLAG_VIDEO_INFO_RESOLVED flag
+            // Not clear the $FLAG_VIDEO_DURATION_DETERMINED flag
             mInternalFlags &= ~($FLAG_VIDEO_VOLUME_TURNED_DOWN_AUTOMATICALLY
                     | $FLAG_SEEKING
                     | $FLAG_BUFFERING
@@ -509,6 +512,7 @@ public class SystemVideoPlayer extends VideoPlayer {
 
     @Override
     public void seekTo(int positionMs, boolean fromUser) {
+        positionMs = clampedPositionMs(positionMs);
         if (isPlaying()) {
             seekToInternal(positionMs);
         } else {
@@ -547,7 +551,7 @@ public class SystemVideoPlayer extends VideoPlayer {
             return mVideoDuration;
         }
         if ((mInternalFlags & $FLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER) != 0) {
-            return mMediaPlayer.getCurrentPosition();
+            return clampedPositionMs(mMediaPlayer.getCurrentPosition());
         }
         return mSeekOnPlay;
     }

@@ -23,6 +23,7 @@ import androidx.core.util.ObjectsCompat;
 
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.audio.AudioAttributes;
+import com.google.android.exoplayer2.util.Util;
 import com.google.android.material.snackbar.Snackbar;
 import com.liuzhenlin.texturevideoview.receiver.HeadsetEventsReceiver;
 import com.liuzhenlin.texturevideoview.receiver.MediaButtonEventHandler;
@@ -59,8 +60,8 @@ public abstract class VideoPlayer implements IVideoPlayer {
     /** Set via {@link #setSingleVideoLoopPlayback(boolean)} */
     private static final int $FLAG_SINGLE_VIDEO_LOOP_PLAYBACK = 1 << 1;
 
-    /** Indicates that the video info (width, height, duration, etc.) is now available. */
-    protected static final int $FLAG_VIDEO_INFO_RESOLVED = 1 << 2;
+    /** Indicates that the duration of the video has been determined. */
+    protected static final int $FLAG_VIDEO_DURATION_DETERMINED = 1 << 2;
 
     /**
      * Whether we can now get the actual video playback position directly from the video player.
@@ -111,7 +112,7 @@ public abstract class VideoPlayer implements IVideoPlayer {
     protected int mVideoHeight;
 
     /** How long the playback will last for. */
-    protected int mVideoDuration;
+    protected int mVideoDuration = UNKNOWN_DURATION;
 
     /** The string representation of the video duration. */
     /*package*/ String mVideoDurationString = DEFAULT_STRING_VIDEO_DURATION;
@@ -215,9 +216,10 @@ public abstract class VideoPlayer implements IVideoPlayer {
                 mVideoView.onVideoUriChanged(uri);
             }
 
-            mVideoDuration = 0;
+            onVideoSizeChanged(0, 0);
+            mVideoDuration = UNKNOWN_DURATION;
             mVideoDurationString = DEFAULT_STRING_VIDEO_DURATION;
-            mInternalFlags &= ~$FLAG_VIDEO_INFO_RESOLVED;
+            mInternalFlags &= ~$FLAG_VIDEO_DURATION_DETERMINED;
             if (isPlayerCreated()) {
                 restartVideo();
             } else {
@@ -306,7 +308,7 @@ public abstract class VideoPlayer implements IVideoPlayer {
 
     @Override
     public int getVideoDuration() {
-        if ((mInternalFlags & $FLAG_VIDEO_INFO_RESOLVED) != 0) {
+        if ((mInternalFlags & $FLAG_VIDEO_DURATION_DETERMINED) != 0) {
             return mVideoDuration;
         }
         return UNKNOWN_DURATION;
@@ -319,20 +321,18 @@ public abstract class VideoPlayer implements IVideoPlayer {
         return Math.max(0, getVideoDuration());
     }
 
+    protected final int clampedPositionMs(int positionMs) {
+        return Util.constrainValue(positionMs, 0, getNoNegativeVideoDuration());
+    }
+
     @Override
     public int getVideoWidth() {
-        if ((mInternalFlags & $FLAG_VIDEO_INFO_RESOLVED) != 0) {
-            return mVideoWidth;
-        }
-        return 0;
+        return mVideoWidth;
     }
 
     @Override
     public int getVideoHeight() {
-        if ((mInternalFlags & $FLAG_VIDEO_INFO_RESOLVED) != 0) {
-            return mVideoHeight;
-        }
-        return 0;
+        return mVideoHeight;
     }
 
     @Override
@@ -682,6 +682,7 @@ public abstract class VideoPlayer implements IVideoPlayer {
                 //noinspection unchecked
                 return (VP) new SystemVideoPlayer(context);
             }
+
             if (ExoVideoPlayer.class == vpClass) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
                     //noinspection unchecked
@@ -689,6 +690,20 @@ public abstract class VideoPlayer implements IVideoPlayer {
                 }
                 return null;
             }
+
+            if (IjkVideoPlayer.class == vpClass) {
+                //noinspection unchecked
+                return (VP) new IjkVideoPlayer(context);
+            }
+
+            if (VlcVideoPlayer.class == vpClass) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+                    //noinspection unchecked
+                    return (VP) new VlcVideoPlayer(context);
+                }
+                return null;
+            }
+
             //noinspection unchecked
             for (Constructor<VP> constructor : (Constructor<VP>[]) vpClass.getConstructors()) {
                 Class<?>[] paramTypes = constructor.getParameterTypes();

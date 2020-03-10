@@ -108,6 +108,7 @@
     <string name="setLightTexts">设置亮色字体</string>
     <string name="severalItemsHaveBeenSelected">已选择%d项</string>
     <string name="share">分享</string>
+    <string name="sharingOnlineVideoIsNotCurrentlySupported">暂不支持分享网络视频！</string>
     <string name="size">大小：%s</string>
     <string name="someDirectory">“%s”目录</string>
     <string name="theInstallationPackageHasBeenDestroyed">安装包已损坏</string>
@@ -118,7 +119,7 @@
     <string name="updateLog">%1$sv%2$s 更新日志：</string>
     <string name="updateLogs">更新日志</string>
     <string name="userFeedback">用户反馈</string>
-    <string name="version">v1.9-beta01</string>
+    <string name="version">v1.9-beta02</string>
     <string name="videoCount">视频数：%d</string>
     <string name="videoDetails">视频详情</string>
     <string name="videoTitle">视频标题</string>

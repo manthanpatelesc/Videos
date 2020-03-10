@@ -22,9 +22,11 @@ import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 
 import com.google.android.exoplayer2.C;
+import com.google.android.exoplayer2.DefaultRenderersFactory;
 import com.google.android.exoplayer2.ExoPlaybackException;
 import com.google.android.exoplayer2.PlaybackParameters;
 import com.google.android.exoplayer2.Player;
+import com.google.android.exoplayer2.RenderersFactory;
 import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.source.MediaSourceFactory;
 import com.google.android.exoplayer2.source.ProgressiveMediaSource;
@@ -209,7 +211,9 @@ public class ExoVideoPlayer extends VideoPlayer {
         if (mExoPlayer == null && mVideoUri != null
                 && !(mVideoView != null && surface == null)
                 && (mInternalFlags & $FLAG_VIDEO_PAUSED_BY_USER) == 0) {
-            mExoPlayer = new SimpleExoPlayer.Builder(mContext).build();
+            RenderersFactory renderersFactory = new DefaultRenderersFactory(mContext)
+                    .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON);
+            mExoPlayer = new SimpleExoPlayer.Builder(mContext, renderersFactory).build();
             mExoPlayer.setVideoSurface(surface);
             mExoPlayer.setAudioAttributes(sDefaultAudioAttrs);
             setPlaybackSpeed(mUserPlaybackSpeed);
@@ -226,11 +230,11 @@ public class ExoVideoPlayer extends VideoPlayer {
                     switch (playbackState) {
                         case Player.STATE_READY:
                             if (getPlaybackState() == PLAYBACK_STATE_PREPARING) {
-                                if ((mInternalFlags & $FLAG_VIDEO_INFO_RESOLVED) == 0) {
+                                if ((mInternalFlags & $FLAG_VIDEO_DURATION_DETERMINED) == 0) {
                                     final long duration = mExoPlayer.getDuration();
                                     onVideoDurationDetermined(duration == C.TIME_UNSET ?
                                             UNKNOWN_DURATION : (int) duration);
-                                    mInternalFlags |= $FLAG_VIDEO_INFO_RESOLVED;
+                                    mInternalFlags |= $FLAG_VIDEO_DURATION_DETERMINED;
                                 }
                                 setPlaybackState(PLAYBACK_STATE_PREPARED);
                                 play(false);
@@ -282,7 +286,21 @@ public class ExoVideoPlayer extends VideoPlayer {
             mExoPlayer.addVideoListener(new com.google.android.exoplayer2.video.VideoListener() {
                 @Override
                 public void onVideoSizeChanged(int width, int height, int unappliedRotationDegrees, float pixelWidthHeightRatio) {
-                    ExoVideoPlayer.this.onVideoSizeChanged(width, height);
+                    int videoW = width;
+                    int videoH = height;
+
+                    final boolean videoSwapped =
+                            unappliedRotationDegrees == 90 || unappliedRotationDegrees == 270;
+                    if (videoSwapped) {
+                        int swap = videoW;
+                        videoW = videoH;
+                        videoH = swap;
+                    }
+                    if (pixelWidthHeightRatio > 0.0f && pixelWidthHeightRatio != 1.0f) {
+                        videoW = (int) (videoW * pixelWidthHeightRatio + 0.5f);
+                    }
+
+                    ExoVideoPlayer.this.onVideoSizeChanged(videoW, videoH);
                 }
             });
             startVideo();
@@ -304,7 +322,6 @@ public class ExoVideoPlayer extends VideoPlayer {
             setPlaybackState(PLAYBACK_STATE_PREPARING);
             mExoPlayer.prepare(obtainMediaSourceFactory(mVideoUri).createMediaSource(mVideoUri));
         } else {
-            mExoPlayer.stop(true);
             setPlaybackState(PLAYBACK_STATE_IDLE);
         }
         if (mVideoView != null) {
@@ -368,10 +385,11 @@ public class ExoVideoPlayer extends VideoPlayer {
             if ((mInternalFlags & $FLAG_VIDEO_IS_CLOSING) != 0) {
                 setPlaybackState(PLAYBACK_STATE_UNDEFINED);
             } else {
-                // Not clear the $FLAG_VIDEO_INFO_RESOLVED flag
+                // Not clear the $FLAG_VIDEO_DURATION_DETERMINED flag
                 mInternalFlags &= ~($FLAG_VIDEO_PAUSED_BY_USER
                         | $FLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER);
                 pause(false);
+                mExoPlayer.stop(true);
                 startVideo();
             }
         }
@@ -499,6 +517,7 @@ public class ExoVideoPlayer extends VideoPlayer {
             }
             pause(fromUser);
             abandonAudioFocus();
+            mExoPlayer.stop(false);
             mExoPlayer.release();
             mExoPlayer = null;
             mTmpMediaSourceFactory = null;
@@ -529,6 +548,7 @@ public class ExoVideoPlayer extends VideoPlayer {
 
     @Override
     public void seekTo(int positionMs, boolean fromUser) {
+        positionMs = clampedPositionMs(positionMs);
         if (isPlaying()) {
             mExoPlayer.seekTo(positionMs);
         } else {
@@ -540,7 +560,7 @@ public class ExoVideoPlayer extends VideoPlayer {
     @Override
     public int getVideoProgress() {
         if ((mInternalFlags & $FLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER) != 0) {
-            return (int) mExoPlayer.getCurrentPosition();
+            return clampedPositionMs((int) mExoPlayer.getCurrentPosition());
         }
         if (getPlaybackState() == PLAYBACK_STATE_COMPLETED) {
             // If the video completed and the ExoPlayer object was released, we would get 0.
@@ -552,7 +572,7 @@ public class ExoVideoPlayer extends VideoPlayer {
     @Override
     public int getVideoBufferProgress() {
         if (mExoPlayer != null) {
-            return (int) mExoPlayer.getBufferedPosition();
+            return clampedPositionMs((int) mExoPlayer.getBufferedPosition());
         }
         return 0;
     }

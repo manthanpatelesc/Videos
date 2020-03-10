@@ -1091,6 +1091,18 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
             mEventListener.onPlayerChange(videoPlayer);
         }
 
+        // Due to special processing mechanism to the Surface used by bilibili's IjkMediaPlayer,
+        // we may need to recreate a new Surface for use with the new play engine.
+        if (videoPlayer != null && !(videoPlayer instanceof IjkVideoPlayer)
+                && lastVideoPlayer instanceof IjkVideoPlayer) {
+            SurfaceTexture surfaceTexture = mTextureView.getSurfaceTexture();
+            if (surfaceTexture != null) {
+                mSurface.release();
+                mUsedSurface = mSurface = new Surface(surfaceTexture);
+                videoPlayer.onVideoSurfaceChanged(mUsedSurface);
+            }
+        }
+
         if (lastVideoPlayer == null || !restoreLastPlayerSettings) {
             if (lastVideoPlayer != null) {
                 lastVideoPlayer.closeVideoInternal(false);
@@ -1125,7 +1137,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                     onSingleVideoLoopPlaybackModeChanged(videoPlayer.isSingleVideoLoopPlayback());
                 }
 
-                if ((videoPlayer.mInternalFlags & VideoPlayer.$FLAG_VIDEO_INFO_RESOLVED) != 0) {
+                if ((videoPlayer.mInternalFlags & VideoPlayer.$FLAG_VIDEO_DURATION_DETERMINED) != 0) {
                     onVideoDurationDetermined(videoPlayer.mVideoDuration);
                 }
                 videoPlayer.openVideo();
@@ -1154,10 +1166,12 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
             // the encoded string representations of the new player's original Uri
             // and the one to be set for it are equal.
             videoPlayer.setVideoUri(lastVideoPlayer.mVideoUri);
-            if ((lastVideoPlayer.mInternalFlags & VideoPlayer.$FLAG_VIDEO_INFO_RESOLVED) != 0) {
-                videoPlayer.mInternalFlags |= VideoPlayer.$FLAG_VIDEO_INFO_RESOLVED;
-                videoPlayer.mVideoWidth = lastVideoPlayer.mVideoWidth;
-                videoPlayer.mVideoHeight = lastVideoPlayer.mVideoHeight;
+            if (lastVideoPlayer.mVideoWidth != 0
+                    || lastVideoPlayer.mVideoHeight != 0) {
+                videoPlayer.onVideoSizeChanged(lastVideoPlayer.mVideoWidth, lastVideoPlayer.mVideoHeight);
+            }
+            if ((lastVideoPlayer.mInternalFlags & VideoPlayer.$FLAG_VIDEO_DURATION_DETERMINED) != 0) {
+                videoPlayer.mInternalFlags |= VideoPlayer.$FLAG_VIDEO_DURATION_DETERMINED;
                 // Call videoPlayer.onVideoDurationDetermined instead of this.onVideoDurationDetermined,
                 // which ensures the onVideoDurationDetermined(int) methods of those VideoListeners
                 // to be called even if some of them may have already been notified for the same video
@@ -2246,7 +2260,8 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
         VideoPlayer videoPlayer = mVideoPlayer;
         // Not available when video info is waiting to be known
         if (videoPlayer == null
-                || (videoPlayer.mInternalFlags & VideoPlayer.$FLAG_VIDEO_INFO_RESOLVED) == 0) {
+                || videoPlayer.mVideoDuration == IVideoPlayer.UNKNOWN_DURATION
+                || (videoPlayer.mVideoWidth == 0 || videoPlayer.mVideoHeight == 0)) {
             return;
         }
 
@@ -2378,11 +2393,10 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
         svlp.dimensionRatio = String.valueOf(videoAspectRatio);
 
         final SurfaceHolder holder = sv.getHolder();
-        final Surface surface = holder.getSurface();
         final MediaSourceFactory factory =
                 Build.VERSION.SDK_INT >= 16 /* Jelly Bean */ && videoPlayer instanceof ExoVideoPlayer
                         ? ((ExoVideoPlayer) videoPlayer).obtainMediaSourceFactory(videoUri) : null;
-        final VideoClipPlayer player = new VideoClipPlayer(mContext, surface, videoUri, mUserAgent, factory);
+        final VideoClipPlayer player = new VideoClipPlayer(mContext, holder, videoUri, mUserAgent, factory);
         final Runnable trackProgressRunnable = new Runnable() {
             @Override
             public void run() {
@@ -2437,7 +2451,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
 
             @Override
             public void onStopTrackingTouch() {
-                if (surface.isValid()) {
+                if (holder.getSurface().isValid()) {
                     holder.setKeepScreenOn(true);
                     if (mVideoPlayer != null) {
                         mVideoPlayer.closeVideoInternal(true /* no or little use */);
@@ -2533,7 +2547,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
         holder.addCallback(new SurfaceHolder.Callback() {
             @Override
             public void surfaceCreated(SurfaceHolder holder) {
-                player.init();
+                player.create();
                 // Seeks to the playback millisecond position mapping to the initial selection
                 // as we were impossible to seek in the above OnSelectionChangeListener's
                 // onSelectionChange() method when the player was not created; also we
@@ -3210,6 +3224,8 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                         if (videoPlayer != null) {
                             v.setSelected(true);
                             mMoreView.findViewById(R.id.text_exoplayer).setSelected(false);
+                            mMoreView.findViewById(R.id.text_ijkplayer).setSelected(false);
+                            mMoreView.findViewById(R.id.text_vlcplayer).setSelected(false);
 
                             videoPlayer.setVideoView(TextureVideoView.this);
                             setVideoPlayer(videoPlayer);
@@ -3222,6 +3238,36 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                         if (videoPlayer != null) {
                             v.setSelected(true);
                             mMoreView.findViewById(R.id.text_mediaplayer).setSelected(false);
+                            mMoreView.findViewById(R.id.text_ijkplayer).setSelected(false);
+                            mMoreView.findViewById(R.id.text_vlcplayer).setSelected(false);
+
+                            videoPlayer.setVideoView(TextureVideoView.this);
+                            setVideoPlayer(videoPlayer);
+                        }
+                    }
+                } else if (id == R.id.text_ijkplayer) {
+                    if (!v.isSelected()) {
+                        VideoPlayer videoPlayer = VideoPlayer.Factory.newInstance(
+                                IjkVideoPlayer.class, mContext);
+                        if (videoPlayer != null) {
+                            v.setSelected(true);
+                            mMoreView.findViewById(R.id.text_mediaplayer).setSelected(false);
+                            mMoreView.findViewById(R.id.text_exoplayer).setSelected(false);
+                            mMoreView.findViewById(R.id.text_vlcplayer).setSelected(false);
+
+                            videoPlayer.setVideoView(TextureVideoView.this);
+                            setVideoPlayer(videoPlayer);
+                        }
+                    }
+                } else if (id == R.id.text_vlcplayer) {
+                    if (!v.isSelected()) {
+                        VideoPlayer videoPlayer = VideoPlayer.Factory.newInstance(
+                                VlcVideoPlayer.class, mContext);
+                        if (videoPlayer != null) {
+                            v.setSelected(true);
+                            mMoreView.findViewById(R.id.text_mediaplayer).setSelected(false);
+                            mMoreView.findViewById(R.id.text_exoplayer).setSelected(false);
+                            mMoreView.findViewById(R.id.text_ijkplayer).setSelected(false);
 
                             videoPlayer.setVideoView(TextureVideoView.this);
                             setVideoPlayer(videoPlayer);
@@ -3280,6 +3326,8 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
             TextView _2HoursText = view.findViewById(R.id.text_2Hours);
             TextView mediaplayerText = view.findViewById(R.id.text_mediaplayer);
             TextView exoplayerText = view.findViewById(R.id.text_exoplayer);
+            TextView ijkplayerText = view.findViewById(R.id.text_ijkplayer);
+            TextView vlcplayerText = view.findViewById(R.id.text_vlcplayer);
 
             IVideoPlayer videoPlayer = mVideoPlayer;
             TimedOffRunnable tor = mTimedOffRunnable;
@@ -3293,6 +3341,8 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
             _2HoursText.setSelected(tor != null && tor.offTime == TimedOffRunnable.OFF_TIME_2_HOURS);
             mediaplayerText.setSelected(videoPlayer instanceof SystemVideoPlayer);
             exoplayerText.setSelected(videoPlayer instanceof ExoVideoPlayer);
+            ijkplayerText.setSelected(videoPlayer instanceof IjkVideoPlayer);
+            vlcplayerText.setSelected(videoPlayer instanceof VlcVideoPlayer);
             // Scrolls to a proper horizontal position to make the selected text user-visible
             ViewGroup hsvc = (ViewGroup) anHourText.getParent();
             HorizontalScrollView hsv = (HorizontalScrollView) hsvc.getParent();
@@ -3334,6 +3384,8 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
             _2HoursText.setOnClickListener(this);
             mediaplayerText.setOnClickListener(this);
             exoplayerText.setOnClickListener(this);
+            ijkplayerText.setOnClickListener(this);
+            vlcplayerText.setOnClickListener(this);
 
             view.setMinimumHeight(mDrawerViewMinimumHeight);
             mDrawerView.addView(view);

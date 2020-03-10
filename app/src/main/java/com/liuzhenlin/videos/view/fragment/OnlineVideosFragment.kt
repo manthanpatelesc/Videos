@@ -204,7 +204,12 @@ class OnlineVideosFragment : Fragment(), View.OnClickListener,
                 reader = BufferedReader(InputStreamReader(conn.inputStream, "utf-8"))
                 val buffer = CharArray(1024)
                 var len: Int
-                while (reader.read(buffer).also { len = it } != -1) {
+                while (true) {
+                    if (isCancelled) return null
+
+                    len = reader.read(buffer)
+                    if (len == -1) break
+
                     if (json == null) {
                         json = StringBuilder(len)
                     }
@@ -354,8 +359,15 @@ class OnlineVideosFragment : Fragment(), View.OnClickListener,
         override fun getGroupCount() = tvGroups?.size ?: 0
 
         override fun onChildClick(parent: ExpandableListView, v: View, groupPosition: Int, childPosition: Int, id: Long): Boolean {
-            val tv = tvGroups!![groupPosition].tVs[childPosition]
-            v.context.playVideo(tv.url, tv.name)
+            val tvs = tvGroups!![groupPosition].tVs
+            val tvNames = arrayOfNulls<String>(tvs.size)
+            val tvUrls = arrayOfNulls<String>(tvs.size)
+            for (i in tvs.indices) {
+                tvNames[i] = tvs[i].name
+                tvUrls[i] = tvs[i].url
+            }
+            @Suppress("UNCHECKED_CAST")
+            v.context.playVideos(tvUrls as Array<String>, tvNames, childPosition)
             return true
         }
 

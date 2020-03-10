@@ -38,11 +38,22 @@ dependencies {
     api 'androidx.palette:palette:1.0.0'
     api 'androidx.media:media:1.1.0'
 
-    api 'com.google.android.exoplayer:exoplayer-core:2.11.3'
-    api 'com.google.android.exoplayer:exoplayer-dash:2.11.3'
-    api 'com.google.android.exoplayer:exoplayer-hls:2.11.3'
-    api 'com.google.android.exoplayer:exoplayer-smoothstreaming:2.11.3'
-    api 'com.google.android.exoplayer:extension-rtmp:2.11.3'
+    api "com.google.android.exoplayer:exoplayer-core:$rootProject.ext.exoplayerVersion"
+    api "com.google.android.exoplayer:exoplayer-dash:$rootProject.ext.exoplayerVersion"
+    api "com.google.android.exoplayer:exoplayer-hls:$rootProject.ext.exoplayerVersion"
+    api "com.google.android.exoplayer:exoplayer-smoothstreaming:$rootProject.ext.exoplayerVersion"
+    api "com.google.android.exoplayer:extension-rtmp:$rootProject.ext.exoplayerVersion"
+    api project(':exoplayer2-ext-av1')
+    api project(':exoplayer2-ext-vp9')
+    api project(':exoplayer2-ext-ffmpeg')
+
+    api 'tv.danmaku.ijk.media:ijkplayer-java:0.8.8'
+    api 'tv.danmaku.ijk.media:ijkplayer-armv7a:0.8.8'
+//    api 'tv.danmaku.ijk.media:ijkplayer-arm64:0.8.8'
+//    api 'tv.danmaku.ijk.media:ijkplayer-x86:0.8.8'
+//    api 'tv.danmaku.ijk.media:ijkplayer-x86_64:0.8.8'
+
+//    api 'org.videolan.android:libvlc-all:3.2.5'
 
 //    api 'com.danikula:videocache:2.7.1'
 

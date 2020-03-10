@@ -12,7 +12,11 @@
             com.google.android.exoplayer2.source.dash,
             com.google.android.exoplayer2.source.hls,
             com.google.android.exoplayer2.source.smoothstreaming,
-            com.google.android.exoplayer2.ext.rtmp, net.butterflytv.rtmp_client" />
+            com.google.android.exoplayer2.ext.rtmp, net.butterflytv.rtmp_client,
+            com.google.android.exoplayer2.ext.av1,
+            com.google.android.exoplayer2.ext.vp9,
+            com.google.android.exoplayer2.ext.ffmpeg,
+            org.videolan" />
 
     <application>
         <receiver android:name=".receiver.MediaButtonEventReceiver">

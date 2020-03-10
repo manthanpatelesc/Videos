@@ -116,6 +116,7 @@
     <string name="setLightTexts">Set light texts</string>
     <string name="severalItemsHaveBeenSelected">%d items selected</string>
     <string name="share">Share</string>
+    <string name="sharingOnlineVideoIsNotCurrentlySupported">Sharing online video is not currently supported!</string>
     <string name="size">Size: %s</string>
     <string name="someDirectory">\"%s\" directory</string>
     <string name="theInstallationPackageHasBeenDestroyed">The installation package has been destroyed.</string>
@@ -126,7 +127,7 @@
     <string name="updateLog">%1$sv%2$s update log: </string>
     <string name="updateLogs">Update Logs</string>
     <string name="userFeedback">User Feedback</string>
-    <string name="version">v1.9-beta01</string>
+    <string name="version">v1.9-beta02</string>
     <string name="videoCount">Video count: %d</string>
     <string name="videoDetails">Video Details</string>
     <string name="videoTitle">Video Title</string>

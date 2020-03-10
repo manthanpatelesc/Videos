@@ -51,7 +51,7 @@ import com.liuzhenlin.swipeback.SwipeBackActivity;
 import com.liuzhenlin.swipeback.SwipeBackLayout;
 import com.liuzhenlin.texturevideoview.ExoVideoPlayer;
 import com.liuzhenlin.texturevideoview.IVideoPlayer;
-import com.liuzhenlin.texturevideoview.SystemVideoPlayer;
+import com.liuzhenlin.texturevideoview.IjkVideoPlayer;
 import com.liuzhenlin.texturevideoview.TextureVideoView;
 import com.liuzhenlin.texturevideoview.VideoPlayer;
 import com.liuzhenlin.texturevideoview.utils.FileUtils;
@@ -72,6 +72,7 @@ import com.liuzhenlin.videos.utils.observer.ScreenNotchSwitchObserver;
 import com.liuzhenlin.videos.view.fragment.VideoListItemOpsKt;
 
 import java.io.File;
+import java.io.Serializable;
 import java.lang.ref.WeakReference;
 import java.util.LinkedList;
 import java.util.List;
@@ -231,7 +232,7 @@ public class VideoActivity extends SwipeBackActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        if (canInitVideos(savedInstanceState, getIntent())) {
+        if (initVideos(savedInstanceState, getIntent())) {
             setRequestedOrientation(mScreenOrientation);
             setContentView(R.layout.activity_video);
             initViews(savedInstanceState);
@@ -250,7 +251,7 @@ public class VideoActivity extends SwipeBackActivity {
     @Override
     protected void onNewIntent(Intent intent) {
         Video video = mVideos[mVideoIndex];
-        if (canInitVideos(null, intent)) {
+        if (initVideos(null, intent)) {
             super.onNewIntent(intent);
             setIntent(intent);
 
@@ -272,15 +273,17 @@ public class VideoActivity extends SwipeBackActivity {
         }
     }
 
-    private boolean canInitVideos(Bundle savedInstanceState, Intent intent) {
+    private boolean initVideos(Bundle savedInstanceState, Intent intent) {
         final boolean stateRestore = savedInstanceState != null;
+        Video video;
+
         Parcelable[] parcelables = intent.getParcelableArrayExtra(Consts.KEY_VIDEOS);
         if (parcelables != null) {
             final int length = parcelables.length;
             if (length > 0) {
                 mVideos = new Video[length];
                 for (int i = 0; i < length; i++) {
-                    Video video = (Video) parcelables[i];
+                    video = (Video) parcelables[i];
                     if (stateRestore) {
                         video.setProgress(
                                 VideoListItemDao.getSingleton(this).getVideoProgress(video.getId()));
@@ -297,40 +300,81 @@ public class VideoActivity extends SwipeBackActivity {
                 }
                 return true;
             }
-        } else {
-            Video video = intent.getParcelableExtra(Consts.KEY_VIDEO);
-            if (video == null) {
-                Uri uri = intent.getData();
-                if (uri != null) {
-                    final String path = FileUtils.UriResolver.getPath(this, uri);
-                    if (path != null) {
-                        video = VideoListItemDao.getSingleton(this).queryVideoByPath(path);
-                        if (video == null) {
-                            video = new Video();
-                            video.setId(Consts.NO_ID);
-                            video.setPath(path);
+            return false;
+        }
 
-                            final String videoTitle = intent.getStringExtra(Consts.KEY_VIDEO_TITLE);
-                            if (videoTitle != null) {
-                                video.setName(videoTitle);
-                            } else {
-                                video.setName(FileUtils.getFileNameFromFilePath(path));
-                            }
-                        }
+        video = intent.getParcelableExtra(Consts.KEY_VIDEO);
+        if (video != null) {
+            if (stateRestore) {
+                video.setProgress(
+                        VideoListItemDao.getSingleton(this).getVideoProgress(video.getId()));
+            }
+            mVideos = new Video[]{video};
+            mVideoIndex = 0;
+            return true;
+        }
+
+        Parcelable[] videoUriParcels = (Parcelable[]) intent.getSerializableExtra(Consts.KEY_VIDEO_URIS);
+        Serializable[] videoTitleSerials = (Serializable[]) intent.getSerializableExtra(Consts.KEY_VIDEO_TITLES);
+        if (videoUriParcels != null) {
+            final int length = videoUriParcels.length;
+            if (length > 0) {
+                mVideos = new Video[length];
+                for (int i = 0; i < length; i++) {
+                    video = buildVideoForUri((Uri) videoUriParcels[i], (String) videoTitleSerials[i]);
+                    if (stateRestore && video.getId() != Consts.NO_ID) {
+                        video.setProgress(
+                                VideoListItemDao.getSingleton(this).getVideoProgress(video.getId()));
+                    }
+                    mVideos[i] = video;
+                }
+                if (stateRestore) {
+                    mVideoIndex = savedInstanceState.getInt(KEY_VIDEO_INDEX);
+                } else {
+                    mVideoIndex = intent.getIntExtra(Consts.KEY_SELECTION, 0);
+                    if (mVideoIndex < 0 || mVideoIndex >= length) {
+                        mVideoIndex = 0;
                     }
                 }
-            }
-            if (video != null) {
-                if (stateRestore) {
-                    video.setProgress(
-                            VideoListItemDao.getSingleton(this).getVideoProgress(video.getId()));
-                }
-                mVideos = new Video[]{video};
-                mVideoIndex = stateRestore ? savedInstanceState.getInt(KEY_VIDEO_INDEX) : 0;
                 return true;
             }
+            return false;
         }
+
+        Uri uri = intent.getData();
+        if (uri != null) {
+            video = buildVideoForUri(uri, intent.getStringExtra(Consts.KEY_VIDEO_TITLE));
+            if (stateRestore && video.getId() != Consts.NO_ID) {
+                video.setProgress(
+                        VideoListItemDao.getSingleton(this).getVideoProgress(video.getId()));
+            }
+            mVideos = new Video[]{video};
+            mVideoIndex = 0;
+            return true;
+        }
+
         return false;
+    }
+
+    private Video buildVideoForUri(Uri uri, String videoTitle) {
+        Video video = null;
+        String videoUrl = FileUtils.UriResolver.getPath(this, uri);
+        if (videoUrl == null) {
+            videoUrl = uri.toString();
+        } else {
+            video = VideoListItemDao.getSingleton(this).queryVideoByPath(videoUrl);
+        }
+        if (video == null) {
+            video = new Video();
+            video.setId(Consts.NO_ID);
+            video.setPath(videoUrl);
+            if (videoTitle != null) {
+                video.setName(videoTitle);
+            } else {
+                video.setName(FileUtils.getFileNameFromFilePath(videoUrl));
+            }
+        }
+        return video;
     }
 
     private void initViews(Bundle savedInstanceState) {
@@ -348,9 +392,8 @@ public class VideoActivity extends SwipeBackActivity {
         }
 
         mVideoView = findViewById(R.id.videoview);
-        VideoPlayer videoPlayer =
-                Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN ?
-                        new ExoVideoPlayer(this) : new SystemVideoPlayer(this);
+        VideoPlayer videoPlayer = Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN
+                ? new ExoVideoPlayer(this) : new IjkVideoPlayer(this);
         mVideoPlayer = videoPlayer;
         videoPlayer.setVideoView(mVideoView);
         mVideoView.setVideoPlayer(videoPlayer);
@@ -425,6 +468,7 @@ public class VideoActivity extends SwipeBackActivity {
                 }
             }
 
+            @SuppressLint("SourceLockedOrientationActivity")
             @Override
             public void onVideoSizeChanged(int oldWidth, int oldHeight, int width, int height) {
                 mVideoWidth = width;
@@ -713,9 +757,7 @@ public class VideoActivity extends SwipeBackActivity {
         if (mVideos != null && mVideos.length > 0) {
             if (mVideos.length == 1) {
                 recordCurrVideoProgress();
-                if (mVideos[0].getId() != Consts.NO_ID) {
-                    setResult(Consts.RESULT_CODE_PLAY_VIDEO, new Intent().putExtra(Consts.KEY_VIDEO, mVideos[0]));
-                }
+                setResult(Consts.RESULT_CODE_PLAY_VIDEO, new Intent().putExtra(Consts.KEY_VIDEO, mVideos[0]));
             } else {
                 recordCurrVideoProgress();
                 setResult(Consts.RESULT_CODE_PLAY_VIDEOS, new Intent().putExtra(Consts.KEY_VIDEOS, mVideos));
@@ -1341,9 +1383,13 @@ public class VideoActivity extends SwipeBackActivity {
                         if (position == mVideoIndex) {
                             holder.videoProgressDurationText.setText(mWatching);
                         } else {
-                            holder.videoProgressDurationText.setText(
-                                    VideoUtils2.concatVideoProgressAndDuration(
-                                            video.getProgress(), video.getDuration()));
+                            if (video.getId() != Consts.NO_ID) {
+                                holder.videoProgressDurationText.setText(
+                                        VideoUtils2.concatVideoProgressAndDuration(
+                                                video.getProgress(), video.getDuration()));
+                            } else {
+                                holder.videoProgressDurationText.setText(null);
+                            }
                         }
                     } else if (payload == sHighlightSelectedItemIfExistsPayload) {
                         highlightSelectedItemIfExists(holder, position);
@@ -1362,8 +1408,13 @@ public class VideoActivity extends SwipeBackActivity {
             if (position == mVideoIndex) {
                 holder.videoProgressDurationText.setText(mWatching);
             } else {
-                holder.videoProgressDurationText.setText(
-                        VideoUtils2.concatVideoProgressAndDuration(video.getProgress(), video.getDuration()));
+                if (video.getId() != Consts.NO_ID) {
+                    holder.videoProgressDurationText.setText(
+                            VideoUtils2.concatVideoProgressAndDuration(
+                                    video.getProgress(), video.getDuration()));
+                } else {
+                    holder.videoProgressDurationText.setText(null);
+                }
             }
         }
 

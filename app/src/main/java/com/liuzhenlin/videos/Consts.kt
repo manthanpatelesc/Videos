@@ -15,11 +15,13 @@ import androidx.core.content.ContextCompat
 @JvmField
 internal val DEBUG_APP_UPDATE = BuildConfig.DEBUG && false
 
-internal const val KEY_DIRECTORY_PATH = "path_directory"
+internal const val KEY_DIRECTORY_PATH = "directoryPath"
 internal const val KEY_VIDEODIR = "videodir"
 internal const val KEY_VIDEO = "video"
 internal const val KEY_VIDEOS = "videos"
 internal const val KEY_VIDEO_TITLE = "videoTitle"
+internal const val KEY_VIDEO_TITLES = "videoTitles"
+internal const val KEY_VIDEO_URIS = "videoURIs"
 internal const val KEY_SELECTION = "index"
 
 internal const val REQUEST_CODE_PLAY_VIDEO = 1

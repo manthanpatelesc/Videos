@@ -13,9 +13,11 @@ import android.os.AsyncTask
 import android.view.View
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import com.bumptech.glide.util.Preconditions
 import com.google.android.material.snackbar.Snackbar
 import com.liuzhenlin.texturevideoview.utils.FileUtils
 import com.liuzhenlin.texturevideoview.utils.ParallelThreadExecutor
+import com.liuzhenlin.texturevideoview.utils.URLUtils
 import com.liuzhenlin.videos.*
 import com.liuzhenlin.videos.dao.VideoListItemDao
 import com.liuzhenlin.videos.model.Video
@@ -174,25 +176,57 @@ fun Fragment.shareVideo(video: Video) {
     (activity ?: requireContext()).shareVideo(video)
 }
 
-fun Context?.shareVideo(video: Video) {
-    val app = App.getInstanceUnsafe()!!
-    FileUtils.shareFile(this ?: app, app.authority, File(video.path), "video/*")
-}
+fun Context?.shareVideo(video: Video) =
+        if (URLUtils.isNetworkUrl(video.path)) {
+            Toast.makeText(this,
+                    R.string.sharingOnlineVideoIsNotCurrentlySupported, Toast.LENGTH_SHORT).show()
+        } else {
+            val app = App.getInstanceUnsafe()!!
+            FileUtils.shareFile(this ?: app, app.authority, File(video.path), "video/*")
+        }
 
 @JvmOverloads
-fun Context.playVideo(uriString: String, videoTittle: String? = null) {
+fun Context.playVideo(uriString: String, videoTitle: String? = null) {
     startActivity(
             Intent(this, VideoActivity::class.java)
                     .setData(Uri.parse(uriString))
-                    .putExtra(KEY_VIDEO_TITLE, videoTittle))
+                    .putExtra(KEY_VIDEO_TITLE, videoTitle))
 }
 
 @JvmOverloads
-fun Context.playVideo(uri: Uri, videoTittle: String? = null) {
+fun Context.playVideo(uri: Uri, videoTitle: String? = null) {
     startActivity(
             Intent(this, VideoActivity::class.java)
                     .setData(uri)
-                    .putExtra(KEY_VIDEO_TITLE, videoTittle))
+                    .putExtra(KEY_VIDEO_TITLE, videoTitle))
+}
+
+@JvmOverloads
+fun Context.playVideos(uriStrings: Array<String>, videoTitles: Array<String?>? = null, selection: Int) {
+    Preconditions.checkArgument(uriStrings.size == videoTitles?.size ?: true,
+            "Array 'videoTitles' can only be null or its size equals the size of Array 'uriStrings'")
+
+    if (uriStrings.isEmpty()) return
+
+    startActivity(
+            Intent(this, VideoActivity::class.java)
+                    .putExtra(KEY_VIDEO_URIS, uriStrings.map { Uri.parse(it) }.toTypedArray())
+                    .putExtra(KEY_VIDEO_TITLES, videoTitles)
+                    .putExtra(KEY_SELECTION, selection))
+}
+
+@JvmOverloads
+fun Context.playVideos(uris: Array<Uri>, videoTitles: Array<String?>? = null, selection: Int) {
+    Preconditions.checkArgument(uris.size == videoTitles?.size ?: true,
+            "Array 'videoTitles' can only be null or its size equals the size of Array 'uris'")
+
+    if (uris.isEmpty()) return
+
+    startActivity(
+            Intent(this, VideoActivity::class.java)
+                    .putExtra(KEY_VIDEO_URIS, uris)
+                    .putExtra(KEY_VIDEO_TITLES, videoTitles)
+                    .putExtra(KEY_SELECTION, selection))
 }
 
 fun Fragment.playVideo(video: Video) {

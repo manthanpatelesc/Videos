@@ -12,6 +12,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
 import android.media.MediaMetadataRetriever;
+import android.os.Build;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -358,21 +359,34 @@ public final class VideoListItemDao implements IVideoListItemDao {
         MediaMetadataRetriever mmr = new MediaMetadataRetriever();
         try {
             mmr.setDataSource(video.getPath());
+
             final int duration = Integer.parseInt(
                     mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION));
-//            final int width = Integer.parseInt(
-//                    mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH));
-//            final int height = Integer.parseInt(
-//                    mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT));
-            Bitmap frame = mmr.getFrameAtTime();
-            final int width = frame.getWidth();
-            final int height = frame.getHeight();
-            frame.recycle();
+
+            int width, height;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+                width = Integer.parseInt(
+                        mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH));
+                height = Integer.parseInt(
+                        mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT));
+                final int rotation = Integer.parseInt(
+                        mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION));
+                if (rotation == 90 || rotation == 270) {
+                    int swap = width;
+                    //noinspection SuspiciousNameCombination
+                    width = height;
+                    height = swap;
+                }
+            } else {
+                Bitmap frame = mmr.getFrameAtTime();
+                width = frame.getWidth();
+                height = frame.getHeight();
+                frame.recycle();
+            }
 
             video.setDuration(duration);
             video.setWidth(width);
             video.setHeight(height);
-
             return true;
         } catch (IllegalArgumentException e) {
             e.printStackTrace();

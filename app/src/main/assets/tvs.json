@@ -3,6 +3,10 @@
     "name": "CCTV",
     "tvs": [
       {
+        "name": "CCTV 4K",
+        "url": "http://39.134.185.69/PLTV/88888888/224/3221226758/index.m3u8"
+      },
+      {
         "name": "CCTV-1 综合 (FHD)",
         "url": "http://223.110.245.165/ott.js.chinamobile.com/PLTV/3/224/3221227375/index.m3u8"
       },
@@ -67,8 +71,8 @@
         "url": "http://112.50.243.8/PLTV/88888888/224/3221225818/1.m3u8"
       },
       {
-        "name": "CCTV 4K",
-        "url": "http://39.134.185.69/PLTV/88888888/224/3221226758/index.m3u8"
+        "name": "CCTV-17 农业农村 (FHD)",
+        "url": "http://117.169.120.98:8080/ysten-businessmobile/live/HD-4000k-1080P-cctv17/1.m3u8"
       }
     ]
   },
@@ -126,6 +130,10 @@
       {
         "name": "东南卫视",
         "url": "http://39.134.65.76:80/wh7f454c46tw1932323481_-1193436131/ottrrs.hl.chinamobile.com/PLTV/88888888/224/3221225620/index.m3u8?icpid=88888888&RTS=1579029478&from=1&hms_devid=131"
+      },
+      {
+        "name": "厦门卫视 (HD)",
+        "url": "http://cstvpull.live.wscdns.com/live/xiamen.flv"
       },
       {
         "name": "江西卫视 (FHD)",
@@ -209,6 +217,10 @@
     "name": "港澳频道",
     "tvs": [
       {
+        "name": "星空卫视",
+        "url": "rtmp://ivi.bupt.edu.cn:1935/livetv/startv"
+      },
+      {
         "name": "凤凰中文 (HD)",
         "url": "http://112.50.243.8/PLTV/88888888/224/3221225900/1.m3u8"
       },
@@ -223,10 +235,6 @@
       {
         "name": "香港卫视",
         "url": "http://zhibo.hkstv.tv/livestream/mutfysrq/playlist.m3u8"
-      },
-      {
-        "name": "星空卫视",
-        "url": "rtmp://ivi.bupt.edu.cn:1935/livetv/startv"
       },
       {
         "name": "澳门卫视",

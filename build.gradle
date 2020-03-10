@@ -8,7 +8,7 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.5.3'
+        classpath 'com.android.tools.build:gradle:3.6.1'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
 
         // NOTE: Do not place your application dependencies here; they belong
@@ -35,6 +35,7 @@ ext {
     targetSdkVersion = 28
 
     appcompatVersion = '1.1.0'
+    exoplayerVersion = '2.11.3'
 
     testJunitVersion = '4.13'
     androidTestRunnerVersion = '1.2.0'
