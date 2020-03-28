@@ -9,8 +9,11 @@ import android.net.Uri;
 import android.text.TextUtils;
 
 import androidx.annotation.IntDef;
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RawRes;
+
+import com.liuzhenlin.texturevideoview.model.TrackInfo;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -23,15 +26,14 @@ import java.lang.annotation.RetentionPolicy;
  */
 public interface IVideoPlayer {
 
-    int UNKNOWN_DURATION = -1;
+    int INVALID_TRACK_INDEX = -1;
+
+    /** An empty array of track information. */
+    TrackInfo[] EMPTY_TRACK_INFOS = {};
+
+    int NO_DURATION = -1;
 
     float DEFAULT_PLAYBACK_SPEED = 1.0f;
-
-    /**
-     * Represents an undefined playback state of the video, usually set when the video is closing
-     * but another op is requested, in which case the player cannot perform that action immediately.
-     */
-    int PLAYBACK_STATE_UNDEFINED = Integer.MIN_VALUE;
 
     /** A fatal player error occurred that paused the playback. */
     int PLAYBACK_STATE_ERROR = -1;
@@ -55,7 +57,6 @@ public interface IVideoPlayer {
     int PLAYBACK_STATE_COMPLETED = 5;
 
     @IntDef({
-            PLAYBACK_STATE_UNDEFINED,
             PLAYBACK_STATE_ERROR,
             PLAYBACK_STATE_IDLE,
             PLAYBACK_STATE_PREPARING, PLAYBACK_STATE_PREPARED,
@@ -98,9 +99,9 @@ public interface IVideoPlayer {
 
         /**
          * Called to indicate the video duration (in milliseconds), which could be
-         * {@value #UNKNOWN_DURATION} if not available (e.g., streaming live content).
+         * {@value #NO_DURATION} if not available (e.g., streaming live content).
          */
-        default void onVideoDurationDetermined(int duration) {
+        default void onVideoDurationChanged(int duration) {
         }
 
         /**
@@ -109,12 +110,10 @@ public interface IVideoPlayer {
          * <p>
          * This is useful for deciding whether to perform some layout changes.
          *
-         * @param oldWidth  the previous width of the video
-         * @param oldHeight the previous height of the video
-         * @param width     the new width of the video
-         * @param height    the new height of the video
+         * @param width  intrinsic width of the video
+         * @param height intrinsic height of the video
          */
-        default void onVideoSizeChanged(int oldWidth, int oldHeight, int width, int height) {
+        default void onVideoSizeChanged(int width, int height) {
         }
     }
 
@@ -242,7 +241,7 @@ public interface IVideoPlayer {
      *
      * @return the duration in milliseconds, if no duration is available (for example,
      * if streaming live content or the duration is not determined yet),
-     * then {@value UNKNOWN_DURATION} is returned.
+     * then {@value NO_DURATION} is returned.
      */
     int getVideoDuration();
 
@@ -288,4 +287,86 @@ public interface IVideoPlayer {
      * Sets the player to be looping through a single video or not.
      */
     void setSingleVideoLoopPlayback(boolean looping);
+
+    /**
+     * Returns an array of track information.
+     *
+     * @return Array of track info. The total number of tracks is the array length.
+     * @see com.liuzhenlin.texturevideoview.model.VideoTrackInfo
+     * @see com.liuzhenlin.texturevideoview.model.AudioTrackInfo
+     * @see com.liuzhenlin.texturevideoview.model.SubtitleTrackInfo
+     */
+    @NonNull
+    TrackInfo[] getTrackInfos();
+
+    /**
+     * Selects a track.
+     *
+     * @param index The index of the track to be selected. The valid range of the index is
+     *              0..total number of tracks - 1. The total number of tracks as well as the type of
+     *              each individual track can be found by calling {@link #getTrackInfos()} method.
+     */
+    void selectTrack(int index);
+
+    /**
+     * Deselects a track.
+     *
+     * @param index The index of the track to be deselected. The valid range of the index is
+     *              0..total number of tracks - 1. The total number of tracks as well as the type of
+     *              each individual track can be found by calling {@link #getTrackInfos()} method.
+     */
+    void deselectTrack(int index);
+
+    /**
+     * Returns the index of the video, audio, or subtitle track currently selected for playback.
+     * The return value is an index into the array returned by {@link #getTrackInfos()},
+     * and can be used in calls to {@link #selectTrack(int)} or {@link #deselectTrack(int)}.
+     *
+     * @param trackType should be one of
+     *                  {@link TrackInfo#TRACK_TYPE_VIDEO},
+     *                  {@link TrackInfo#TRACK_TYPE_AUDIO} or
+     *                  {@link TrackInfo#TRACK_TYPE_SUBTITLE}.
+     * @return index of the video, audio, or subtitle track currently selected for playback;
+     * {@value #INVALID_TRACK_INDEX} is returned when there is no selected track for {@code trackType}
+     * or when {@code trackType} is not one of video, audio, or subtitle.
+     */
+    int getSelectedTrackIndex(@TrackInfo.TrackType int trackType);
+
+    /**
+     * Adds a listener that will be informed of any events related to the video playback.
+     * See {@link VideoListener}.
+     *
+     * <p>Component that adds a listener should take care of removing it when finished
+     * via {@link #removeVideoListener(VideoListener)}.
+     *
+     * @param listener listener to add
+     */
+    void addVideoListener(@Nullable VideoListener listener);
+
+    /**
+     * Removes a listener that was previously added via {@link #addVideoListener(VideoListener)}.
+     *
+     * @param listener listener to remove
+     */
+    void removeVideoListener(@Nullable VideoListener listener);
+
+    /**
+     * Adds a {@link OnPlaybackStateChangeListener} that will be invoked whenever the state of
+     * the player or the playback of the video changes.
+     *
+     * <p>Components that add listeners are responsible for
+     * {@link #removeOnPlaybackStateChangeListener(OnPlaybackStateChangeListener) removing} them
+     * when finished.
+     *
+     * @param listener listener to add
+     */
+    void addOnPlaybackStateChangeListener(@Nullable OnPlaybackStateChangeListener listener);
+
+    /**
+     * Removes the given {@link OnPlaybackStateChangeListener} that was previously added via
+     * {@link #addOnPlaybackStateChangeListener(OnPlaybackStateChangeListener)}.
+     *
+     * @param listener listener to remove
+     */
+    void removeOnPlaybackStateChangeListener(@Nullable OnPlaybackStateChangeListener listener);
 }

@@ -740,17 +740,6 @@ public class SwipeBackLayout extends FrameLayout {
         }
     }
 
-    /**
-     * Clears all swipe listeners from the set of listeners associated to this view
-     *
-     * @see SwipeListener
-     */
-    public void clearSwipeListeners() {
-        if (mSwipeListeners != null) {
-            mSwipeListeners.clear();
-        }
-    }
-
     public interface SwipeListener {
         /**
          * Invoked as the scroll state changes

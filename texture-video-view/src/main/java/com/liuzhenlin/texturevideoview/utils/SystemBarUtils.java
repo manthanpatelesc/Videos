@@ -129,7 +129,7 @@ public class SystemBarUtils {
                 }
             }
 
-            // FIXME: To hide navigation Permanently.
+            // FIXME: to hide navigation Permanently.
             final int visibility = decorView.getSystemUiVisibility();
             final int hideNavFlag = View.SYSTEM_UI_FLAG_HIDE_NAVIGATION;
             if (show) {

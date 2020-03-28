@@ -26,7 +26,7 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.liuzhenlin.floatingmenu.FloatingMenu
 import com.liuzhenlin.slidingdrawerlayout.SlidingDrawerLayout
-import com.liuzhenlin.texturevideoview.utils.ParallelThreadExecutor
+import com.liuzhenlin.texturevideoview.misc.ParallelThreadExecutor
 import com.liuzhenlin.texturevideoview.utils.URLUtils
 import com.liuzhenlin.videos.COLOR_SELECTOR
 import com.liuzhenlin.videos.R
@@ -36,7 +36,6 @@ import com.liuzhenlin.videos.model.TV
 import com.liuzhenlin.videos.model.TVGroup
 import com.liuzhenlin.videos.utils.UiUtils
 import com.liuzhenlin.videos.view.swiperefresh.SwipeRefreshLayout
-import org.apache.http.conn.ConnectTimeoutException
 import java.io.BufferedReader
 import java.io.IOException
 import java.io.InputStreamReader
@@ -220,7 +219,7 @@ class OnlineVideosFragment : Fragment(), View.OnClickListener,
                         object : TypeToken<Array<TVGroup>>() {}.type)
 
                 // 连接服务器超时
-            } catch (e: ConnectTimeoutException) {
+            } catch (@Suppress("DEPRECATION") e: org.apache.http.conn.ConnectTimeoutException) {
                 cancel()
                 fragmentRef.get()?.view?.let {
                     UiUtils.showUserCancelableSnackbar(it,

@@ -2,9 +2,7 @@
 
 <!--suppress AndroidElementNotAllowed -->
 <merge xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <com.liuzhenlin.texturevideoview.ConstraintLayout
         android:id="@+id/content_videoview"
@@ -19,6 +17,15 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent" />
+
+        <com.liuzhenlin.texturevideoview.SubtitleView
+            android:id="@+id/subtitleView"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            app:layout_constraintStart_toStartOf="@id/textureView"
+            app:layout_constraintEnd_toEndOf="@id/textureView"
+            app:layout_constraintTop_toTopOf="@id/textureView"
+            app:layout_constraintBottom_toBottomOf="@id/textureView" />
 
         <View
             android:id="@+id/scrim"
@@ -139,16 +146,28 @@
                 android:contentDescription="@string/share" />
 
             <ImageView
+                android:id="@+id/btn_track"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingTop="6.5dp"
+                android:paddingBottom="6.5dp"
+                android:paddingLeft="10dp"
+                android:paddingRight="10dp"
+                app:srcCompat="@drawable/ic_track_white_25dp"
+                app:tint="@color/color_selector_white_color_accent"
+                android:contentDescription="@string/track" />
+
+            <ImageView
                 android:id="@+id/btn_more"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:paddingTop="5.5dp"
-                android:paddingBottom="5.5dp"
-                android:paddingLeft="10dp"
-                android:paddingRight="10dp"
+                android:paddingTop="4.5dp"
+                android:paddingBottom="4.5dp"
+                android:paddingLeft="8dp"
+                android:paddingRight="8dp"
                 android:layout_marginRight="5dp"
                 android:layout_marginEnd="5dp"
-                app:srcCompat="@drawable/ic_more_white_27dp"
+                app:srcCompat="@drawable/ic_more_white_29dp"
                 app:tint="@color/color_selector_white_color_accent"
                 android:contentDescription="@string/more" />
         </LinearLayout>

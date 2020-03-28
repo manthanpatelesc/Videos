@@ -38,8 +38,8 @@ import androidx.core.content.FileProvider;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.liuzhenlin.texturevideoview.utils.ParallelThreadExecutor;
-import com.liuzhenlin.texturevideoview.utils.Singleton;
+import com.liuzhenlin.texturevideoview.misc.ParallelThreadExecutor;
+import com.liuzhenlin.texturevideoview.misc.Singleton;
 import com.liuzhenlin.videos.App;
 import com.liuzhenlin.videos.BuildConfig;
 import com.liuzhenlin.videos.Consts;
@@ -135,12 +135,6 @@ public final class AppUpdateChecker {
     public void removeOnResultListener(@Nullable OnResultListener listener) {
         if (listener != null && hasOnResultListener()) {
             mListeners.remove(listener);
-        }
-    }
-
-    public void clearOnResultListeners() {
-        if (hasOnResultListener()) {
-            mListeners.clear();
         }
     }
 

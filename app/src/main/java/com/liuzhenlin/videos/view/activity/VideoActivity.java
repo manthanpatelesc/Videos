@@ -55,6 +55,7 @@ import com.liuzhenlin.texturevideoview.IjkVideoPlayer;
 import com.liuzhenlin.texturevideoview.TextureVideoView;
 import com.liuzhenlin.texturevideoview.VideoPlayer;
 import com.liuzhenlin.texturevideoview.utils.FileUtils;
+import com.liuzhenlin.texturevideoview.utils.ShareUtils;
 import com.liuzhenlin.texturevideoview.utils.SystemBarUtils;
 import com.liuzhenlin.videos.App;
 import com.liuzhenlin.videos.BuildConfig;
@@ -62,13 +63,13 @@ import com.liuzhenlin.videos.Consts;
 import com.liuzhenlin.videos.R;
 import com.liuzhenlin.videos.dao.VideoListItemDao;
 import com.liuzhenlin.videos.model.Video;
+import com.liuzhenlin.videos.observer.OnOrientationChangeListener;
+import com.liuzhenlin.videos.observer.RotationObserver;
+import com.liuzhenlin.videos.observer.ScreenNotchSwitchObserver;
 import com.liuzhenlin.videos.utils.DisplayCutoutUtils;
 import com.liuzhenlin.videos.utils.OSHelper;
 import com.liuzhenlin.videos.utils.UiUtils;
 import com.liuzhenlin.videos.utils.VideoUtils2;
-import com.liuzhenlin.videos.utils.observer.OnOrientationChangeListener;
-import com.liuzhenlin.videos.utils.observer.RotationObserver;
-import com.liuzhenlin.videos.utils.observer.ScreenNotchSwitchObserver;
 import com.liuzhenlin.videos.view.fragment.VideoListItemOpsKt;
 
 import java.io.File;
@@ -460,7 +461,7 @@ public class VideoActivity extends SwipeBackActivity {
             }
 
             @Override
-            public void onVideoDurationDetermined(int duration) {
+            public void onVideoDurationChanged(int duration) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     if (mVideoProgressInPiP.getMax() != duration) {
                         mVideoProgressInPiP.setMax(duration);
@@ -470,7 +471,7 @@ public class VideoActivity extends SwipeBackActivity {
 
             @SuppressLint("SourceLockedOrientationActivity")
             @Override
-            public void onVideoSizeChanged(int oldWidth, int oldHeight, int width, int height) {
+            public void onVideoSizeChanged(int width, int height) {
                 mVideoWidth = width;
                 mVideoHeight = height;
 
@@ -579,7 +580,7 @@ public class VideoActivity extends SwipeBackActivity {
             @Override
             public void onShareCapturedVideoPhoto(@NonNull File photo) {
                 Context context = VideoActivity.this;
-                FileUtils.shareFile(context, App.getInstance(context).getAuthority(),
+                ShareUtils.shareFile(context, App.getInstance(context).getAuthority(),
                         photo, "image/*");
             }
         });
@@ -1301,12 +1302,17 @@ public class VideoActivity extends SwipeBackActivity {
                 return;
             }
 
-            mVideoView.showControls(true);
-            mVideoView.setClipViewBounds(false);
-            resizeVideoView();
+            if (mNotchSwitchObserver != null) {
+                mNotchSwitchObserver.startObserver();
+            }
+            setAutoRotationEnabled(true);
 
             mStatusBarView.setVisibility(View.VISIBLE);
             mVideoProgressInPiP.setVisibility(View.GONE);
+
+            mVideoView.showControls(true);
+            mVideoView.setClipViewBounds(false);
+            resizeVideoView();
         }
     }
 
@@ -1321,29 +1327,40 @@ public class VideoActivity extends SwipeBackActivity {
     }
 
     private void notifyItemSelectionChanged(int oldPosition, int position, boolean checkNewItemVisibility) {
-        if (mPlayList != null) {
-            RecyclerView.Adapter adapter = mPlayList.getAdapter();
-            assert adapter != null;
-            adapter.notifyItemChanged(oldPosition, sRefreshVideoProgressPayload);
-            adapter.notifyItemChanged(oldPosition, sHighlightSelectedItemIfExistsPayload);
-            adapter.notifyItemChanged(position, sRefreshVideoProgressPayload);
-            adapter.notifyItemChanged(position, sHighlightSelectedItemIfExistsPayload);
-            if (checkNewItemVisibility) {
-                RecyclerView.LayoutManager lm = mPlayList.getLayoutManager();
-                if (lm instanceof LinearLayoutManager) {
-                    LinearLayoutManager llm = (LinearLayoutManager) lm;
-                    if (llm.findLastCompletelyVisibleItemPosition() < position) {
-                        llm.scrollToPosition(position);
-                    }
-                } else if (lm instanceof StaggeredGridLayoutManager) {
-                    StaggeredGridLayoutManager sglm = (StaggeredGridLayoutManager) lm;
-                    int maxCompletelyVisiblePosition = 0;
-                    for (int i : sglm.findLastCompletelyVisibleItemPositions(null)) {
-                        maxCompletelyVisiblePosition = Math.max(maxCompletelyVisiblePosition, i);
-                    }
-                    if (maxCompletelyVisiblePosition < position) {
-                        sglm.scrollToPosition(position);
-                    }
+        if (mPlayList == null) return;
+
+        RecyclerView.Adapter adapter = mPlayList.getAdapter();
+        assert adapter != null;
+        adapter.notifyItemChanged(oldPosition, sRefreshVideoProgressPayload);
+        adapter.notifyItemChanged(oldPosition, sHighlightSelectedItemIfExistsPayload);
+        adapter.notifyItemChanged(position, sRefreshVideoProgressPayload);
+        adapter.notifyItemChanged(position, sHighlightSelectedItemIfExistsPayload);
+        if (checkNewItemVisibility) {
+            RecyclerView.LayoutManager lm = mPlayList.getLayoutManager();
+            if (lm instanceof LinearLayoutManager) {
+                LinearLayoutManager llm = (LinearLayoutManager) lm;
+                if (llm.findFirstCompletelyVisibleItemPosition() > position
+                        || llm.findLastCompletelyVisibleItemPosition() < position) {
+                    llm.scrollToPosition(position);
+                }
+            } else if (lm instanceof StaggeredGridLayoutManager) {
+                StaggeredGridLayoutManager sglm = (StaggeredGridLayoutManager) lm;
+
+                int minFirstCompletelyVisiblePosition = 0;
+                for (int i : sglm.findFirstCompletelyVisibleItemPositions(null)) {
+                    minFirstCompletelyVisiblePosition = Math.min(minFirstCompletelyVisiblePosition, i);
+                }
+                if (minFirstCompletelyVisiblePosition > position) {
+                    sglm.scrollToPosition(position);
+                    return;
+                }
+
+                int maxLastCompletelyVisiblePosition = 0;
+                for (int i : sglm.findLastCompletelyVisibleItemPositions(null)) {
+                    maxLastCompletelyVisiblePosition = Math.max(maxLastCompletelyVisiblePosition, i);
+                }
+                if (maxLastCompletelyVisiblePosition < position) {
+                    sglm.scrollToPosition(position);
                 }
             }
         }

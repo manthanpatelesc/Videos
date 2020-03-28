@@ -8,6 +8,7 @@ package com.liuzhenlin.texturevideoview;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.Resources;
+import android.graphics.Rect;
 import android.net.Uri;
 import android.util.AttributeSet;
 import android.view.Gravity;
@@ -19,8 +20,11 @@ import androidx.annotation.Nullable;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 
+import com.google.android.exoplayer2.text.Cue;
 import com.google.android.exoplayer2.util.Util;
 import com.liuzhenlin.texturevideoview.utils.Utils;
+
+import java.util.List;
 
 /**
  * @author 刘振林
@@ -55,6 +59,23 @@ import com.liuzhenlin.texturevideoview.utils.Utils;
     }
 
     /**
+     * Shows a subtitle on the video content.
+     *
+     * @param text       The characters as a CharSequence object in the subtitle.
+     *                   Passing null to render nothing so as to clear the previous shown text.
+     * @param textBounds The rectangle area or region to render the characters in the subtitle.
+     *                   Maybe null to render the text at the center bottom of the video.
+     */
+    public abstract void showSubtitle(@Nullable CharSequence text, @Nullable Rect textBounds);
+
+    /**
+     * Shows some subtitles on the video content.
+     *
+     * @param cues The {@link Cue}s to display, or null to clear the showing Cues.
+     */
+    public abstract void showSubtitles(@Nullable List<Cue> cues);
+
+    /**
      * Sets whether to show the loading indicator ring in the center of this view, normally set while
      * the player is loading the video content or paused to buffer more data through progressive
      * HTTP download.
@@ -87,7 +108,7 @@ import com.liuzhenlin.texturevideoview.utils.Utils;
 
     /*package*/ abstract void onVideoUriChanged(@Nullable Uri uri);
 
-    /*package*/ abstract void onVideoDurationDetermined(int duration);
+    /*package*/ abstract void onVideoDurationChanged(int duration);
 
     /*package*/ abstract void onVideoSizeChanged(int width, int height);
 

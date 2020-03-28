@@ -18,7 +18,7 @@ import com.liuzhenlin.texturevideoview.R;
 import com.liuzhenlin.texturevideoview.SystemVideoPlayer;
 import com.liuzhenlin.texturevideoview.TextureVideoView;
 import com.liuzhenlin.texturevideoview.VideoPlayer;
-import com.liuzhenlin.texturevideoview.utils.FileUtils;
+import com.liuzhenlin.texturevideoview.utils.ShareUtils;
 
 import java.io.File;
 
@@ -54,7 +54,17 @@ public class DemoActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onVideoSizeChanged(int oldWidth, int oldHeight, int width, int height) {
+            public void onVideoRepeat() {
+                // no-op
+            }
+
+            @Override
+            public void onVideoDurationChanged(int duration) {
+                // no-op
+            }
+
+            @Override
+            public void onVideoSizeChanged(int width, int height) {
                 // no-op
             }
         });
@@ -112,7 +122,7 @@ public class DemoActivity extends AppCompatActivity {
 
             @Override
             public void onShareCapturedVideoPhoto(@NonNull File photo) {
-                FileUtils.shareFile(DemoActivity.this,
+                ShareUtils.shareFile(DemoActivity.this,
                         getPackageName() + ".provider", photo, "image/*");
             }
         });

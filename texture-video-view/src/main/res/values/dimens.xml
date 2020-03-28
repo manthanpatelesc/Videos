@@ -11,6 +11,9 @@
     <dimen name="video_clip_title_text_size">15.5sp</dimen>
     <dimen name="video_clip_subtitle_text_size">15sp</dimen>
     <dimen name="video_clip_text_size">14sp</dimen>
+    <dimen name="track_selection_view_title_text_size">15.5sp</dimen>
+    <dimen name="track_selection_view_tab_text_size">@dimen/widget_middle_text_size</dimen>
+    <dimen name="track_selection_view_list_item_text_size">@dimen/widget_small_text_size</dimen>
 
     <dimen name="progressbarHeight">2dp</dimen>
 
@@ -29,4 +32,6 @@
 
     <dimen name="notification_thumb_max_width">64dp</dimen>
     <dimen name="notification_thumb_max_height">64dp</dimen>
+
+    <dimen name="track_tab_height">45dp</dimen>
 </resources>

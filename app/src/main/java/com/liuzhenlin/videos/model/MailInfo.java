@@ -6,6 +6,7 @@
 package com.liuzhenlin.videos.model;
 
 import androidx.annotation.NonNull;
+import androidx.core.util.ObjectsCompat;
 
 import java.util.Arrays;
 import java.util.Properties;
@@ -160,6 +161,38 @@ public class MailInfo {
 
     public void setAttachmentPaths(String[] attachmentPaths) {
         this.attachmentPaths = attachmentPaths;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+
+        if (o == null || getClass() != o.getClass()) return false;
+
+        MailInfo mailInfo = (MailInfo) o;
+        return validate == mailInfo.validate &&
+                ObjectsCompat.equals(mailServerHost, mailInfo.mailServerHost) &&
+                ObjectsCompat.equals(mailServerPort, mailInfo.mailServerPort) &&
+                ObjectsCompat.equals(userName, mailInfo.userName) &&
+                ObjectsCompat.equals(password, mailInfo.password) &&
+                ObjectsCompat.equals(fromAddress, mailInfo.fromAddress) &&
+                ObjectsCompat.equals(toAddress, mailInfo.toAddress) &&
+                ObjectsCompat.equals(title, mailInfo.title) &&
+                ObjectsCompat.equals(text, mailInfo.text) &&
+                ObjectsCompat.equals(textRelatedImagePath, mailInfo.textRelatedImagePath) &&
+                Arrays.equals(attachmentPaths, mailInfo.attachmentPaths);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = ObjectsCompat.hash(
+                mailServerHost, mailServerPort,
+                validate,
+                userName, password,
+                fromAddress, toAddress,
+                title, text, textRelatedImagePath);
+        result = 31 * result + Arrays.hashCode(attachmentPaths);
+        return result;
     }
 
     @NonNull

@@ -15,8 +15,9 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import com.bumptech.glide.util.Preconditions
 import com.google.android.material.snackbar.Snackbar
+import com.liuzhenlin.texturevideoview.misc.ParallelThreadExecutor
 import com.liuzhenlin.texturevideoview.utils.FileUtils
-import com.liuzhenlin.texturevideoview.utils.ParallelThreadExecutor
+import com.liuzhenlin.texturevideoview.utils.ShareUtils
 import com.liuzhenlin.texturevideoview.utils.URLUtils
 import com.liuzhenlin.videos.*
 import com.liuzhenlin.videos.dao.VideoListItemDao
@@ -176,14 +177,17 @@ fun Fragment.shareVideo(video: Video) {
     (activity ?: requireContext()).shareVideo(video)
 }
 
-fun Context?.shareVideo(video: Video) =
-        if (URLUtils.isNetworkUrl(video.path)) {
-            Toast.makeText(this,
-                    R.string.sharingOnlineVideoIsNotCurrentlySupported, Toast.LENGTH_SHORT).show()
-        } else {
-            val app = App.getInstanceUnsafe()!!
-            FileUtils.shareFile(this ?: app, app.authority, File(video.path), "video/*")
-        }
+fun Context?.shareVideo(video: Video) {
+    val app = App.getInstanceUnsafe()!!
+    val context = this ?: app
+    if (URLUtils.isNetworkUrl(video.path)) {
+        ShareUtils.shareText(context,
+                FileUtils.getFileTitleFromFileName(video.name) + "：" + video.path,
+                "text/plain")
+    } else {
+        ShareUtils.shareFile(context, app.authority, File(video.path), "video/*")
+    }
+}
 
 @JvmOverloads
 fun Context.playVideo(uriString: String, videoTitle: String? = null) {

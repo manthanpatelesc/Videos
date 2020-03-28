@@ -2429,10 +2429,10 @@ public class SlidingDrawerLayout extends ViewGroup {
             mOnDrawerScrollListeners.remove(listener);
     }
 
-    public void clearOnDrawerScrollListeners() {
-        if (mOnDrawerScrollListeners != null)
-            mOnDrawerScrollListeners.clear();
-    }
+//    public void clearOnDrawerScrollListeners() {
+//        if (mOnDrawerScrollListeners != null)
+//            mOnDrawerScrollListeners.clear();
+//    }
 
     private void dispatchDrawerScrollPercentChangeIfNeeded(float percent) {
         if (percent == mScrollPercent) return;

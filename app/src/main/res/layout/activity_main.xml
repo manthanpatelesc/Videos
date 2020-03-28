@@ -42,7 +42,10 @@
             android:layout_weight="0"
             app:tabIndicatorColor="@color/pink"
             app:tabIndicatorGravity="top"
-            app:tabTextAppearance="@style/TextAppearance_TabItem">
+            app:tabTextAppearance="@style/TextAppearance_TabItem"
+            app:tabMaxWidth="0dp"
+            app:tabGravity="fill"
+            app:tabMode="fixed">
 
             <com.google.android.material.tabs.TabItem
                 android:layout_width="match_parent"

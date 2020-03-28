@@ -52,15 +52,15 @@ import com.liuzhenlin.videos.App;
 import com.liuzhenlin.videos.Consts;
 import com.liuzhenlin.videos.R;
 import com.liuzhenlin.videos.dao.FeedbackSharedPreferences;
+import com.liuzhenlin.videos.observer.OnOrientationChangeListener;
+import com.liuzhenlin.videos.observer.RotationObserver;
+import com.liuzhenlin.videos.observer.ScreenNotchSwitchObserver;
 import com.liuzhenlin.videos.utils.BitmapUtils2;
 import com.liuzhenlin.videos.utils.DisplayCutoutUtils;
 import com.liuzhenlin.videos.utils.MailUtil;
 import com.liuzhenlin.videos.utils.NetworkUtil;
 import com.liuzhenlin.videos.utils.OSHelper;
 import com.liuzhenlin.videos.utils.UiUtils;
-import com.liuzhenlin.videos.utils.observer.OnOrientationChangeListener;
-import com.liuzhenlin.videos.utils.observer.RotationObserver;
-import com.liuzhenlin.videos.utils.observer.ScreenNotchSwitchObserver;
 import com.liuzhenlin.videos.view.adapter.GalleryPagerAdapter;
 
 import java.io.File;
@@ -515,7 +515,7 @@ public class FeedbackActivity extends SwipeBackActivity implements View.OnClickL
         @Override
         public int getCount() {
             final int count = mPictures.size();
-            return count > MAX_COUNT_UPLOAD_PICTURES ? MAX_COUNT_UPLOAD_PICTURES : count;
+            return Math.min(count, MAX_COUNT_UPLOAD_PICTURES);
         }
 
         @Override
@@ -684,6 +684,7 @@ public class FeedbackActivity extends SwipeBackActivity implements View.OnClickL
                 mOnOrientationChangeListener.setEnabled(true);
             }
 
+            @SuppressLint("SourceLockedOrientationActivity")
             @Override
             public void onDismiss(DialogInterface dialog) {
                 mPicturePreviewDialog = null;

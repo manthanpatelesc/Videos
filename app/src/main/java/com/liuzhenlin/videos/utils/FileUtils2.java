@@ -12,6 +12,8 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
+import com.liuzhenlin.texturevideoview.utils.Utils;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -32,24 +34,22 @@ public class FileUtils2 {
     public static String formatFileSize(double size) {
         // 如果字节数少于1024，则直接以B为单位，否则先除于1024
         if (size < 1024) {
-            return (double) Math.round(size * 100d) / 100d + "B";
+            return Utils.roundDecimalUpTo2FractionDigitsString(size) + "B";
         } else {
             size = size / 1024d;
         }
         // 如果原字节数除于1024之后，少于1024，则可以直接以KB作为单位
+        // 往后以此类推...
         if (size < 1024) {
-            return (double) Math.round(size * 100d) / 100d + "KB";
-            // #.00 表示两位小数 #.0000四位小数 以此类推…
+            return Utils.roundDecimalUpTo2FractionDigitsString(size) + "KB";
         } else {
             size = size / 1024d;
         }
         if (size < 1024) {
-            return (double) Math.round(size * 100d) / 100d + "MB";
-            // %.2f %.表示 小数点前任意位数 2 表示两位小数 格式后的结果为f 表示浮点型。
+            return Utils.roundDecimalUpTo2FractionDigitsString(size) + "MB";
         } else {
-            // 否则要以GB为单位
             size = size / 1024d;
-            return (double) Math.round(size * 100d) / 100d + "GB";
+            return Utils.roundDecimalUpTo2FractionDigitsString(size) + "GB";
         }
     }
 

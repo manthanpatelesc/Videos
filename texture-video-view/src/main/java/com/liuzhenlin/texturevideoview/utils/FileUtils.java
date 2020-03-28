@@ -143,22 +143,6 @@ public class FileUtils {
         return dir;
     }
 
-    public static void shareFile(@NonNull Context context, @NonNull String authority,
-                                 @NonNull File file, @NonNull String defMimeType /* default file MIME type */) {
-        Intent it = new Intent().setAction(Intent.ACTION_SEND);
-        Uri uri;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            it.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-
-            uri = FileProvider.getUriForFile(context, authority, file);
-        } else {
-            uri = Uri.fromFile(file);
-        }
-        it.putExtra(Intent.EXTRA_STREAM, uri);
-        it.setType(getMimeTypeFromPath(file.getPath(), defMimeType));
-        context.startActivity(Intent.createChooser(it, context.getString(R.string.share)));
-    }
-
     public static class UriResolver {
 
         private UriResolver() {

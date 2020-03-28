@@ -18,6 +18,7 @@ import android.content.ServiceConnection;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Rect;
 import android.graphics.SurfaceTexture;
 import android.graphics.Typeface;
 import android.graphics.drawable.BitmapDrawable;
@@ -36,6 +37,7 @@ import android.provider.MediaStore;
 import android.text.ParcelableSpan;
 import android.text.SpannableString;
 import android.text.Spanned;
+import android.text.TextUtils;
 import android.text.style.ForegroundColorSpan;
 import android.transition.ChangeBounds;
 import android.transition.Fade;
@@ -89,16 +91,18 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.exoplayer2.source.MediaSourceFactory;
+import com.google.android.exoplayer2.text.CaptionStyleCompat;
+import com.google.android.exoplayer2.text.Cue;
 import com.google.android.exoplayer2.util.Util;
 import com.google.android.material.snackbar.Snackbar;
 import com.liuzhenlin.texturevideoview.drawable.CircularProgressDrawable;
+import com.liuzhenlin.texturevideoview.misc.ParallelThreadExecutor;
+import com.liuzhenlin.texturevideoview.misc.TransitionListenerAdapter;
 import com.liuzhenlin.texturevideoview.service.BackgroundPlaybackControllerService;
 import com.liuzhenlin.texturevideoview.utils.BitmapUtils;
 import com.liuzhenlin.texturevideoview.utils.FileUtils;
-import com.liuzhenlin.texturevideoview.utils.ParallelThreadExecutor;
 import com.liuzhenlin.texturevideoview.utils.ScreenUtils;
 import com.liuzhenlin.texturevideoview.utils.TimeUtil;
-import com.liuzhenlin.texturevideoview.utils.TransitionListenerAdapter;
 import com.liuzhenlin.texturevideoview.utils.URLUtils;
 import com.liuzhenlin.texturevideoview.utils.Utils;
 import com.liuzhenlin.texturevideoview.utils.VideoUtils;
@@ -184,7 +188,17 @@ import java.util.List;
  *             }
  *
  *             &#064;Override
- *             public void onVideoSizeChanged(int oldWidth, int oldHeight, int width, int height) {
+ *             public void onVideoRepeat() {
+ *                 // no-op
+ *             }
+ *
+ *             &#064;Override
+ *             public void onVideoDurationChanged(int duration) {
+ *                 // no-op
+ *             }
+ *
+ *             &#064;Override
+ *             public void onVideoSizeChanged(int width, int height) {
  *                 // no-op
  *             }
  *         });
@@ -242,7 +256,7 @@ import java.util.List;
  *
  *             &#064;Override
  *             public void onShareCapturedVideoPhoto(@NonNull File photo) {
- *                 FileUtils.shareFile(DemoActivity.this,
+ *                 ShareUtils.shareFile(DemoActivity.this,
  *                         getPackageName() + ".provider", photo, "image/*");
  *             }
  *         });
@@ -431,7 +445,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
 
     private static final String TAG = "TextureVideoView";
 
-    private int mPrivateFlags;
+    private int mPrivateFlags = PFLAG_CONTROLS_SHOWING;
 
     /** If the controls are showing, this is marked into {@link #mPrivateFlags}. */
     private static final int PFLAG_CONTROLS_SHOWING = 1;
@@ -534,6 +548,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
 
     private final RecyclerView mPlayList;
     private View mMoreView;
+    private TrackSelectionView mTrackSelectionView;
 
     /** Shows the video playback. */
     private final TextureView mTextureView;
@@ -542,9 +557,20 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
     /** Surface used by the {@link VideoPlayer} set for this view. */
     private Surface mUsedSurface; // null or mSurface
 
+    private final SubtitleView mSubtitleView;
+    private static final CaptionStyleCompat sDefaultCaptionStyle =
+            new CaptionStyleCompat(
+                    /* foregroundColor */ Color.WHITE,
+                    /* backgroundColor */ Color.TRANSPARENT,
+                    /* windowColor= */ Color.TRANSPARENT,
+                    /* edgeType= */ CaptionStyleCompat.EDGE_TYPE_OUTLINE,
+                    /* edgeColor= */ Color.BLACK,
+                    /* typeface= */ null);
+
     private final ViewGroup mTopControlsFrame;
     private final TextView mTitleText;
     private final View mShareButton;
+    private final View mTrackButton;
     private final View mMoreButton;
 
     private final ImageView mLockUnlockButton;
@@ -772,6 +798,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
         mDrawerView = findViewById(R.id.drawer_videoview);
         mPlayList = findViewById(R.id.rv_playlist);
         mTextureView = findViewById(R.id.textureView);
+        mSubtitleView = findViewById(R.id.subtitleView);
         mScrimView = findViewById(R.id.scrim);
         mSeekingVideoThumbText = findViewById(R.id.text_seekingVideoThumb);
         mSeekingTextProgressFrame = findViewById(R.id.frame_seekingTextProgress);
@@ -781,6 +808,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
         mTopControlsFrame = findViewById(R.id.frame_topControls);
         mTitleText = findViewById(R.id.text_title);
         mShareButton = findViewById(R.id.btn_share);
+        mTrackButton = findViewById(R.id.btn_track);
         mMoreButton = findViewById(R.id.btn_more);
         mLockUnlockButton = findViewById(R.id.btn_lockUnlock);
         mCameraButton = findViewById(R.id.btn_camera);
@@ -834,10 +862,16 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                         break;
                     case STATE_IDLE:
                         if (slideOffset == 0) {
-                            mPlayList.setVisibility(GONE);
+                            if (mPlayList.getVisibility() == View.VISIBLE) {
+                                mPlayList.setVisibility(GONE);
+                            }
                             if (mMoreView != null) {
                                 mDrawerView.removeView(mMoreView);
                                 mMoreView = null;
+                            }
+                            if (mTrackSelectionView != null) {
+                                mDrawerView.removeView(mTrackSelectionView);
+                                mTrackSelectionView = null;
                             }
                         }
                         break;
@@ -851,6 +885,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
 
         mTitleText.setOnClickListener(mOnChildClickListener);
         mShareButton.setOnClickListener(mOnChildClickListener);
+        mTrackButton.setOnClickListener(mOnChildClickListener);
         mMoreButton.setOnClickListener(mOnChildClickListener);
         mLockUnlockButton.setOnClickListener(mOnChildClickListener);
         mCameraButton.setOnClickListener(mOnChildClickListener);
@@ -889,6 +924,8 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
             }
         });
 
+        mSubtitleView.setStyle(sDefaultCaptionStyle);
+
         mAudioManager = (AudioManager)
                 context.getApplicationContext().getSystemService(Context.AUDIO_SERVICE);
         mMaxVolume = mAudioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
@@ -904,6 +941,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
         mLoadingImage.setImageDrawable(mLoadingDrawable);
     }
 
+    @SuppressLint("RestrictedApi")
     private void inflateBottomControls() {
         ViewGroup root = mBottomControlsFrame;
         if (root.getChildCount() > 0) {
@@ -1041,6 +1079,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
         mToggleButton = root.findViewById(R.id.btn_toggle);
         mToggleButton.setOnClickListener(mOnChildClickListener);
         adjustToggleState(mVideoPlayer != null && mVideoPlayer.isPlaying());
+        checkButtonsAbilities();
     }
 
     private void adjustToggleState(boolean playing) {
@@ -1091,6 +1130,11 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
             mEventListener.onPlayerChange(videoPlayer);
         }
 
+        // Closes the 'more' view first since we will not fully sync its UI state
+        if (mMoreView != null) {
+            closeDrawer(mDrawerView);
+        }
+
         // Due to special processing mechanism to the Surface used by bilibili's IjkMediaPlayer,
         // we may need to recreate a new Surface for use with the new play engine.
         if (videoPlayer != null && !(videoPlayer instanceof IjkVideoPlayer)
@@ -1117,6 +1161,9 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                             || videoPlayer.mVideoHeight != lastVideoPlayer.mVideoHeight) {
                         onVideoSizeChanged(videoPlayer.mVideoWidth, videoPlayer.mVideoHeight);
                     }
+                    if (videoPlayer.mVideoDuration != lastVideoPlayer.mVideoDuration) {
+                        onVideoDurationChanged(Math.max(0, videoPlayer.mVideoDuration));
+                    }
                     if (videoPlayer.mPlaybackSpeed != lastVideoPlayer.mPlaybackSpeed) {
                         onPlaybackSpeedChanged(videoPlayer.mPlaybackSpeed);
                     }
@@ -1132,14 +1179,12 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                 } else {
                     onVideoUriChanged(videoPlayer.mVideoUri);
                     onVideoSizeChanged(videoPlayer.mVideoWidth, videoPlayer.mVideoHeight);
+                    onVideoDurationChanged(Math.max(0, videoPlayer.mVideoDuration));
                     onPlaybackSpeedChanged(videoPlayer.mPlaybackSpeed);
                     onAudioAllowedToPlayInBackgroundChanged(videoPlayer.isAudioAllowedToPlayInBackground());
                     onSingleVideoLoopPlaybackModeChanged(videoPlayer.isSingleVideoLoopPlayback());
                 }
 
-                if ((videoPlayer.mInternalFlags & VideoPlayer.$FLAG_VIDEO_DURATION_DETERMINED) != 0) {
-                    onVideoDurationDetermined(videoPlayer.mVideoDuration);
-                }
                 videoPlayer.openVideo();
                 videoPlayer.play(false);
             }
@@ -1166,19 +1211,13 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
             // the encoded string representations of the new player's original Uri
             // and the one to be set for it are equal.
             videoPlayer.setVideoUri(lastVideoPlayer.mVideoUri);
-            if (lastVideoPlayer.mVideoWidth != 0
-                    || lastVideoPlayer.mVideoHeight != 0) {
+            if (lastVideoPlayer.mVideoWidth != 0 || lastVideoPlayer.mVideoHeight != 0) {
                 videoPlayer.onVideoSizeChanged(lastVideoPlayer.mVideoWidth, lastVideoPlayer.mVideoHeight);
             }
-            if ((lastVideoPlayer.mInternalFlags & VideoPlayer.$FLAG_VIDEO_DURATION_DETERMINED) != 0) {
-                videoPlayer.mInternalFlags |= VideoPlayer.$FLAG_VIDEO_DURATION_DETERMINED;
-                // Call videoPlayer.onVideoDurationDetermined instead of this.onVideoDurationDetermined,
-                // which ensures the onVideoDurationDetermined(int) methods of those VideoListeners
-                // to be called even if some of them may have already been notified for the same video
-                // that was being played.
-                videoPlayer.onVideoDurationDetermined(lastVideoPlayer.mVideoDuration);
+            if (lastVideoPlayer.mVideoDuration != IVideoPlayer.NO_DURATION) {
+                videoPlayer.onVideoDurationChanged(lastVideoPlayer.mVideoDuration);
+                videoPlayer.seekTo(lastVideoPlayer.getVideoProgress(), false);
             }
-            videoPlayer.seekTo(lastVideoPlayer.getVideoProgress(), false);
             videoPlayer.setPlaybackSpeed(lastPlaybackSpeed);
             videoPlayer.setAudioAllowedToPlayInBackground(lastVideoPlayer.isAudioAllowedToPlayInBackground());
             videoPlayer.setSingleVideoLoopPlayback(lastVideoPlayer.isSingleVideoLoopPlayback());
@@ -1449,7 +1488,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                     cancelVideoPhotoCapture();
                     hideClipView(true /* usually true */);
                     // Only closes the playlist when this view is out of fullscreen mode
-                    if (mMoreView == null && isDrawerVisible(mDrawerView)) {
+                    if (mPlayList.getVisibility() == VISIBLE && isDrawerVisible(mDrawerView)) {
                         closeDrawer(mDrawerView);
                     }
                 }
@@ -1594,7 +1633,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
             // to preview the video content.
             if (aspectRatio > 1.0f) {
                 mDrawerViewMinimumHeight = height;
-                lp.width = (int) (width / 2f + 0.5f); // XXX: To make this more adaptable
+                lp.width = (int) (width / 2f + 0.5f); // XXX: to make this more adaptable
             } else {
                 mDrawerViewMinimumHeight = 0;
                 lp.width = ViewGroup.LayoutParams.MATCH_PARENT;
@@ -1854,7 +1893,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
      * @param animate whether to fade in/out the controls smoothly or not
      */
     public void showControls(boolean show, boolean animate) {
-        if ((mPrivateFlags & PFLAG_CONTROLS_SHOW_STICKILY) != 0) {
+        if ((mPrivateFlags & PFLAG_CONTROLS_SHOW_STICKILY) != 0 || isDrawerVisible(mDrawerView)) {
             return;
         }
         if (show) {
@@ -1888,8 +1927,6 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
             }
             if (unlocked) {
                 mTopControlsFrame.setVisibility(VISIBLE);
-
-                if (isDrawerVisible(mDrawerView)) closeDrawer(mDrawerView);
             }
             if (isInFullscreenMode()) {
                 mLockUnlockButton.setVisibility(VISIBLE);
@@ -1976,6 +2013,37 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
     }
 
     @Override
+    public void showSubtitles(@Nullable List<Cue> cues) {
+        mSubtitleView.setCues(cues);
+    }
+
+    @Override
+    public void showSubtitle(@Nullable CharSequence text, @Nullable Rect textBounds) {
+        List<Cue> cues = null;
+        if (!TextUtils.isEmpty(text)) {
+            cues = new ArrayList<>(1);
+
+            final float viewportW = mTextureView.getWidth();
+            final float viewportH = mTextureView.getHeight();
+
+            if (textBounds == null || textBounds.isEmpty() || viewportW == 0 || viewportH == 0) {
+                cues.add(new Cue(text));
+            } else {
+                cues.add(
+                        new Cue(text,
+                                /* textAlignment= */ null,
+                                /* line= */(float) textBounds.top / viewportH,
+                                /* lineType= */ Cue.LINE_TYPE_FRACTION,
+                                /* lineAnchor= */ Cue.ANCHOR_TYPE_START,
+                                /* position= */(float) textBounds.left / viewportW,
+                                /* positionAnchor= */ Cue.ANCHOR_TYPE_START,
+                                /* size= */  (float) textBounds.width() / viewportW));
+            }
+        }
+        mSubtitleView.setCues(cues);
+    }
+
+    @Override
     public void showLoadingView(boolean show) {
         if (show) {
             if (mLoadingImage.getVisibility() != VISIBLE) {
@@ -2011,6 +2079,29 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
         final int visibility = show ? VISIBLE : GONE;
         mCameraButton.setVisibility(visibility);
         mVideoCameraButton.setVisibility(visibility);
+
+        if (show) {
+            checkCameraButtonAbility();
+        }
+    }
+
+    private void checkCameraButtonAbility() {
+        TextureView tv = mTextureView;
+        mCameraButton.setEnabled(mSurface != null && tv.getWidth() != 0 && tv.getHeight() != 0);
+    }
+
+    private void checkButtonsAbilities() {
+        VideoPlayer vp = mVideoPlayer;
+        if (isInFullscreenMode()) {
+            if (!isLocked()) {
+                checkCameraButtonAbility();
+                mVideoCameraButton.setEnabled(vp != null
+                        && vp.mVideoWidth != 0 && vp.mVideoHeight != 0
+                        && vp.mVideoDuration != IVideoPlayer.NO_DURATION);
+            }
+        } else {
+            mMinimizeButton.setEnabled(vp != null && vp.mVideoWidth != 0 && vp.mVideoHeight != 0);
+        }
     }
 
     private void hideCapturedPhotoView(boolean share) {
@@ -2062,9 +2153,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
     }
 
     private void captureVideoPhoto() {
-        if (mSurface == null || mVideoPlayer == null || mVideoPlayer.mVideoUri == null) {
-            return;
-        }
+        if (mSurface == null) return;
 
         final int width = mTextureView.getWidth();
         final int height = mTextureView.getHeight();
@@ -2260,7 +2349,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
         VideoPlayer videoPlayer = mVideoPlayer;
         // Not available when video info is waiting to be known
         if (videoPlayer == null
-                || videoPlayer.mVideoDuration == IVideoPlayer.UNKNOWN_DURATION
+                || videoPlayer.mVideoDuration == IVideoPlayer.NO_DURATION
                 || (videoPlayer.mVideoWidth == 0 || videoPlayer.mVideoHeight == 0)) {
             return;
         }
@@ -2525,7 +2614,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                                 publishProgress(frame);
                             }
                         }
-                    } catch (IllegalArgumentException e) {
+                    } catch (RuntimeException e) {
                         e.printStackTrace();
                     } finally {
                         mmr.release();
@@ -3056,7 +3145,12 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
 
                 case MotionEvent.ACTION_UP:
                 case MotionEvent.ACTION_CANCEL:
-                    switch (touchFlags & MASK_ADJUSTING_PROGRESS_FLAGS) {
+                    // Cache the touchFlags to avoid VideoSeekBar's onStopTrackingTouch() to be called
+                    // once again from the cancelDraggingVideoSeekBar() method.
+                    final int tflags = this.touchFlags;
+                    touchFlags &= ~MASK_ADJUSTING_PROGRESS_FLAGS;
+                    activePointerId = MotionEvent.INVALID_POINTER_ID;
+                    switch (tflags & MASK_ADJUSTING_PROGRESS_FLAGS) {
                         case TFLAG_ADJUSTING_BRIGHTNESS:
                         case TFLAG_ADJUSTING_VOLUME:
                             mMsgHandler.sendEmptyMessageDelayed(
@@ -3067,8 +3161,6 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                             mOnVideoSeekBarChangeListener.onStopTrackingTouch(mVideoSeekBar);
                             break;
                     }
-                    touchFlags &= ~MASK_ADJUSTING_PROGRESS_FLAGS;
-                    activePointerId = MotionEvent.INVALID_POINTER_ID;
                     break;
             }
             return true;
@@ -3113,6 +3205,16 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                 if (mEventListener != null) {
                     showControls(false);
                     mEventListener.onShareVideo();
+                }
+            } else if (mTrackButton == v) {
+                if (mTrackSelectionView == null) {
+                    mTrackSelectionView = (TrackSelectionView)
+                            LayoutInflater.from(mContext)
+                                    .inflate(R.layout.drawer_view_track_selection, mDrawerView, false);
+                    mTrackSelectionView.setVideoPlayer(mVideoPlayer);
+                    mTrackSelectionView.setMinimumHeight(mDrawerViewMinimumHeight);
+                    mDrawerView.addView(mTrackSelectionView);
+                    openDrawer(mDrawerView);
                 }
             } else if (mMoreButton == v) {
                 showMoreView();
@@ -3459,7 +3561,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                     mmr = new MediaMetadataRetriever();
                     try {
                         mmr.setDataSource(mContext, videoUri);
-                    } catch (IllegalArgumentException e) {
+                    } catch (RuntimeException e) {
                         e.printStackTrace();
                         mmr.release();
                         mmr = null;
@@ -3595,6 +3697,9 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
 
         @Override
         public void onStopTrackingTouch(SeekBar seekBar) {
+            // Avoids being called again in the cancelDraggingVideoSeekBar() method
+            seekBar.setPressed(false);
+
             if (mVideoPlayer != null) {
                 final int progress = current;
                 if (progress != start)
@@ -3936,15 +4041,21 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
     }
 
     @Override
-    void onVideoDurationDetermined(int duration) {
+    void onVideoDurationChanged(int duration) {
+        checkButtonsAbilities();
+
         if (canAccessBackgroundPlaybackControllerService()) {
-            sBgPlaybackControllerServiceConn.service.onMediaDurationDetermined(duration);
+            sBgPlaybackControllerServiceConn.service
+                    .onMediaDurationChanged(mVideoPlayer.getVideoProgress(), duration);
         }
     }
 
     @Override
     void onVideoSizeChanged(int width, int height) {
-        if (width != 0 && height != 0) requestLayout();
+        checkButtonsAbilities();
+        if (width != 0 && height != 0) {
+            requestLayout();
+        }
     }
 
     @Override

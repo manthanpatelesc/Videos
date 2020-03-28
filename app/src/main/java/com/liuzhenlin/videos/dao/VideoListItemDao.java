@@ -17,8 +17,8 @@ import android.os.Build;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.liuzhenlin.texturevideoview.misc.Singleton;
 import com.liuzhenlin.texturevideoview.utils.FileUtils;
-import com.liuzhenlin.texturevideoview.utils.Singleton;
 import com.liuzhenlin.videos.Consts;
 import com.liuzhenlin.videos.model.Video;
 import com.liuzhenlin.videos.model.VideoDirectory;
@@ -283,7 +283,7 @@ public final class VideoListItemDao implements IVideoListItemDao {
         return videodir;
     }
 
-    @Nullable
+//    @RecentlyNonNull
     public Video buildVideo(@NonNull Cursor cursor) {
         Video video = new Video();
 
@@ -335,9 +335,9 @@ public final class VideoListItemDao implements IVideoListItemDao {
         if (video.getDuration() <= 0 || video.getWidth() <= 0 || video.getHeight() <= 0) {
             if (invalidateVideoDurationAndResolution(video)) {
                 updateVideo(video);
-            } else {
+            } /*else {
                 return null;
-            }
+            }*/
         }
 
         Cursor cursor2 = mDataBase.rawQuery(
@@ -388,9 +388,6 @@ public final class VideoListItemDao implements IVideoListItemDao {
             video.setWidth(width);
             video.setHeight(height);
             return true;
-        } catch (IllegalArgumentException e) {
-            e.printStackTrace();
-            return false;
         } catch (RuntimeException e) {
             e.printStackTrace();
             return false;

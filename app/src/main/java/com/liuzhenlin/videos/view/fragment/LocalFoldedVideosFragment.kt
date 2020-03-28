@@ -28,7 +28,7 @@ import com.liuzhenlin.simrv.SlidingItemMenuRecyclerView
 import com.liuzhenlin.simrv.Utils
 import com.liuzhenlin.swipeback.SwipeBackFragment
 import com.liuzhenlin.swipeback.SwipeBackLayout
-import com.liuzhenlin.texturevideoview.utils.ParallelThreadExecutor
+import com.liuzhenlin.texturevideoview.misc.ParallelThreadExecutor
 import com.liuzhenlin.videos.*
 import com.liuzhenlin.videos.dao.VideoListItemDao
 import com.liuzhenlin.videos.model.Video

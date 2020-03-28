@@ -199,12 +199,6 @@ public class VideoClipView extends FrameLayout {
         }
     }
 
-    public void clearOnSelectionChangeListeners() {
-        if (hasOnSelectionChangeListener()) {
-            mOnSelectionChangeListeners.clear();
-        }
-    }
-
     private boolean hasOnSelectionChangeListener() {
         return mOnSelectionChangeListeners != null && !mOnSelectionChangeListeners.isEmpty();
     }

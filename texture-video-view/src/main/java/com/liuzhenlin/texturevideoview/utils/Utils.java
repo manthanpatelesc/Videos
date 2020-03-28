@@ -7,6 +7,7 @@ package com.liuzhenlin.texturevideoview.utils;
 
 import android.os.Build;
 import android.os.SystemClock;
+import android.text.TextUtils;
 import android.transition.Transition;
 import android.view.Gravity;
 import android.view.MotionEvent;
@@ -26,6 +27,11 @@ import com.google.android.material.snackbar.Snackbar;
 import com.liuzhenlin.texturevideoview.IVideoPlayer;
 import com.liuzhenlin.texturevideoview.R;
 
+import java.math.RoundingMode;
+import java.text.NumberFormat;
+
+import tv.danmaku.ijk.media.player.IjkMediaMeta;
+
 /**
  * @author 刘振林
  */
@@ -34,21 +40,59 @@ public class Utils {
     }
 
     /**
-     * Creates a new MotionEvent with {@link MotionEvent#ACTION_CANCEL} action being performed,
-     * filling in a subset of the basic motion values. Those not specified here are:
-     * <ul>
-     * <li>down time (current milliseconds since boot)</li>
-     * <li>event time (current milliseconds since boot)</li>
-     * <li>x and y coordinates of this event (always 0)</li>
-     * <li>
-     * The state of any meta/modifier keys that were in effect when the event was generated (always 0)
-     * </li>
-     * </ul>
+     * Judges if two floating-point numbers (float) are equal, ignoring very small precision errors.
      */
-    @NonNull
-    public static MotionEvent obtainCancelEvent() {
-        final long now = SystemClock.uptimeMillis();
-        return MotionEvent.obtain(now, now, MotionEvent.ACTION_CANCEL, 0.0f, 0.0f, 0);
+    public static boolean areEqualIgnorePrecisionError(float value1, float value2) {
+        return Math.abs(value1 - value2) < 0.0001f;
+    }
+
+    /**
+     * Judges if two floating-point numbers (double) are equal, ignoring very small precision errors.
+     */
+    public static boolean areEqualIgnorePrecisionError(double value1, double value2) {
+        return Math.abs(value1 - value2) < 0.0001d;
+    }
+
+    /**
+     * Returns the string representation of a floating point number rounded up to 2 fraction digits.
+     */
+    public static String roundDecimalUpTo2FractionDigitsString(double value) {
+        return roundDecimalToString(value, 2);
+    }
+
+    /**
+     * @see #roundDecimalToString(double, int, int, boolean)
+     */
+    public static String roundDecimalToString(double value, int maxFractionDigits) {
+        return roundDecimalToString(value, 0, maxFractionDigits);
+    }
+
+    /**
+     * @see #roundDecimalToString(double, int, int, boolean)
+     */
+    public static String roundDecimalToString(double value, int minFractionDigits, int maxFractionDigits) {
+        return roundDecimalToString(value, minFractionDigits, maxFractionDigits, false);
+    }
+
+    /**
+     * Rounds a floating point number up to {@code maxFractionDigits} fraction digits and at least
+     * {@code minFractionDigits} digits, then returns it as a string.
+     *
+     * @param value             the decimal to be rounded half up
+     * @param minFractionDigits see the parameter of {@link NumberFormat#setMinimumFractionDigits(int)}
+     * @param maxFractionDigits see the parameter of {@link NumberFormat#setMaximumFractionDigits(int)}
+     * @param groupingUsed      see the parameter of {@link NumberFormat#setGroupingUsed(boolean)}
+     * @return the equivalent string representation of the rounded decimal.
+     */
+    public static String roundDecimalToString(double value,
+                                              int minFractionDigits, int maxFractionDigits,
+                                              boolean groupingUsed) {
+        NumberFormat nf = NumberFormat.getNumberInstance();
+        nf.setGroupingUsed(groupingUsed);
+        nf.setMinimumFractionDigits(minFractionDigits);
+        nf.setMaximumFractionDigits(maxFractionDigits);
+        nf.setRoundingMode(RoundingMode.HALF_UP);
+        return nf.format(value);
     }
 
     /**
@@ -61,8 +105,6 @@ public class Utils {
     @NonNull
     public static String playbackStateIntToString(@IVideoPlayer.PlaybackState int playbackState) {
         switch (playbackState) {
-            case IVideoPlayer.PLAYBACK_STATE_UNDEFINED:
-                return "UNDEFINED";
             case IVideoPlayer.PLAYBACK_STATE_ERROR:
                 return "ERROR";
             case IVideoPlayer.PLAYBACK_STATE_IDLE:
@@ -81,6 +123,122 @@ public class Utils {
                 throw new IllegalArgumentException("the `playbackState` must be one of the constant"
                         + " defined for IVideoPlayer.PlaybackState");
         }
+    }
+
+    /**
+     * Gets the short name of {@link com.google.android.exoplayer2.Format#codecs}
+     */
+    @Nullable
+    public static String getExoTrackShortCodes(@Nullable String codecs) {
+        if (TextUtils.isEmpty(codecs)) {
+            return null;
+        }
+
+        final int endIndex = codecs.indexOf('.');
+        return endIndex == -1 ? codecs : codecs.substring(0, endIndex);
+    }
+
+    /**
+     * Returns the audio track channel count for the given channel layout constant starting with the
+     * {@code AV_CH_LAYOUT_} prefix as defined in {@link IjkMediaMeta}, or 0 if an invalid argument
+     * is passed in.
+     */
+    public static int getIjkAudioTrackChannelCount(long channelLayout) {
+        int channelCount = 0;
+        if ((channelLayout & IjkMediaMeta.AV_CH_FRONT_LEFT) != 0) {
+            channelCount += 1;
+        }
+        if ((channelLayout & IjkMediaMeta.AV_CH_FRONT_RIGHT) != 0) {
+            channelCount += 1;
+        }
+        if ((channelLayout & IjkMediaMeta.AV_CH_FRONT_CENTER) != 0) {
+            channelCount += 1;
+        }
+        if ((channelLayout & IjkMediaMeta.AV_CH_LOW_FREQUENCY) != 0) {
+            channelCount += 1;
+        }
+        if ((channelLayout & IjkMediaMeta.AV_CH_BACK_LEFT) != 0) {
+            channelCount += 1;
+        }
+        if ((channelLayout & IjkMediaMeta.AV_CH_BACK_RIGHT) != 0) {
+            channelCount += 1;
+        }
+        if ((channelLayout & IjkMediaMeta.AV_CH_FRONT_LEFT_OF_CENTER) != 0) {
+            channelCount += 1;
+        }
+        if ((channelLayout & IjkMediaMeta.AV_CH_FRONT_RIGHT_OF_CENTER) != 0) {
+            channelCount += 1;
+        }
+        if ((channelLayout & IjkMediaMeta.AV_CH_BACK_CENTER) != 0) {
+            channelCount += 1;
+        }
+        if ((channelLayout & IjkMediaMeta.AV_CH_SIDE_LEFT) != 0) {
+            channelCount += 1;
+        }
+        if ((channelLayout & IjkMediaMeta.AV_CH_SIDE_RIGHT) != 0) {
+            channelCount += 1;
+        }
+        if ((channelLayout & IjkMediaMeta.AV_CH_TOP_CENTER) != 0) {
+            channelCount += 1;
+        }
+        if ((channelLayout & IjkMediaMeta.AV_CH_TOP_FRONT_LEFT) != 0) {
+            channelCount += 1;
+        }
+        if ((channelLayout & IjkMediaMeta.AV_CH_TOP_FRONT_CENTER) != 0) {
+            channelCount += 1;
+        }
+        if ((channelLayout & IjkMediaMeta.AV_CH_TOP_FRONT_RIGHT) != 0) {
+            channelCount += 1;
+        }
+        if ((channelLayout & IjkMediaMeta.AV_CH_TOP_BACK_LEFT) != 0) {
+            channelCount += 1;
+        }
+        if ((channelLayout & IjkMediaMeta.AV_CH_TOP_BACK_CENTER) != 0) {
+            channelCount += 1;
+        }
+        if ((channelLayout & IjkMediaMeta.AV_CH_TOP_BACK_RIGHT) != 0) {
+            channelCount += 1;
+        }
+        if ((channelLayout & IjkMediaMeta.AV_CH_STEREO_LEFT) != 0) {
+            channelCount += 1;
+        }
+        if ((channelLayout & IjkMediaMeta.AV_CH_STEREO_RIGHT) != 0) {
+            channelCount += 1;
+        }
+        if ((channelLayout & IjkMediaMeta.AV_CH_WIDE_LEFT) != 0) {
+            channelCount += 1;
+        }
+        if ((channelLayout & IjkMediaMeta.AV_CH_WIDE_RIGHT) != 0) {
+            channelCount += 1;
+        }
+        if ((channelLayout & IjkMediaMeta.AV_CH_SURROUND_DIRECT_LEFT) != 0) {
+            channelCount += 1;
+        }
+        if ((channelLayout & IjkMediaMeta.AV_CH_SURROUND_DIRECT_RIGHT) != 0) {
+            channelCount += 1;
+        }
+        if ((channelLayout & IjkMediaMeta.AV_CH_LOW_FREQUENCY_2) != 0) {
+            channelCount += 1;
+        }
+        return channelCount;
+    }
+
+    /**
+     * Creates a new MotionEvent with {@link MotionEvent#ACTION_CANCEL} action being performed,
+     * filling in a subset of the basic motion values. Those not specified here are:
+     * <ul>
+     * <li>down time (current milliseconds since boot)</li>
+     * <li>event time (current milliseconds since boot)</li>
+     * <li>x and y coordinates of this event (always 0)</li>
+     * <li>
+     * The state of any meta/modifier keys that were in effect when the event was generated (always 0)
+     * </li>
+     * </ul>
+     */
+    @NonNull
+    public static MotionEvent obtainCancelEvent() {
+        final long now = SystemClock.uptimeMillis();
+        return MotionEvent.obtain(now, now, MotionEvent.ACTION_CANCEL, 0.0f, 0.0f, 0);
     }
 
     /**
@@ -107,11 +265,32 @@ public class Utils {
         return ViewCompat.getLayoutDirection(view) == ViewCompat.LAYOUT_DIRECTION_RTL;
     }
 
+    /**
+     * Converts script specific gravity to absolute horizontal values,
+     * leaving the vertical values unchanged.
+     * <p>
+     * if horizontal direction is LTR, then START will set LEFT and END will set RIGHT.
+     * if horizontal direction is RTL, then START will set RIGHT and END will set LEFT.
+     *
+     * @param parent  The parent view where to get the layout direction.
+     * @param gravity The gravity to convert to absolute values.
+     * @return gravity converted to absolute horizontal & original vertical values.
+     */
     public static int getAbsoluteGravity(@NonNull View parent, int gravity) {
         final int layoutDirection = ViewCompat.getLayoutDirection(parent);
         return GravityCompat.getAbsoluteGravity(gravity, layoutDirection);
     }
 
+    /**
+     * Converts script specific gravity to absolute horizontal values.
+     * <p>
+     * if horizontal direction is LTR, then START will set LEFT and END will set RIGHT.
+     * if horizontal direction is RTL, then START will set RIGHT and END will set LEFT.
+     *
+     * @param parent  The parent view where to get the layout direction.
+     * @param gravity The gravity to convert to absolute horizontal values.
+     * @return gravity converted to absolute horizontal values.
+     */
     public static int getAbsoluteHorizontalGravity(@NonNull View parent, int gravity) {
         return getAbsoluteGravity(parent, gravity) & Gravity.HORIZONTAL_GRAVITY_MASK;
     }
@@ -134,20 +313,6 @@ public class Utils {
             }
             transition.excludeTarget(child, true);
         }
-    }
-
-    /**
-     * Judges if two floating-point numbers (float) are equal, ignoring very small precision errors.
-     */
-    public static boolean areEqualIgnorePrecisionError(float value1, float value2) {
-        return Math.abs(value1 - value2) < 0.0001f;
-    }
-
-    /**
-     * Judges if two floating-point numbers (double) are equal, ignoring very small precision errors.
-     */
-    public static boolean areEqualIgnorePrecisionError(double value1, double value2) {
-        return Math.abs(value1 - value2) < 0.0001d;
     }
 
     public static void showUserCancelableSnackbar(@NonNull View view, @StringRes int resId,
