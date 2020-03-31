@@ -89,7 +89,7 @@ public class Utils {
      * @since Android 5.0
      */
     @SuppressWarnings("JavaReflectionMemberAccess")
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+    @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
     private static void convertActivityToTranslucentSinceL(Activity activity) throws Exception {
         Class<?> translucentConversionListener = null;
         for (Class clazz : Activity.class.getClasses()) {

@@ -217,7 +217,7 @@ public class DisplayCutoutUtils {
     /**
      * 设置应用窗口是否在搭载 Android P 系统的刘海屏手机中使用刘海区
      */
-    @RequiresApi(api = Build.VERSION_CODES.P)
+    @RequiresApi(Build.VERSION_CODES.P)
     public static void setLayoutInDisplayCutoutSinceP(@NonNull Window window, boolean in) {
         WindowManager.LayoutParams lp = window.getAttributes();
         lp.layoutInDisplayCutoutMode = in

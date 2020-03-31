@@ -56,7 +56,6 @@
     <string name="cancel">取消</string>
     <string name="ok">确定</string>
     <string name="playbackControlNotificationChannelName">播放控制</string>
-    <string name="track">轨道</string>
     <string name="selectTracks">选择轨道</string>
     <string name="video">视频</string>
     <string name="audio">音频</string>

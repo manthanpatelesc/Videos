@@ -639,12 +639,41 @@ public class ExoVideoPlayer extends VideoPlayer {
     }
   }
 
+  private MappingTrackSelector.MappedTrackInfo getCurrentMappedTrackInfo() {
+    if (mTrackSelector != null) {
+      return mTrackSelector.getCurrentMappedTrackInfo();
+    }
+    return null;
+  }
+
+  @Override
+  public boolean hasTrack(int trackType) {
+    MappingTrackSelector.MappedTrackInfo mappedTrackInfo = getCurrentMappedTrackInfo();
+    if (mappedTrackInfo == null) return false;
+
+    final int rendererType = Utils.getTrackTypeForExoPlayer(trackType);
+    if (rendererType == C.TRACK_TYPE_UNKNOWN) return false;
+
+    for (int rendererIndex = 0, rendererCount = mappedTrackInfo.getRendererCount();
+         rendererIndex < rendererCount;
+         rendererIndex++) {
+      if (mappedTrackInfo.getRendererType(rendererIndex) == rendererType) {
+        TrackGroupArray trackGroups = mappedTrackInfo.getTrackGroups(rendererIndex);
+        for (int groupIndex = 0; groupIndex < trackGroups.length; groupIndex++) {
+          TrackGroup trackGroup = trackGroups.get(groupIndex);
+          if (trackGroup.length > 0) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
+
   @NonNull
   @Override
   public TrackInfo[] getTrackInfos() {
-    if (mTrackSelector == null) return EMPTY_TRACK_INFOS;
-
-    MappingTrackSelector.MappedTrackInfo mappedTrackInfo = mTrackSelector.getCurrentMappedTrackInfo();
+    MappingTrackSelector.MappedTrackInfo mappedTrackInfo = getCurrentMappedTrackInfo();
     if (mappedTrackInfo == null) return EMPTY_TRACK_INFOS;
 
     List<TrackInfo> trackInfos = new LinkedList<>();
@@ -695,9 +724,7 @@ public class ExoVideoPlayer extends VideoPlayer {
 
   @Override
   public void selectTrack(int index) {
-    if (mTrackSelector == null) return;
-
-    MappingTrackSelector.MappedTrackInfo mappedTrackInfo = mTrackSelector.getCurrentMappedTrackInfo();
+    MappingTrackSelector.MappedTrackInfo mappedTrackInfo = getCurrentMappedTrackInfo();
     if (mappedTrackInfo == null) return;
 
     int rendererIndex = -1;
@@ -735,9 +762,7 @@ public class ExoVideoPlayer extends VideoPlayer {
 
   @Override
   public void deselectTrack(int index) {
-    if (mTrackSelector == null) return;
-
-    MappingTrackSelector.MappedTrackInfo mappedTrackInfo = mTrackSelector.getCurrentMappedTrackInfo();
+    MappingTrackSelector.MappedTrackInfo mappedTrackInfo = getCurrentMappedTrackInfo();
     if (mappedTrackInfo == null) return;
 
     int rendererIndex = -1;
@@ -776,9 +801,7 @@ public class ExoVideoPlayer extends VideoPlayer {
   private void resetTrack(int trackType, boolean enabled) {
     if (!isSupportedTrackType(trackType)) return;
 
-    if (mTrackSelector == null) return;
-
-    MappingTrackSelector.MappedTrackInfo mappedTrackInfo = mTrackSelector.getCurrentMappedTrackInfo();
+    MappingTrackSelector.MappedTrackInfo mappedTrackInfo = getCurrentMappedTrackInfo();
     if (mappedTrackInfo == null) return;
 
     DefaultTrackSelector.ParametersBuilder builder = mTrackSelector.buildUponParameters();
@@ -796,25 +819,11 @@ public class ExoVideoPlayer extends VideoPlayer {
 
   @Override
   public int getSelectedTrackIndex(int trackType) {
-    if (mTrackSelector == null) return INVALID_TRACK_INDEX;
-
-    MappingTrackSelector.MappedTrackInfo mappedTrackInfo = mTrackSelector.getCurrentMappedTrackInfo();
+    MappingTrackSelector.MappedTrackInfo mappedTrackInfo = getCurrentMappedTrackInfo();
     if (mappedTrackInfo == null) return INVALID_TRACK_INDEX;
 
-    final int rendererType;
-    switch (trackType) {
-      case TrackInfo.TRACK_TYPE_VIDEO:
-        rendererType = C.TRACK_TYPE_VIDEO;
-        break;
-      case TrackInfo.TRACK_TYPE_AUDIO:
-        rendererType = C.TRACK_TYPE_AUDIO;
-        break;
-      case TrackInfo.TRACK_TYPE_SUBTITLE:
-        rendererType = C.TRACK_TYPE_TEXT;
-        break;
-      default:
-        return INVALID_TRACK_INDEX;
-    }
+    final int rendererType = Utils.getTrackTypeForExoPlayer(trackType);
+    if (rendererType == C.TRACK_TYPE_UNKNOWN) return INVALID_TRACK_INDEX;
 
     DefaultTrackSelector.Parameters trackSelectorParams = mTrackSelector.getParameters();
     for (int rendererIndex = 0, rendererCount = mappedTrackInfo.getRendererCount();

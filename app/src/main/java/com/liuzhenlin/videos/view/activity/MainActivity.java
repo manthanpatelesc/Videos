@@ -59,9 +59,9 @@ import com.liuzhenlin.videos.BuildConfig;
 import com.liuzhenlin.videos.Consts;
 import com.liuzhenlin.videos.R;
 import com.liuzhenlin.videos.dao.AppSharedPreferences;
-import com.liuzhenlin.videos.utils.AppUpdateChecker;
 import com.liuzhenlin.videos.utils.BitmapUtils2;
 import com.liuzhenlin.videos.utils.ColorUtils;
+import com.liuzhenlin.videos.utils.MergeAppUpdateChecker;
 import com.liuzhenlin.videos.utils.OSHelper;
 import com.liuzhenlin.videos.utils.TextViewUtils;
 import com.liuzhenlin.videos.utils.UiUtils;
@@ -121,7 +121,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private String mCheckUpdateResultText;
     private String mIsTheLatestVersion;
     private String mFindNewVersion;
-    private AppUpdateChecker.OnResultListener mOnCheckUpdateResultListener;
+    private MergeAppUpdateChecker.OnResultListener mOnCheckUpdateResultListener;
 
     private boolean mIsBackPressed;
 
@@ -374,7 +374,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             recycleDrawerImage();
         }
         if (mOnCheckUpdateResultListener != null) {
-            AppUpdateChecker.getSingleton(this).removeOnResultListener(mOnCheckUpdateResultListener);
+            MergeAppUpdateChecker.getSingleton(this).removeOnResultListener(mOnCheckUpdateResultListener);
         }
     }
 
@@ -576,9 +576,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 //    }
 
     private void baseCheckUpdate(boolean toastResult) {
-        AppUpdateChecker auc = AppUpdateChecker.getSingleton(this);
+        MergeAppUpdateChecker auc = MergeAppUpdateChecker.getSingleton(this);
         if (mOnCheckUpdateResultListener == null) {
-            mOnCheckUpdateResultListener = new AppUpdateChecker.OnResultListener() {
+            mOnCheckUpdateResultListener = new MergeAppUpdateChecker.OnResultListener() {
                 @Override
                 public void onResult(boolean findNewVersion) {
                     mCheckUpdateResultText = findNewVersion ? mFindNewVersion : mIsTheLatestVersion;

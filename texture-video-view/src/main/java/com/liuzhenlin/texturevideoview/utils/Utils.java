@@ -5,6 +5,7 @@
 
 package com.liuzhenlin.texturevideoview.utils;
 
+import android.media.MediaPlayer;
 import android.os.Build;
 import android.os.SystemClock;
 import android.text.TextUtils;
@@ -23,14 +24,19 @@ import androidx.annotation.StringRes;
 import androidx.core.view.GravityCompat;
 import androidx.core.view.ViewCompat;
 
+import com.google.android.exoplayer2.C;
+import com.google.android.exoplayer2.ExoPlayer;
 import com.google.android.material.snackbar.Snackbar;
 import com.liuzhenlin.texturevideoview.IVideoPlayer;
 import com.liuzhenlin.texturevideoview.R;
+import com.liuzhenlin.texturevideoview.model.TrackInfo;
 
 import java.math.RoundingMode;
 import java.text.NumberFormat;
 
 import tv.danmaku.ijk.media.player.IjkMediaMeta;
+import tv.danmaku.ijk.media.player.IjkMediaPlayer;
+import tv.danmaku.ijk.media.player.misc.IjkTrackInfo;
 
 /**
  * @author 刘振林
@@ -122,6 +128,70 @@ public class Utils {
             default:
                 throw new IllegalArgumentException("the `playbackState` must be one of the constant"
                         + " defined for IVideoPlayer.PlaybackState");
+        }
+    }
+
+    /**
+     * Maps a {@link TrackInfo.TrackType} to a track type constant of {@link MediaPlayer}'s,
+     * as defined by various {@code MEDIA_TRACK_TYPE_*} constants in {@link MediaPlayer.TrackInfo}.
+     *
+     * @param trackType One of the {@code TRACK_TYPE_*} constants defined in class {@link TrackInfo}.
+     * @return The mapped media track type for MediaPlayer or
+     * {@link MediaPlayer.TrackInfo#MEDIA_TRACK_TYPE_UNKNOWN} for an illegal input TrackType constant.
+     */
+    @RequiresApi(Build.VERSION_CODES.JELLY_BEAN)
+    public static int getTrackTypeForMediaPlayer(@TrackInfo.TrackType int trackType) {
+        switch (trackType) {
+            case TrackInfo.TRACK_TYPE_VIDEO:
+                return MediaPlayer.TrackInfo.MEDIA_TRACK_TYPE_VIDEO;
+            case TrackInfo.TRACK_TYPE_AUDIO:
+                return MediaPlayer.TrackInfo.MEDIA_TRACK_TYPE_AUDIO;
+            case TrackInfo.TRACK_TYPE_SUBTITLE:
+                return MediaPlayer.TrackInfo.MEDIA_TRACK_TYPE_TIMEDTEXT;
+            default:
+                return MediaPlayer.TrackInfo.MEDIA_TRACK_TYPE_UNKNOWN;
+        }
+    }
+
+    /**
+     * Maps a {@link TrackInfo.TrackType} to a track type constant of {@link IjkMediaPlayer}'s,
+     * as defined by various {@code MEDIA_TRACK_TYPE_*} constants in {@link IjkTrackInfo}.
+     *
+     * @param trackType One of the {@code TRACK_TYPE_*} constants defined in class {@link TrackInfo}.
+     * @return The mapped media track type for IjkPlayer or
+     * {@link IjkTrackInfo#MEDIA_TRACK_TYPE_UNKNOWN} for an illegal input TrackType constant.
+     */
+    public static int getTrackTypeForIjkPlayer(@TrackInfo.TrackType int trackType) {
+        switch (trackType) {
+            case TrackInfo.TRACK_TYPE_VIDEO:
+                return IjkTrackInfo.MEDIA_TRACK_TYPE_VIDEO;
+            case TrackInfo.TRACK_TYPE_AUDIO:
+                return IjkTrackInfo.MEDIA_TRACK_TYPE_AUDIO;
+            case TrackInfo.TRACK_TYPE_SUBTITLE:
+                return IjkTrackInfo.MEDIA_TRACK_TYPE_TIMEDTEXT;
+            default:
+                return IjkTrackInfo.MEDIA_TRACK_TYPE_UNKNOWN;
+        }
+    }
+
+    /**
+     * Maps a {@link TrackInfo.TrackType} to a track type constant of {@link ExoPlayer}'s,
+     * as defined by various {@code TRACK_TYPE_*} constants in {@link C}.
+     *
+     * @param trackType One of the {@code TRACK_TYPE_*} constants defined in class {@link TrackInfo}.
+     * @return The mapped media track type for ExoPlayer or
+     * {@link C#TRACK_TYPE_UNKNOWN} for an illegal input TrackType constant.
+     */
+    public static int getTrackTypeForExoPlayer(@TrackInfo.TrackType int trackType) {
+        switch (trackType) {
+            case TrackInfo.TRACK_TYPE_VIDEO:
+                return C.TRACK_TYPE_VIDEO;
+            case TrackInfo.TRACK_TYPE_AUDIO:
+                return C.TRACK_TYPE_AUDIO;
+            case TrackInfo.TRACK_TYPE_SUBTITLE:
+                return C.TRACK_TYPE_TEXT;
+            default:
+                return C.TRACK_TYPE_UNKNOWN;
         }
     }
 
@@ -300,7 +370,7 @@ public class Utils {
      * the transition) for the given Transition object to skip them while it is running on a
      * view hierarchy.
      */
-    @RequiresApi(api = Build.VERSION_CODES.KITKAT)
+    @RequiresApi(Build.VERSION_CODES.KITKAT)
     public static void includeChildrenForTransition(
             @NonNull Transition transition, @NonNull ViewGroup parent, @Nullable View... children) {
         outsider:

@@ -34,6 +34,7 @@ import androidx.annotation.VisibleForTesting;
 import androidx.appcompat.app.AppCompatDialog;
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.FileProvider;
+import androidx.core.util.ObjectsCompat;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -82,6 +83,7 @@ public final class AppUpdateChecker {
     private String mAppName;
     private String mVersionName;
     private String mAppLink;
+    private String mAppSha1;
     private StringBuilder mUpdateLog;
     private String mPromptDialogAnchorActivityClsName;
 
@@ -95,6 +97,7 @@ public final class AppUpdateChecker {
     private static final String EXTRA_APP_NAME = "extra_appName";
     private static final String EXTRA_VERSION_NAME = "extra_versionName";
     private static final String EXTRA_APP_LINK = "extra_appLink";
+    private static final String EXTRA_APP_SHA1 = "extra_appSha1";
     private Intent mServiceIntent;
 
     private static final Singleton<Context, AppUpdateChecker> sAppUpdateCheckerSingleton =
@@ -213,6 +216,7 @@ public final class AppUpdateChecker {
                     mVersionName = appInfos.get("versionName").getAsString();
 
                     mAppLink = appInfos.get("appLink").getAsString();
+                    mAppSha1 = appInfos.get("appSha1").getAsString();
 
                     mUpdateLog = new StringBuilder();
                     for (JsonElement log : appInfos.get("updateLogs").getAsJsonArray()) {
@@ -300,7 +304,8 @@ public final class AppUpdateChecker {
                             mServiceIntent = new Intent(mContext, UpdateAppService.class)
                                     .putExtra(EXTRA_APP_NAME, mAppName)
                                     .putExtra(EXTRA_VERSION_NAME, mVersionName)
-                                    .putExtra(EXTRA_APP_LINK, mAppLink);
+                                    .putExtra(EXTRA_APP_LINK, mAppLink)
+                                    .putExtra(EXTRA_APP_SHA1, mAppSha1);
                             mContext.startService(mServiceIntent);
                         } else {
                             reset();
@@ -373,6 +378,7 @@ public final class AppUpdateChecker {
         private static final int INDEX_APP_NAME = 0;
         private static final int INDEX_VERSION_NAME = 1;
         private static final int INDEX_APP_LINK = 2;
+        private static final int INDEX_APP_SHA1 = 3;
 
         private UpdateAppTask mTask;
 
@@ -390,7 +396,8 @@ public final class AppUpdateChecker {
             mTask.executeOnExecutor(ParallelThreadExecutor.getSingleton(),
                     intent.getStringExtra(AppUpdateChecker.EXTRA_APP_NAME),
                     intent.getStringExtra(AppUpdateChecker.EXTRA_VERSION_NAME),
-                    intent.getStringExtra(AppUpdateChecker.EXTRA_APP_LINK));
+                    intent.getStringExtra(AppUpdateChecker.EXTRA_APP_LINK),
+                    intent.getStringExtra(AppUpdateChecker.EXTRA_APP_SHA1));
 
             mReceiver = new CancelAppUpdateReceiver();
             registerReceiver(mReceiver, new IntentFilter(CancelAppUpdateReceiver.ACTION));
@@ -510,7 +517,7 @@ public final class AppUpdateChecker {
                     } else if (length <= 0) {
                         onDownloadError();
 
-                    } else if (FileUtils2.hasEnoughStorageOnDisk(length)) {
+                    } else {
                         final String dirPath = App.getAppDirectory();
                         File dir = new File(dirPath);
                         if (!dir.exists()) {
@@ -521,15 +528,37 @@ public final class AppUpdateChecker {
                                 strings[INDEX_APP_NAME] + " "
                                         + strings[INDEX_VERSION_NAME].replace(".", "_")
                                         + ".apk");
-                        mApkLength = length;
-                    } else {
-                        getHandler().post(new Runnable() {
-                            @Override
-                            public void run() {
-                                Toast.makeText(mContext,
-                                        R.string.notHaveEnoughStorage, Toast.LENGTH_SHORT).show();
+                        if (mApk.exists()) {
+                            final String sha1 = strings[INDEX_APP_SHA1];
+                            // 如果应用已经下载过了，则直接弹出安装提示通知
+                            if (mApk.length() == length
+                                    && ObjectsCompat.equals(FileUtils2.getFileSha1(mApk), sha1)) {
+                                getHandler().post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        stopService();
+                                        onAppDownloaded(mApk);
+                                    }
+                                });
+                                return null;
+                                // 否则先删除旧的apk
+                            } else {
+                                //noinspection ResultOfMethodCallIgnored
+                                mApk.delete();
                             }
-                        });
+                        }
+
+                        if (FileUtils2.hasEnoughStorageOnDisk(length)) {
+                            mApkLength = length;
+                        } else {
+                            getHandler().post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    Toast.makeText(mContext,
+                                            R.string.notHaveEnoughStorage, Toast.LENGTH_SHORT).show();
+                                }
+                            });
+                        }
                     }
                 } catch (ConnectTimeoutException e) {
                     onConnectionTimeout();

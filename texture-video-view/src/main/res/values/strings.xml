@@ -63,7 +63,6 @@
     <string name="playbackControlNotificationChannelId" translatable="false">
         %s__playback_control_notification_channel</string>
     <string name="playbackControlNotificationChannelName">Playback Control</string>
-    <string name="track">Track</string>
     <string name="selectTracks">Select Tracks</string>
     <string name="video">Video</string>
     <string name="audio">Audio</string>

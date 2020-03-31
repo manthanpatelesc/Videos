@@ -48,7 +48,7 @@ import java.util.List;
  *
  * @author 刘振林
  */
-@RequiresApi(Build.VERSION_CODES.JELLY_BEAN_MR1)
+@RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
 public class VlcVideoPlayer extends VideoPlayer {
 
   private static final String TAG = "VlcVideoPlayer";
@@ -672,6 +672,22 @@ public class VlcVideoPlayer extends VideoPlayer {
 //      super.setSingleVideoLoopPlayback(looping);
 //    }
 //  }
+
+
+  @Override
+  public boolean hasTrack(int trackType) {
+    if (mMediaPlayer != null) {
+      switch (trackType) {
+        case TrackInfo.TRACK_TYPE_VIDEO:
+          return mMediaPlayer.getVideoTracksCount() > 0;
+        case TrackInfo.TRACK_TYPE_AUDIO:
+          return mMediaPlayer.getAudioTracksCount() > 0;
+        case TrackInfo.TRACK_TYPE_SUBTITLE:
+          return mMediaPlayer.getSpuTracksCount() > 0;
+      }
+    }
+    return false;
+  }
 
   @NonNull
   @Override

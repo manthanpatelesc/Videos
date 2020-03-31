@@ -84,6 +84,11 @@ public class VlcVideoPlayer extends VideoPlayer {
     return 0;
   }
 
+  @Override
+  public boolean hasTrack(int trackType) {
+    return false;
+  }
+
   @NonNull
   @Override
   public TrackInfo[] getTrackInfos() {

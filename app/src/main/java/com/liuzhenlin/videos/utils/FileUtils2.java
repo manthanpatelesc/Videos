@@ -11,6 +11,8 @@ import android.os.StatFs;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.core.util.ObjectsCompat;
 
 import com.liuzhenlin.texturevideoview.utils.Utils;
 
@@ -20,6 +22,10 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.math.BigInteger;
+import java.security.MessageDigest;
 
 /**
  * @author 刘振林
@@ -81,6 +87,15 @@ public class FileUtils2 {
             return false;
         }
 
+        if (desFile.exists()) {
+            if (ObjectsCompat.equals(getFileMD5(srcFile), getFileMD5(desFile))) {
+                return true;
+            } else {
+                //noinspection ResultOfMethodCallIgnored
+                desFile.delete();
+            }
+        }
+
         BufferedInputStream in = null;
         BufferedOutputStream out = null;
         try {
@@ -110,6 +125,207 @@ public class FileUtils2 {
                 try {
                     in.close();
                 } catch (IOException e) {
+                    //
+                }
+            }
+        }
+    }
+
+    public static int splitFile(@NonNull String directory,
+                                @NonNull String fileName, @NonNull String extension,
+                                long filePartLengthLimit) {
+        final File file = new File(directory, fileName + extension);
+        final long length = file.length();
+        final int splitCount = (int) Math.ceil((double) length / filePartLengthLimit);
+
+        File filePart;
+        long filePartLength;
+        long remainingBytesToWrite;
+        int bytesToRead;
+        int readBytes;
+        final byte[] buffer = new byte[8 * 1024];
+
+        InputStream in = null;
+        OutputStream out = null;
+        try {
+            in = new BufferedInputStream(new FileInputStream(file));
+
+            for (int i = 1; i <= splitCount; i++) {
+                filePart = new File(directory, fileName + i + extension);
+                if (filePart.exists()) {
+                    //noinspection ResultOfMethodCallIgnored
+                    filePart.delete();
+                }
+                //noinspection ResultOfMethodCallIgnored
+                filePart.createNewFile();
+
+                try {
+                    out = new BufferedOutputStream(new FileOutputStream(filePart));
+                    while (true) {
+                        filePartLength = filePart.length();
+                        remainingBytesToWrite = filePartLengthLimit - filePartLength;
+                        bytesToRead = remainingBytesToWrite > buffer.length
+                                ? buffer.length
+                                : (int) remainingBytesToWrite;
+                        if (bytesToRead > 0 && (readBytes = in.read(buffer, 0, bytesToRead)) != -1) {
+                            out.write(buffer, 0, readBytes);
+                        } else {
+                            break;
+                        }
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    return 0;
+                } finally {
+                    if (out != null) {
+                        try {
+                            out.close();
+                            out = null;
+                        } catch (IOException e) {
+                            //
+                        }
+                    }
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            return 0;
+        } finally {
+            if (in != null) {
+                try {
+                    in.close();
+                } catch (IOException e) {
+                    //
+                }
+            }
+        }
+
+        return splitCount;
+    }
+
+    public static boolean mergeFiles(@NonNull File[] files, @NonNull File dstFile, boolean deleteInputs) {
+        if (dstFile.exists()) {
+            //noinspection ResultOfMethodCallIgnored
+            dstFile.delete();
+        }
+        try {
+            //noinspection ResultOfMethodCallIgnored
+            dstFile.createNewFile();
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
+
+        final byte[] buffer = new byte[8 * 1024];
+
+        BufferedInputStream in = null;
+        BufferedOutputStream out = null;
+        try {
+            out = new BufferedOutputStream(new FileOutputStream(dstFile));
+            for (File file : files) {
+                try {
+                    in = new BufferedInputStream(new FileInputStream(file));
+                    int len;
+                    while ((len = in.read(buffer)) != -1) {
+                        out.write(buffer, 0, len);
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    return false;
+                } finally {
+                    if (in != null) {
+                        try {
+                            in.close();
+                            in = null;
+                        } catch (IOException e) {
+                            //
+                        }
+                    }
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        } finally {
+            if (out != null) {
+                try {
+                    out.close();
+                } catch (IOException e) {
+                    //
+                }
+            }
+        }
+
+        if (deleteInputs) {
+            for (File file : files) {
+                //noinspection ResultOfMethodCallIgnored
+                file.delete();
+            }
+        }
+
+        return true;
+    }
+
+    // 计算文件的 MD5 值
+    @Nullable
+    public static String getFileMD5(@Nullable File file) {
+        if (file == null || !file.isFile()) {
+            return null;
+        }
+
+        InputStream in = null;
+        try {
+            in = new FileInputStream(file);
+
+            MessageDigest digest = MessageDigest.getInstance("MD5");
+
+            int len;
+            final byte[] buffer = new byte[8 * 1024];
+            while ((len = in.read(buffer)) != -1) {
+                digest.update(buffer, 0, len);
+            }
+            return new BigInteger(1, digest.digest()).toString(16);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        } finally {
+            if (in != null) {
+                try {
+                    in.close();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    // 计算文件的 SHA-1 值
+    @Nullable
+    public static String getFileSha1(@Nullable File file) {
+        if (file == null || !file.isFile()) {
+            return null;
+        }
+
+        InputStream in = null;
+        try {
+            in = new FileInputStream(file);
+
+            MessageDigest digest = MessageDigest.getInstance("SHA-1");
+
+            int len;
+            final byte[] buffer = new byte[8 * 1024];
+            while ((len = in.read(buffer)) != -1) {
+                digest.update(buffer, 0, len);
+            }
+            return new BigInteger(1, digest.digest()).toString(16);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        } finally {
+            if (in != null) {
+                try {
+                    in.close();
+                } catch (Exception e) {
                     //
                 }
             }

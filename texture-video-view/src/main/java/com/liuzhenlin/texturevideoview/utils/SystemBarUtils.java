@@ -143,7 +143,7 @@ public class SystemBarUtils {
     /**
      * 设置 半透明状态栏
      */
-    @RequiresApi(api = Build.VERSION_CODES.KITKAT)
+    @RequiresApi(Build.VERSION_CODES.KITKAT)
     public static void setTranslucentStatus(@NonNull Window window, boolean translucent) {
         final int flags = window.getAttributes().flags;
         final int statusFlag = WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS;
@@ -161,7 +161,7 @@ public class SystemBarUtils {
     /**
      * 设置 半透明虚拟按键
      */
-    @RequiresApi(api = Build.VERSION_CODES.KITKAT)
+    @RequiresApi(Build.VERSION_CODES.KITKAT)
     public static void setTranslucentNavigation(@NonNull Window window, boolean translucent) {
         final int flags = window.getAttributes().flags;
         final int navFlag = WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION;
@@ -179,7 +179,7 @@ public class SystemBarUtils {
     /**
      * 设置状态栏的颜色
      */
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+    @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
     public static void setStatusBackgroundColor(@NonNull Window window, @ColorInt int color) {
         if (window.getStatusBarColor() != color) {
             final int flag = WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS;
@@ -190,7 +190,7 @@ public class SystemBarUtils {
         }
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+    @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
     public static void setStatusBackgroundColorRes(@NonNull Window window, @ColorRes int colorId) {
         Context context = window.getContext();
         setStatusBackgroundColor(window, ContextCompat.getColor(context, colorId));
@@ -199,7 +199,7 @@ public class SystemBarUtils {
     /**
      * 设置导航栏的颜色
      */
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+    @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
     public static void setNavigationBackgroundColor(@NonNull Window window, @ColorInt int color) {
         if (window.getNavigationBarColor() != color) {
             final int flag = WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS;
@@ -210,7 +210,7 @@ public class SystemBarUtils {
         }
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+    @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
     public static void setNavigationBackgroundColorRes(@NonNull Window window, @ColorRes int colorId) {
         Context context = window.getContext();
         setNavigationBackgroundColor(window, ContextCompat.getColor(context, colorId));
@@ -219,7 +219,7 @@ public class SystemBarUtils {
     /**
      * 设置透明状态栏
      */
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+    @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
     public static void setTransparentStatus(@NonNull Window window) {
         setStatusBackgroundColor(window, Color.TRANSPARENT);
 
@@ -236,7 +236,7 @@ public class SystemBarUtils {
      *
      * @see <a href="https://developer.android.com/reference/android/R.attr.html#windowLightStatusBar"></a>
      */
-    @RequiresApi(api = Build.VERSION_CODES.M)
+    @RequiresApi(Build.VERSION_CODES.M)
     public static void setLightStatus(@NonNull Window window, boolean light) {
         View decorView = window.getDecorView();
         int flags = decorView.getSystemUiVisibility();

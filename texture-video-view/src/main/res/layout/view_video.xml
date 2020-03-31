@@ -155,7 +155,7 @@
                 android:paddingRight="10dp"
                 app:srcCompat="@drawable/ic_track_white_25dp"
                 app:tint="@color/color_selector_white_color_accent"
-                android:contentDescription="@string/track" />
+                android:contentDescription="@string/selectTracks" />
 
             <ImageView
                 android:id="@+id/btn_more"

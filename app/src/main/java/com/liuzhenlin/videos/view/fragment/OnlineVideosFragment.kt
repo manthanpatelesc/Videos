@@ -412,7 +412,6 @@ class OnlineVideosFragment : Fragment(), View.OnClickListener,
     }
 
     companion object {
-        private const val LINK_TVS_JSON =
-                "https://gitee.com/freeze-frames/Service_Videos/raw/master/tvs.json"
+        private const val LINK_TVS_JSON = "https://gitee.com/lzl_s/Videos-Service/raw/master/tvs.json"
     }
 }

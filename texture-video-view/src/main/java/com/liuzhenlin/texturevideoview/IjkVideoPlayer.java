@@ -141,7 +141,7 @@ public class IjkVideoPlayer extends VideoPlayer {
 //    private HttpProxyCacheServer getCacheServer() {
 //      if (sCacheServer == null) {
 //        sCacheServer = new HttpProxyCacheServer.Builder(mContext)
-//            .cacheDirectory(new File(getBaseVideoCacheDirectory(), "sm"))
+//            .cacheDirectory(new File(getBaseVideoCacheDirectory(), "ijk"))
 //            .maxCacheSize(DEFAULT_MAXIMUM_CACHE_SIZE)
 //            .build();
 //      }
@@ -674,6 +674,28 @@ public class IjkVideoPlayer extends VideoPlayer {
 //   }
 // }
 
+  @Override
+  public boolean hasTrack(int trackType) {
+    if (mIjkPlayer != null) {
+      trackType = Utils.getTrackTypeForIjkPlayer(trackType);
+      if (trackType == IjkTrackInfo.MEDIA_TRACK_TYPE_UNKNOWN) {
+        return false;
+      }
+
+      IjkTrackInfo[] ijkTrackInfos = mIjkPlayer.getTrackInfo();
+      if (ijkTrackInfos == null || ijkTrackInfos.length == 0) {
+        return false;
+      }
+
+      for (IjkTrackInfo ijkTrackInfo : ijkTrackInfos) {
+        if (ijkTrackInfo.getTrackType() == trackType) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   @NonNull
   @Override
   public TrackInfo[] getTrackInfos() {
@@ -762,15 +784,11 @@ public class IjkVideoPlayer extends VideoPlayer {
 
       int usableTrackCount = 0;
       for (int i = 0; i < ijkTrackInfos.length; i++) {
-        switch (ijkTrackInfos[i].getTrackType()) {
-          case IjkTrackInfo.MEDIA_TRACK_TYPE_VIDEO:
-          case IjkTrackInfo.MEDIA_TRACK_TYPE_AUDIO:
-          case IjkTrackInfo.MEDIA_TRACK_TYPE_SUBTITLE:
-            usableTrackCount++;
-            break;
-        }
-        if (usableTrackCount > externalIndex) {
-          return i;
+        if (isSupportedTrackType(ijkTrackInfos[i].getTrackType())) {
+          usableTrackCount++;
+          if (usableTrackCount > externalIndex) {
+            return i;
+          }
         }
       }
     }
@@ -786,12 +804,8 @@ public class IjkVideoPlayer extends VideoPlayer {
 
       int externalIndex = -1;
       for (int i = 0; i < ijkTrackInfos.length; i++) {
-        switch (ijkTrackInfos[i].getTrackType()) {
-          case IjkTrackInfo.MEDIA_TRACK_TYPE_VIDEO:
-          case IjkTrackInfo.MEDIA_TRACK_TYPE_AUDIO:
-          case IjkTrackInfo.MEDIA_TRACK_TYPE_SUBTITLE:
-            externalIndex++;
-            break;
+        if (isSupportedTrackType(ijkTrackInfos[i].getTrackType())) {
+          externalIndex++;
         }
         if (i == libIndex) {
           return externalIndex;
@@ -801,23 +815,27 @@ public class IjkVideoPlayer extends VideoPlayer {
     return -1;
   }
 
+  private static boolean isSupportedTrackType(int trackType) {
+    switch (trackType) {
+      case IjkTrackInfo.MEDIA_TRACK_TYPE_VIDEO:
+      case IjkTrackInfo.MEDIA_TRACK_TYPE_AUDIO:
+      case IjkTrackInfo.MEDIA_TRACK_TYPE_SUBTITLE:
+        return true;
+      default:
+        return false;
+    }
+  }
+
   @Override
   public int getSelectedTrackIndex(int trackType) {
     int index = -1;
     if (mIjkPlayer != null) {
-      switch (trackType) {
-        case TrackInfo.TRACK_TYPE_VIDEO:
-          index = mIjkPlayer.getSelectedTrack(ITrackInfo.MEDIA_TRACK_TYPE_VIDEO);
-          break;
-        case TrackInfo.TRACK_TYPE_AUDIO:
-          index = mIjkPlayer.getSelectedTrack(ITrackInfo.MEDIA_TRACK_TYPE_AUDIO);
-          break;
-        case TrackInfo.TRACK_TYPE_SUBTITLE:
-          index = mIjkPlayer.getSelectedTrack(ITrackInfo.MEDIA_TRACK_TYPE_TIMEDTEXT);
-          break;
-      }
-      if (index >= 0) {
-        index = libIndexToExternalIndex(index);
+      trackType = Utils.getTrackTypeForIjkPlayer(trackType);
+      if (trackType != IjkTrackInfo.MEDIA_TRACK_TYPE_UNKNOWN) {
+        index = mIjkPlayer.getSelectedTrack(trackType);
+        if (index >= 0) {
+          index = libIndexToExternalIndex(index);
+        }
       }
     }
     return index >= 0 ? index : INVALID_TRACK_INDEX;

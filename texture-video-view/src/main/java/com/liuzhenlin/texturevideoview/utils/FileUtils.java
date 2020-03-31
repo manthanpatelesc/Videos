@@ -8,7 +8,6 @@ package com.liuzhenlin.texturevideoview.utils;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
-import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.media.MediaScannerConnection;
@@ -22,9 +21,6 @@ import android.webkit.MimeTypeMap;
 import androidx.annotation.IntRange;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.core.content.FileProvider;
-
-import com.liuzhenlin.texturevideoview.R;
 
 import java.io.BufferedOutputStream;
 import java.io.File;

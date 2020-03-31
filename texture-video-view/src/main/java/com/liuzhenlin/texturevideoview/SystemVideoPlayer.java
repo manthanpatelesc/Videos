@@ -641,6 +641,33 @@ public class SystemVideoPlayer extends VideoPlayer {
     return Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN && mMediaPlayer != null;
   }
 
+  @Override
+  public boolean hasTrack(int trackType) {
+    if (!supportTrackSelection()) return false;
+
+    trackType = Utils.getTrackTypeForMediaPlayer(trackType);
+    if (trackType == MediaPlayer.TrackInfo.MEDIA_TRACK_TYPE_UNKNOWN) {
+      return false;
+    }
+
+    try {
+      //@throws IllegalStateException if it is called in an invalid state.
+      MediaPlayer.TrackInfo[] mediaTrackInfos = mMediaPlayer.getTrackInfo();
+      if (mediaTrackInfos == null || mediaTrackInfos.length == 0) {
+        return false;
+      }
+
+      for (MediaPlayer.TrackInfo mediaTrackInfo : mediaTrackInfos) {
+        if (mediaTrackInfo.getTrackType() == trackType) {
+          return true;
+        }
+      }
+    } catch (RuntimeException ignored) {
+      //
+    }
+    return false;
+  }
+
   @SuppressLint("SwitchIntDef")
   @NonNull
   @Override
@@ -650,7 +677,7 @@ public class SystemVideoPlayer extends VideoPlayer {
     try {
       //@throws IllegalStateException if it is called in an invalid state.
       MediaPlayer.TrackInfo[] mediaTrackInfos = mMediaPlayer.getTrackInfo();
-      if (mediaTrackInfos.length == 0) {
+      if (mediaTrackInfos == null || mediaTrackInfos.length == 0) {
         return EMPTY_TRACK_INFOS;
       }
 
@@ -747,26 +774,22 @@ public class SystemVideoPlayer extends VideoPlayer {
   }
 
   @SuppressLint("SwitchIntDef")
-  @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN)
+  @RequiresApi(Build.VERSION_CODES.JELLY_BEAN)
   private int externalIndexToLibIndex(int externalIndex) {
     if (externalIndex >= 0) {
       //@throws IllegalStateException if it is called in an invalid state.
       MediaPlayer.TrackInfo[] mediaTrackInfos = mMediaPlayer.getTrackInfo();
-      if (mediaTrackInfos.length == 0) {
+      if (mediaTrackInfos == null || mediaTrackInfos.length == 0) {
         return -1;
       }
 
       int usableTrackCount = 0;
       for (int i = 0; i < mediaTrackInfos.length; i++) {
-        switch (mediaTrackInfos[i].getTrackType()) {
-          case MediaPlayer.TrackInfo.MEDIA_TRACK_TYPE_VIDEO:
-          case MediaPlayer.TrackInfo.MEDIA_TRACK_TYPE_AUDIO:
-          case MediaPlayer.TrackInfo.MEDIA_TRACK_TYPE_TIMEDTEXT:
-            usableTrackCount++;
-            break;
-        }
-        if (usableTrackCount > externalIndex) {
-          return i;
+        if (isSupportedTrackType(mediaTrackInfos[i].getTrackType())) {
+          usableTrackCount++;
+          if (usableTrackCount > externalIndex) {
+            return i;
+          }
         }
       }
     }
@@ -774,30 +797,37 @@ public class SystemVideoPlayer extends VideoPlayer {
   }
 
   @SuppressLint("SwitchIntDef")
-  @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN)
+  @RequiresApi(Build.VERSION_CODES.JELLY_BEAN)
   private int libIndexToExternalIndex(int libIndex) {
     if (libIndex >= 0) {
       //@throws IllegalStateException if it is called in an invalid state.
       MediaPlayer.TrackInfo[] mediaTrackInfos = mMediaPlayer.getTrackInfo();
-      if (mediaTrackInfos.length == 0) {
+      if (mediaTrackInfos == null || mediaTrackInfos.length == 0) {
         return -1;
       }
 
       int externalIndex = -1;
       for (int i = 0; i < mediaTrackInfos.length; i++) {
-        switch (mediaTrackInfos[i].getTrackType()) {
-          case MediaPlayer.TrackInfo.MEDIA_TRACK_TYPE_VIDEO:
-          case MediaPlayer.TrackInfo.MEDIA_TRACK_TYPE_AUDIO:
-          case MediaPlayer.TrackInfo.MEDIA_TRACK_TYPE_TIMEDTEXT:
-            externalIndex++;
-            break;
-        }
-        if (i == libIndex) {
-          return externalIndex;
+        if (isSupportedTrackType(mediaTrackInfos[i].getTrackType())) {
+          externalIndex++;
+          if (i == libIndex) {
+            return externalIndex;
+          }
         }
       }
     }
     return -1;
+  }
+
+  private static boolean isSupportedTrackType(int trackType) {
+    switch (trackType) {
+      case MediaPlayer.TrackInfo.MEDIA_TRACK_TYPE_VIDEO:
+      case MediaPlayer.TrackInfo.MEDIA_TRACK_TYPE_AUDIO:
+      case MediaPlayer.TrackInfo.MEDIA_TRACK_TYPE_TIMEDTEXT:
+        return true;
+      default:
+        return false;
+    }
   }
 
   @Override
@@ -807,19 +837,12 @@ public class SystemVideoPlayer extends VideoPlayer {
     int index = -1;
     try {
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-        switch (trackType) {
-          case TrackInfo.TRACK_TYPE_VIDEO:
-            index = mMediaPlayer.getSelectedTrack(MediaPlayer.TrackInfo.MEDIA_TRACK_TYPE_VIDEO);
-            break;
-          case TrackInfo.TRACK_TYPE_AUDIO:
-            index = mMediaPlayer.getSelectedTrack(MediaPlayer.TrackInfo.MEDIA_TRACK_TYPE_AUDIO);
-            break;
-          case TrackInfo.TRACK_TYPE_SUBTITLE:
-            index = mMediaPlayer.getSelectedTrack(MediaPlayer.TrackInfo.MEDIA_TRACK_TYPE_TIMEDTEXT);
-            break;
-        }
-        if (index >= 0) {
-          index = libIndexToExternalIndex(index);
+        trackType = Utils.getTrackTypeForMediaPlayer(trackType);
+        if (trackType != MediaPlayer.TrackInfo.MEDIA_TRACK_TYPE_UNKNOWN) {
+          index = mMediaPlayer.getSelectedTrack(trackType);
+          if (index >= 0) {
+            index = libIndexToExternalIndex(index);
+          }
         }
       } else {
         // TODO: support for getting the index of the video, audio, or subtitle track

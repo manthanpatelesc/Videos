@@ -317,7 +317,8 @@ public class TrackSelectionView extends LinearLayout {
 
     @Override
     public int getItemCount() {
-      return mTrackGroup.size();
+      int count = mTrackGroup.size();
+      return count == 1 ? 0 /* no such track available */ : count;
     }
 
     @Override

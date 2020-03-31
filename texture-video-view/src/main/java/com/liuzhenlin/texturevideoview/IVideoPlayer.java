@@ -289,6 +289,11 @@ public interface IVideoPlayer {
     void setSingleVideoLoopPlayback(boolean looping);
 
     /**
+     * @return true if there is a track for the given track type
+     */
+    boolean hasTrack(@TrackInfo.TrackType int trackType);
+
+    /**
      * Returns an array of track information.
      *
      * @return Array of track info. The total number of tracks is the array length.

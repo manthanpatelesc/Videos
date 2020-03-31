@@ -183,10 +183,10 @@ public class VideoActivity extends SwipeBackActivity {
 
     private ProgressBar mVideoProgressInPiP;
 
-    @RequiresApi(api = Build.VERSION_CODES.O)
+    @RequiresApi(Build.VERSION_CODES.O)
     private RefreshVideoProgressInPiPTask mRefreshVideoProgressInPiPTask;
 
-    @RequiresApi(api = Build.VERSION_CODES.O)
+    @RequiresApi(Build.VERSION_CODES.O)
     private final class RefreshVideoProgressInPiPTask {
         final Runnable runnable = new Runnable() {
             @Override
@@ -1096,7 +1096,7 @@ public class VideoActivity extends SwipeBackActivity {
     /**
      * Update the action items in Picture-in-Picture mode.
      */
-    @RequiresApi(api = Build.VERSION_CODES.O)
+    @RequiresApi(Build.VERSION_CODES.O)
     private void updatePictureInPictureActions(int pipActions) {
         final List<RemoteAction> actions = new LinkedList<>();
         if ((pipActions & PIP_ACTION_FAST_REWIND) != 0) {
@@ -1137,7 +1137,7 @@ public class VideoActivity extends SwipeBackActivity {
      *                    or {@link #PIP_ACTION_FAST_REWIND}.
      * @param requestCode The request code for the {@link PendingIntent}.
      */
-    @RequiresApi(api = Build.VERSION_CODES.O)
+    @RequiresApi(Build.VERSION_CODES.O)
     private RemoteAction createPipAction(
             @DrawableRes int iconId, String title, int pipAction, int requestCode) {
         // This is the PendingIntent that is invoked when a user clicks on the action item.
@@ -1152,7 +1152,7 @@ public class VideoActivity extends SwipeBackActivity {
     }
 
     @SuppressLint("SwitchIntDef")
-    @RequiresApi(api = Build.VERSION_CODES.O)
+    @RequiresApi(Build.VERSION_CODES.O)
     @Override
     public void onPictureInPictureModeChanged(boolean isInPictureInPictureMode) {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode);

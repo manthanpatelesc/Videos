@@ -5,6 +5,7 @@
 
 package com.liuzhenlin.texturevideoview;
 
+import android.annotation.SuppressLint;
 import android.content.ComponentName;
 import android.content.Context;
 import android.media.AudioManager;
@@ -253,11 +254,26 @@ public abstract class VideoPlayer implements IVideoPlayer {
   /**
    * Save the video, audio and subtitle track selections before the player is reset or released.
    */
+  @SuppressLint("SwitchIntDef")
   protected void saveTrackSelections() {
-    setTrackSelections(
-        getSelectedTrackIndex(TrackInfo.TRACK_TYPE_VIDEO),
-        getSelectedTrackIndex(TrackInfo.TRACK_TYPE_AUDIO),
-        getSelectedTrackIndex(TrackInfo.TRACK_TYPE_SUBTITLE));
+    switch (getPlaybackState()) {
+      case PLAYBACK_STATE_PREPARED:
+      case PLAYBACK_STATE_PLAYING:
+      case PLAYBACK_STATE_PAUSED:
+      case PLAYBACK_STATE_COMPLETED:
+      case PLAYBACK_STATE_ERROR:
+        // Update the cached track selections only when there are available tracks for each track type
+        if (hasTrack(TrackInfo.TRACK_TYPE_VIDEO)) {
+          setVideoTrackSelection(getSelectedTrackIndex(TrackInfo.TRACK_TYPE_VIDEO));
+        }
+        if (hasTrack(TrackInfo.TRACK_TYPE_AUDIO)) {
+          setAudioTrackSelection(getSelectedTrackIndex(TrackInfo.TRACK_TYPE_AUDIO));
+        }
+        if (hasTrack(TrackInfo.TRACK_TYPE_SUBTITLE)) {
+          setSubtitleTrackSelection(getSelectedTrackIndex(TrackInfo.TRACK_TYPE_SUBTITLE));
+        }
+        break;
+    }
   }
 
   private void setTrackSelections(int videoTrack, int audioTrack, int subtitleTrack) {
@@ -267,16 +283,31 @@ public abstract class VideoPlayer implements IVideoPlayer {
             | ((subtitleTrack << SUBTITLE_TRACK_SELECTION_MASK_SHIFT) & SUBTITLE_TRACK_SELECTION_MASK);
   }
 
+  private void setVideoTrackSelection(int selection) {
+    mTrackSelections = (mTrackSelections & ~VIDEO_TRACK_SELECTION_MASK) |
+        ((selection << VIDEO_TRACK_SELECTION_MASK_SHIFT) & VIDEO_TRACK_SELECTION_MASK);
+  }
+
   private byte getVideoTrackSelection() {
     // Casting an int to byte preserves the sign bit
     return (byte) ((mTrackSelections & VIDEO_TRACK_SELECTION_MASK)
         >> VIDEO_TRACK_SELECTION_MASK_SHIFT);
   }
 
+  private void setAudioTrackSelection(int selection) {
+    mTrackSelections = (mTrackSelections & ~AUDIO_TRACK_SELECTION_MASK) |
+        ((selection << AUDIO_TRACK_SELECTION_MASK_SHIFT) & AUDIO_TRACK_SELECTION_MASK);
+  }
+
   private byte getAudioTrackSelection() {
     // Casting an int to byte preserves the sign bit
     return (byte) ((mTrackSelections & AUDIO_TRACK_SELECTION_MASK)
         >> AUDIO_TRACK_SELECTION_MASK_SHIFT);
+  }
+
+  private void setSubtitleTrackSelection(int selection) {
+    mTrackSelections = (mTrackSelections & ~SUBTITLE_TRACK_SELECTION_MASK) |
+        ((selection << SUBTITLE_TRACK_SELECTION_MASK_SHIFT) & SUBTITLE_TRACK_SELECTION_MASK);
   }
 
   private short getSubtitleTrackSelection() {

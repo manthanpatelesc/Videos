@@ -121,7 +121,7 @@ public class FloatingWindowPermissionUtils {
         }
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.M)
+    @RequiresApi(Build.VERSION_CODES.M)
     private static Intent createManageOverlayPermissionActionIntent(Context context) {
         return new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
                 .setData(Uri.parse("package:" + context.getPackageName()));
