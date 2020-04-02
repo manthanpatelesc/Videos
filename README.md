@@ -2,7 +2,8 @@ Videos
 ======================
 
 An app lists all the videos from the sdcard (except for the ones not recorded to the system db.),
-where you can perform such ops as topping, deleting and playing.
+where you can perform such ops as topping, deleting and playing. Also, there are some handy TV
+live streams that you can find to play in the `Online Videos` section of the application homepage.
 
 ## Features
 - Videos are listed and classified by each item for the videos under the same directory or just
@@ -13,16 +14,21 @@ where you can perform such ops as topping, deleting and playing.
 - Share a video file to another app.
 - View the details of a video file/directory.
 - Search the videos matching all of the search key words.
-- Play a video from the app list or across from an other app (such as a file manager/explorer).
+- Play a local video from the app list or across from an other app (such as a file manager/explorer).
   Audio files are also permitted in the latter case.
+- Play an online audio/video stream by entering a direct URL.
 - A set of useful, typical, and even awesome ops for the audio/video playbacks.
 
-## Screen Recordings
-<img src="https://github.com/ApksHolder/Videos/blob/master/ScreenRecording_01.gif" width="256">&nbsp;
-<img src="https://github.com/ApksHolder/Videos/blob/master/ScreenRecording_02.gif" width="256">&nbsp;
-<img src="https://github.com/ApksHolder/Videos/blob/master/ScreenRecording_03.gif" width="256">&nbsp;
-<img src="https://github.com/ApksHolder/Videos/blob/master/ScreenRecording_04.gif" width="256">&nbsp;
-<img src="https://github.com/ApksHolder/Videos/blob/master/ScreenRecording_05.gif" width="455">
+## Screenshots
+<img src="https://github.com/ApksHolder/Videos/blob/master/screenshot_01.jpg" width="256">&nbsp;
+<img src="https://github.com/ApksHolder/Videos/blob/master/screenshot_02.jpg" width="256">&nbsp;
+<img src="https://github.com/ApksHolder/Videos/blob/master/screenshot_03.jpg" width="256"><br/>
+<img src="https://github.com/ApksHolder/Videos/blob/master/screenshot_04.jpg" width="256">
+<img src="https://github.com/ApksHolder/Videos/blob/master/screenshot_05.jpg" width="256"><br/>
+<img src="https://github.com/ApksHolder/Videos/blob/master/screenshot_06.jpg" width="256">
+<img src="https://github.com/ApksHolder/Videos/blob/master/screenshot_07.jpg" width="455"><br/>
+<img src="https://github.com/ApksHolder/Videos/blob/master/screenshot_08.jpg" width="455">
+<img src="https://github.com/ApksHolder/Videos/blob/master/screenshot_09.jpg" width="455">
 
 ## Developing Videos
 
