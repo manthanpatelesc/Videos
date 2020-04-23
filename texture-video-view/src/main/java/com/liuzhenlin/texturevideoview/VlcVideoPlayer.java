@@ -6,6 +6,7 @@
 package com.liuzhenlin.texturevideoview;
 
 import android.content.Context;
+import android.net.Uri;
 import android.view.Surface;
 
 import androidx.annotation.NonNull;
@@ -55,7 +56,7 @@ public class VlcVideoPlayer extends VideoPlayer {
   }
 
   @Override
-  protected void restartVideo(boolean saveTrackSelections) {
+  protected void restartVideo(boolean restoreTrackSelections) {
 
   }
 
@@ -108,5 +109,10 @@ public class VlcVideoPlayer extends VideoPlayer {
   @Override
   public int getSelectedTrackIndex(int trackType) {
     return INVALID_TRACK_INDEX;
+  }
+
+  @Override
+  public void addSubtitleSource(@NonNull Uri uri, @NonNull String mimeType, @Nullable String language) {
+
   }
 }

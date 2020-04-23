@@ -31,7 +31,8 @@ public interface IVideoPlayer {
     /** An empty array of track information. */
     TrackInfo[] EMPTY_TRACK_INFOS = {};
 
-    int NO_DURATION = -1;
+    /** Special constant representing an unset or unknown time or duration in milliseconds. */
+    int TIME_UNSET = -1;
 
     float DEFAULT_PLAYBACK_SPEED = 1.0f;
 
@@ -99,7 +100,7 @@ public interface IVideoPlayer {
 
         /**
          * Called to indicate the video duration (in milliseconds), which could be
-         * {@value #NO_DURATION} if not available (e.g., streaming live content).
+         * {@value #TIME_UNSET} if not available (e.g., streaming live content).
          */
         default void onVideoDurationChanged(int duration) {
         }
@@ -241,7 +242,7 @@ public interface IVideoPlayer {
      *
      * @return the duration in milliseconds, if no duration is available (for example,
      * if streaming live content or the duration is not determined yet),
-     * then {@value NO_DURATION} is returned.
+     * then {@value TIME_UNSET} is returned.
      */
     int getVideoDuration();
 
@@ -336,6 +337,19 @@ public interface IVideoPlayer {
      * or when {@code trackType} is not one of video, audio, or subtitle.
      */
     int getSelectedTrackIndex(@TrackInfo.TrackType int trackType);
+
+    /**
+     * Adds an external subtitle source file (Uri),
+     * e.g., a SubRip with the file extension .srt, case insensitive.
+     * <p>
+     * Note that you need call {@link #getTrackInfos()} again to see
+     * what additional track becomes available after this method is invoked.
+     *
+     * @param uri      The Content URI of the data you want to play.
+     * @param mimeType The mime type of the file.
+     * @param language The language as an IETF BCP 47 conformant tag, or {@code null} if unknown.
+     */
+    void addSubtitleSource(@NonNull Uri uri, @NonNull String mimeType, @Nullable String language);
 
     /**
      * Adds a listener that will be informed of any events related to the video playback.

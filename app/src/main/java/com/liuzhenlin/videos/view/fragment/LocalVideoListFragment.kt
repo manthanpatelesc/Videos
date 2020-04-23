@@ -12,9 +12,11 @@ import android.content.Context
 import android.content.Intent
 import android.database.ContentObserver
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.ColorDrawable
+import android.graphics.drawable.Drawable
 import android.os.AsyncTask
 import android.os.Build
 import android.os.Bundle
@@ -33,6 +35,9 @@ import androidx.core.view.ViewCompat
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
+import com.bumptech.glide.request.target.CustomViewTarget
+import com.bumptech.glide.request.transition.Transition
 import com.liuzhenlin.circularcheckbox.CircularCheckBox
 import com.liuzhenlin.floatingmenu.DensityUtils
 import com.liuzhenlin.simrv.SlidingItemMenuRecyclerView
@@ -45,6 +50,7 @@ import com.liuzhenlin.videos.dao.VideoListItemDao
 import com.liuzhenlin.videos.model.Video
 import com.liuzhenlin.videos.model.VideoDirectory
 import com.liuzhenlin.videos.model.VideoListItem
+import com.liuzhenlin.videos.utils.BitmapUtils2
 import com.liuzhenlin.videos.utils.FileUtils2
 import com.liuzhenlin.videos.utils.UiUtils
 import com.liuzhenlin.videos.utils.VideoUtils2
@@ -150,6 +156,9 @@ class LocalVideoListFragment : SwipeBackFragment(),
             }
             return _SELECT_NONE!!
         }
+
+    private inline val miniThumbSize
+        get() = (512f * (resources.displayMetrics.widthPixels / 1080f) + 0.5f).toInt()
 
     fun addOnReloadVideosListener(listener: OnReloadVideosListener) {
         if (mOnReloadVideosListeners == null)
@@ -567,7 +576,8 @@ class LocalVideoListFragment : SwipeBackFragment(),
                 if (payload and PAYLOAD_REFRESH_VIDEODIR_THUMB != 0) {
                     val vh = holder as VideoDirViewHolder
                     val videos = (item as VideoDirectory).videos
-                    VideoUtils2.loadVideoThumbnailIntoImageView(vh.videodirImage, videos[0])
+                    VideoUtils2.loadVideoThumbnailIntoFragmentImageView(
+                            this@LocalVideoListFragment, vh.videodirImage, videos[0])
                 }
                 if (payload and PAYLOAD_REFRESH_VIDEODIR_SIZE_AND_VIDEO_COUNT != 0) {
                     val vh = holder as VideoDirViewHolder
@@ -598,7 +608,8 @@ class LocalVideoListFragment : SwipeBackFragment(),
                     val vh = holder as VideoViewHolder
                     val video = item as Video
 
-                    VideoUtils2.loadVideoThumbnailIntoImageView(vh.videoImage, video)
+                    VideoUtils2.loadVideoThumbnailIntoFragmentImageView(
+                            this@LocalVideoListFragment, vh.videoImage, video)
                     vh.videoNameText.text = item.name
                     vh.videoSizeText.text = FileUtils2.formatFileSize(item.size.toDouble())
                     vh.videoProgressAndDurationText.text =
@@ -608,7 +619,8 @@ class LocalVideoListFragment : SwipeBackFragment(),
                     val vh = holder as VideoDirViewHolder
                     val videos = (item as VideoDirectory).videos
 
-                    VideoUtils2.loadVideoThumbnailIntoImageView(vh.videodirImage, videos[0])
+                    VideoUtils2.loadVideoThumbnailIntoFragmentImageView(
+                            this@LocalVideoListFragment, vh.videodirImage, videos[0])
                     vh.videodirNameText.text = item.name
                     vh.videodirSizeText.text = FileUtils2.formatFileSize(item.size.toDouble())
                     vh.videoCountText.text = getString(R.string.aTotalOfSeveralVideos, videos.size)
@@ -1132,6 +1144,8 @@ class LocalVideoListFragment : SwipeBackFragment(),
         }
 
         val context = contextThemedFirst
+        val res = context.resources
+
         val view = View.inflate(context, R.layout.dialog_rename_video_list_item, null)
 
         val titleText = view.findViewById<TextView>(R.id.text_title)
@@ -1139,9 +1153,19 @@ class LocalVideoListFragment : SwipeBackFragment(),
                 if (item is Video) R.string.renameVideo
                 else /* if (item is VideoDirectory) */ R.string.renameDirectory)
 
-        val thumb = VideoUtils2.generateMiniThumbnail(context,
-                (item as? Video)?.path ?: (item as VideoDirectory).videos[0].path)
-        view.findViewById<ImageView>(R.id.image_videoListItem).setImageBitmap(thumb)
+        val thumbImage = view.findViewById<ImageView>(R.id.image_videoListItem)
+        val thumbSize = miniThumbSize
+        val placeholder = BitmapUtils2.createScaledBitmap(
+                BitmapFactory.decodeResource(res, R.drawable.ic_default_thumb),
+                thumbSize, (thumbSize * 9f / 16f + 0.5f).toInt(),
+                true)
+        val glideRequestManager = Glide.with(context.applicationContext)
+        glideRequestManager
+                .load((item as? Video ?: (item as VideoDirectory).videos[0]).path)
+                .override(thumbSize)
+                .fitCenter()
+                .placeholder(BitmapDrawable(res, placeholder))
+                .into(thumbImage)
 
         val editText = view.findViewById<EditText>(R.id.editor_rename)
         editText.hint = name
@@ -1164,7 +1188,7 @@ class LocalVideoListFragment : SwipeBackFragment(),
         mRenameItemDialog!!.setCanceledOnTouchOutside(false)
         mRenameItemDialog!!.setOnDismissListener {
             mRenameItemDialog = null
-            thumb?.recycle()
+            glideRequestManager.clear(thumbImage)
         }
 
         val window = mRenameItemDialog!!.window!!
@@ -1176,21 +1200,20 @@ class LocalVideoListFragment : SwipeBackFragment(),
     override fun showItemDetailsDialog(item: VideoListItem) {
         val context = contextThemedFirst
         val view: View
-        val thumb: Bitmap?
+        val thumbTextView: TextView
+        val video: Video
+
         val colon = getString(R.string.colon)
-        var ss: SpannableString
         if (item is Video) {
             view = View.inflate(context, R.layout.dialog_video_details, null)
 
-            thumb = VideoUtils2.generateMiniThumbnail(context, item.path)
+            video = item
 
-            val videoNameText = view.findViewById<TextView>(R.id.text_videoName)
-            videoNameText.setCompoundDrawablesWithIntrinsicBounds(
-                    null, BitmapDrawable(resources, thumb), null, null)
-            ss = SpannableString(getString(R.string.name, item.name))
+            thumbTextView = view.findViewById(R.id.text_videoName)
+            var ss = SpannableString(getString(R.string.name, item.name))
             ss.setSpan(ForegroundColorSpan(Color.BLACK),
                     0, ss.indexOf(colon) + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-            videoNameText.text = ss
+            thumbTextView.text = ss
 
             val videoSizeText = view.findViewById<TextView>(R.id.text_videoSize)
             ss = SpannableString(getString(
@@ -1215,22 +1238,19 @@ class LocalVideoListFragment : SwipeBackFragment(),
             view = View.inflate(context, R.layout.dialog_videodir_details, null)
 
             val videos = (item as VideoDirectory).videos
-
-            thumb = VideoUtils2.generateMiniThumbnail(context, videos[0].path)
+            video = item.videos[0]
 
             val path = item.path
             val dirname = FileUtils.getFileNameFromFilePath(path)
 
-            val videodirNameText = view.findViewById<TextView>(R.id.text_videodirName)
-            videodirNameText.setCompoundDrawablesWithIntrinsicBounds(null,
-                    BitmapDrawable(resources, thumb), null, null)
-            ss = SpannableString(getString(
+            thumbTextView = view.findViewById(R.id.text_videodirName)
+            var ss = SpannableString(getString(
                     if (item.name.equals(dirname, ignoreCase = true)) R.string.name
                     else R.string.alias
                     , item.name))
             ss.setSpan(ForegroundColorSpan(Color.BLACK),
                     0, ss.indexOf(colon) + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-            videodirNameText.text = ss
+            thumbTextView.text = ss
 
             val videodirSizeText = view.findViewById<TextView>(R.id.text_videodirSize)
             ss = SpannableString(getString(
@@ -1251,15 +1271,48 @@ class LocalVideoListFragment : SwipeBackFragment(),
                     0, ss.indexOf(colon) + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
             videodirPathText.text = ss
         }
+
         val okButton = view.findViewById<TextView>(R.id.btn_ok_videoListItemDetailsDialog)
         okButton.setOnClickListener(this)
+
+        val thumbSize = miniThumbSize
+        val thumbTextViewTarget = object : CustomViewTarget<TextView, Drawable>(thumbTextView) {
+            val placeholder = ContextCompat.getDrawable(context, R.drawable.ic_default_thumb)!!
+
+            fun showPlaceHolderDrawable() {
+                placeholder.setBounds(0, 0, thumbSize, (thumbSize * 9f / 16f + 0.5f).toInt())
+                thumbTextView.setCompoundDrawables(null, placeholder, null, null)
+            }
+
+            override fun onResourceLoading(placeholder: Drawable?) {
+                showPlaceHolderDrawable()
+            }
+
+            override fun onLoadFailed(errorDrawable: Drawable?) {
+                showPlaceHolderDrawable()
+            }
+
+            override fun onResourceCleared(placeholder: Drawable?) {
+                showPlaceHolderDrawable()
+            }
+
+            override fun onResourceReady(resource: Drawable, transition: Transition<in Drawable>?) {
+                thumbTextView.setCompoundDrawablesWithIntrinsicBounds(null, resource, null, null)
+            }
+        }
+        val glideRequestManager = Glide.with(context.applicationContext)
+        glideRequestManager
+                .load(video.path)
+                .override(thumbSize)
+                .fitCenter()
+                .into(thumbTextViewTarget)
 
         mItemDetailsDialog = AppCompatDialog(context, R.style.DialogStyle_MinWidth_NoTitle)
         mItemDetailsDialog!!.setContentView(view)
         mItemDetailsDialog!!.show()
         mItemDetailsDialog!!.setOnDismissListener {
             mItemDetailsDialog = null
-            thumb?.recycle()
+            glideRequestManager.clear(thumbTextViewTarget)
         }
     }
 

@@ -452,7 +452,8 @@ class LocalSearchedVideosFragment : Fragment(), View.OnClickListener, View.OnLon
             highlightSelectedItemIfExists(holder, position)
 
             val video = mSearchedVideos[position]
-            VideoUtils2.loadVideoThumbnailIntoImageView(holder.videoImage, video)
+            VideoUtils2.loadVideoThumbnailIntoFragmentImageView(
+                    this@LocalSearchedVideosFragment, holder.videoImage, video)
             updateItemName(holder, video.name)
             holder.videoProgressAndDurationText.text =
                     VideoUtils2.concatVideoProgressAndDuration(video.progress, video.duration)

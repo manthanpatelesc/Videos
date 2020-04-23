@@ -22,6 +22,7 @@
         android:theme="@style/AppTheme"
         android:supportsRtl="true"
         android:usesCleartextTraffic="true"
+        android:requestLegacyExternalStorage="true"
         android:allowBackup="true"
         android:fullBackupContent="@xml/backup_descriptor"
         tools:ignore="UnusedAttribute">

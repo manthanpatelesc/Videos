@@ -139,11 +139,11 @@ public class DemoActivity extends AppCompatActivity {
                 return DemoActivity.this.getClass();
             }
 
-            // Optional, just returns null to use the default output directory
+            // Optional, just returns null to use the default base output directory
             // (the primary external storage directory concatenating with this application name).
             @Nullable
             @Override
-            public String getFileOutputDirectory() {
+            public String getAppExternalFilesDir() {
                 return null;
             }
         });

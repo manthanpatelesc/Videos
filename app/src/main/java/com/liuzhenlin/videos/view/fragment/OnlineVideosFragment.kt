@@ -7,8 +7,6 @@ package com.liuzhenlin.videos.view.fragment
 
 import android.annotation.SuppressLint
 import android.app.Dialog
-import android.content.ClipData
-import android.content.ClipboardManager
 import android.content.Context
 import android.os.AsyncTask
 import android.os.Bundle
@@ -18,6 +16,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.*
 import androidx.appcompat.app.AppCompatDialog
+import androidx.core.util.AtomicFile
 import androidx.core.view.ViewCompat
 import androidx.fragment.app.Fragment
 import com.google.android.material.snackbar.Snackbar
@@ -27,18 +26,15 @@ import com.google.gson.reflect.TypeToken
 import com.liuzhenlin.floatingmenu.FloatingMenu
 import com.liuzhenlin.slidingdrawerlayout.SlidingDrawerLayout
 import com.liuzhenlin.texturevideoview.misc.ParallelThreadExecutor
+import com.liuzhenlin.texturevideoview.utils.FileUtils
 import com.liuzhenlin.texturevideoview.utils.URLUtils
-import com.liuzhenlin.videos.COLOR_SELECTOR
-import com.liuzhenlin.videos.R
-import com.liuzhenlin.videos.contextThemedFirst
-import com.liuzhenlin.videos.get
+import com.liuzhenlin.videos.*
 import com.liuzhenlin.videos.model.TV
 import com.liuzhenlin.videos.model.TVGroup
 import com.liuzhenlin.videos.utils.UiUtils
+import com.liuzhenlin.videos.utils.Utils
 import com.liuzhenlin.videos.view.swiperefresh.SwipeRefreshLayout
-import java.io.BufferedReader
-import java.io.IOException
-import java.io.InputStreamReader
+import java.io.*
 import java.lang.ref.WeakReference
 import java.net.HttpURLConnection
 import java.net.SocketTimeoutException
@@ -177,30 +173,42 @@ class OnlineVideosFragment : Fragment(), View.OnClickListener,
     private fun loadTvs() {
         if (mLoadTVsAsyncTask == null) {
             mLoadTVsAsyncTask = LoadTVsAsyncTask(this)
-                    .executeOnExecutor(ParallelThreadExecutor.getSingleton()) as LoadTVsAsyncTask
+                    .executeOnExecutor(ParallelThreadExecutor.getSingleton(), contextRequired) as LoadTVsAsyncTask
         }
     }
 
-    private class LoadTVsAsyncTask(fragment: OnlineVideosFragment) : AsyncTask<Unit, Unit, Array<TVGroup>?>() {
+    private class LoadTVsAsyncTask(fragment: OnlineVideosFragment) : AsyncTask<Context, Unit, Array<TVGroup>?>() {
 
-        val fragmentRef = WeakReference<OnlineVideosFragment>(fragment)
+        val fragmentRef = WeakReference(fragment)
 
         override fun onPreExecute() {
             fragmentRef.get()?.mSwipeRefreshLayout?.isRefreshing = true
         }
 
-        override fun doInBackground(vararg units: Unit): Array<TVGroup>? {
+        override fun doInBackground(vararg ctxs: Context): Array<TVGroup>? {
+            var json: StringBuilder? = null
+
+            val jsonDirectory = File(FileUtils.getAppCacheDir(ctxs[0]), "data/json")
+            if (!jsonDirectory.exists()) {
+                jsonDirectory.mkdirs()
+            }
+            val jsonFile = AtomicFile(File(jsonDirectory, "tvs.json"))
+
+            var ioException: IOException? = null
+
             var conn: HttpURLConnection? = null
             var reader: BufferedReader? = null
+            var writer: BufferedWriter? = null
+            var jsonFileOut: FileOutputStream? = null
             try {
                 val url = URL(LINK_TVS_JSON)
                 conn = url.openConnection() as HttpURLConnection
 //                    conn.connectTimeout = TIMEOUT_CONNECTION;
 //                    conn.readTimeout = TIMEOUT_READ;
 
-                var json: StringBuilder? = null
-
                 reader = BufferedReader(InputStreamReader(conn.inputStream, "utf-8"))
+                jsonFileOut = jsonFile.startWrite()
+                writer = BufferedWriter(OutputStreamWriter(jsonFileOut, "utf-8"))
                 val buffer = CharArray(1024)
                 var len: Int
                 while (true) {
@@ -213,34 +221,22 @@ class OnlineVideosFragment : Fragment(), View.OnClickListener,
                         json = StringBuilder(len)
                     }
                     json.append(buffer, 0, len)
+                    writer.write(buffer, 0, len)
                 }
+                writer.flush()
+                jsonFile.finishWrite(jsonFileOut)
 
-                return Gson().fromJson(json.toString(),
-                        object : TypeToken<Array<TVGroup>>() {}.type)
-
-                // 连接服务器超时
-            } catch (@Suppress("DEPRECATION") e: org.apache.http.conn.ConnectTimeoutException) {
-                cancel()
-                fragmentRef.get()?.view?.let {
-                    UiUtils.showUserCancelableSnackbar(it,
-                            R.string.connectionTimeout, Snackbar.LENGTH_SHORT)
-                }
-
-                // 读取数据超时
-            } catch (e: SocketTimeoutException) {
-                cancel()
-                fragmentRef.get()?.view?.let {
-                    UiUtils.showUserCancelableSnackbar(it,
-                            R.string.readTimeout, Snackbar.LENGTH_SHORT)
-                }
             } catch (e: IOException) {
-                cancel()
-                fragmentRef.get()?.view?.let {
-                    UiUtils.showUserCancelableSnackbar(it,
-                            R.string.refreshError, Snackbar.LENGTH_SHORT)
-                }
-                e.printStackTrace()
+                json = null
+                ioException = e
             } finally {
+                if (writer != null) {
+                    try {
+                        writer.close()
+                    } catch (e: IOException) {
+                        //
+                    }
+                }
                 if (reader != null) {
                     try {
                         reader.close()
@@ -250,7 +246,65 @@ class OnlineVideosFragment : Fragment(), View.OnClickListener,
                 }
                 conn?.disconnect()
             }
+
+            if (ioException != null) {
+                if (jsonFileOut != null) {
+                    jsonFile.failWrite(jsonFileOut)
+                }
+
+                val jsonString = try {
+                    jsonFile.readFully().toString(Charsets.UTF_8)
+                } catch (e: IOException) {
+                    e.printStackTrace()
+                    null
+                }
+                if (jsonString?.isNotEmpty() == true) {
+                    json = StringBuilder(jsonString.length).append(jsonString)
+                }
+            }
+
+            if (json != null) {
+                return Gson().fromJson(json.toString(), object : TypeToken<Array<TVGroup>>() {}.type)
+            } else {
+                when (ioException) {
+                    null -> return null
+                    // 连接服务器超时
+                    is @kotlin.Suppress("DEPRECATION") org.apache.http.conn.ConnectTimeoutException ->
+                        fragmentRef.get()?.view?.let {
+                            UiUtils.showUserCancelableSnackbar(it,
+                                    R.string.connectionTimeout, Snackbar.LENGTH_SHORT)
+                        }
+                    // 读取数据超时
+                    is SocketTimeoutException ->
+                        fragmentRef.get()?.view?.let {
+                            UiUtils.showUserCancelableSnackbar(it,
+                                    R.string.readTimeout, Snackbar.LENGTH_SHORT)
+                        }
+                    else /*is IOException*/ -> {
+                        fragmentRef.get()?.view?.let {
+                            UiUtils.showUserCancelableSnackbar(it,
+                                    R.string.refreshError, Snackbar.LENGTH_SHORT)
+                        }
+                        ioException.printStackTrace()
+                    }
+                }
+                cancel()
+            }
+
             return null
+        }
+
+        private fun cancel() {
+            fragmentRef.get()?.mLoadTVsAsyncTask = null
+            cancel(false)
+        }
+
+        override fun onCancelled(result: Array<TVGroup>?) {
+            fragmentRef.get()?.run {
+                if (mLoadTVsAsyncTask == null) {
+                    mSwipeRefreshLayout.isRefreshing = false
+                }
+            }
         }
 
         override fun onPostExecute(tvGroups: Array<TVGroup>?) {
@@ -266,19 +320,6 @@ class OnlineVideosFragment : Fragment(), View.OnClickListener,
                     mTvListAdapter.notifyDataSetChanged()
                 }
             }
-        }
-
-        override fun onCancelled(result: Array<TVGroup>?) {
-            fragmentRef.get()?.run {
-                if (mLoadTVsAsyncTask == null) {
-                    mSwipeRefreshLayout.isRefreshing = false
-                }
-            }
-        }
-
-        private fun cancel() {
-            fragmentRef.get()?.mLoadTVsAsyncTask = null
-            cancel(false)
         }
     }
 
@@ -385,11 +426,7 @@ class OnlineVideosFragment : Fragment(), View.OnClickListener,
                 fm.items(getString(R.string.copyURL))
                 fm.show(mDownX, mDownY)
                 fm.setOnItemClickListener { _, _ ->
-                    val cm = parent.context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                    // 创建纯文本型ClipData
-                    val cd = ClipData.newPlainText(child.name, child.url)
-                    // 将ClipData内容放到系统剪贴板里
-                    cm.primaryClip = cd
+                    Utils.copyPlainTextToClipboard(parent.context, child.name, child.url)
                 }
                 fm.setOnDismissListener {
                     selectedTV = null
@@ -412,6 +449,6 @@ class OnlineVideosFragment : Fragment(), View.OnClickListener,
     }
 
     companion object {
-        private const val LINK_TVS_JSON = "https://gitee.com/lzl_s/Videos-Service/raw/master/tvs.json"
+        private const val LINK_TVS_JSON = "https://gitee.com/lzl_s/Videos-Server/raw/master/tvs.json"
     }
 }

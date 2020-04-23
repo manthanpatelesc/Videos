@@ -16,8 +16,10 @@ import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.RequestManager;
 import com.liuzhenlin.videos.App;
 import com.liuzhenlin.videos.Consts;
 import com.liuzhenlin.videos.R;
@@ -30,11 +32,25 @@ public class VideoUtils2 {
     private VideoUtils2() {
     }
 
-    public static void loadVideoThumbnailIntoImageView(@NonNull ImageView image, @NonNull Video video) {
+    public static void loadVideoThumbnailIntoImageView(@NonNull ImageView image,
+                                                       @NonNull Video video) {
         loadVideoThumbnailIntoImageView(image, video.getPath());
     }
 
-    public static void loadVideoThumbnailIntoImageView(@NonNull ImageView image, @NonNull String path) {
+    public static void loadVideoThumbnailIntoImageView(@NonNull ImageView image,
+                                                       @NonNull String path) {
+        loadVideoThumbnailIntoFragmentImageView(null, image, path);
+    }
+
+    public static void loadVideoThumbnailIntoFragmentImageView(@Nullable Fragment fragment,
+                                                               @NonNull ImageView image,
+                                                               @NonNull Video video) {
+        loadVideoThumbnailIntoFragmentImageView(fragment, image, video.getPath());
+    }
+
+    public static void loadVideoThumbnailIntoFragmentImageView(@Nullable Fragment fragment,
+                                                               @NonNull ImageView image,
+                                                               @NonNull String path) {
         Context context = image.getContext();
         Resources res = context.getResources();
 
@@ -47,7 +63,14 @@ public class VideoUtils2 {
         Bitmap bitmap = BitmapUtils2.createScaledBitmap(
                 BitmapFactory.decodeResource(res, R.drawable.ic_default_thumb),
                 thumbWidth, thumbHeight, true);
-        Glide.with(context)
+
+        RequestManager requestManager;
+        if (fragment != null) {
+            requestManager = Glide.with(fragment);
+        } else {
+            requestManager = Glide.with(context);
+        }
+        requestManager
                 .load(path)
                 .override(thumbWidth, thumbHeight)
                 .centerCrop()
@@ -56,11 +79,11 @@ public class VideoUtils2 {
     }
 
     @Nullable
-    public static Bitmap generateMiniThumbnail(@NonNull Context context, @NonNull String path) {
+    public static Bitmap generateMiniThumbnail(@NonNull Resources res, @NonNull String path) {
         //noinspection deprecation
         Bitmap thumb = ThumbnailUtils.createVideoThumbnail(path, MediaStore.Images.Thumbnails.MINI_KIND);
         if (thumb != null) {
-            final float ratio = context.getResources().getDisplayMetrics().widthPixels / 1080f;
+            final float ratio = res.getDisplayMetrics().widthPixels / 1080f;
             if (ratio != 1) {
                 thumb = ThumbnailUtils.extractThumbnail(thumb,
                         (int) (thumb.getWidth() * ratio + 0.5f),
@@ -90,6 +113,9 @@ public class VideoUtils2 {
         }
         if (width == 2160 && height == 3840 || height == 2160 && width == 3840) {
             return "4K";
+        }
+        if (width == 4320 && height == 7680 || height == 4320 && width == 7680) {
+            return "8K";
         }
 
         return width + " × " + height;

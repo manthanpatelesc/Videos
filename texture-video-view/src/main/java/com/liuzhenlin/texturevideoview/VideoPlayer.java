@@ -65,13 +65,8 @@ public abstract class VideoPlayer implements IVideoPlayer {
   /** Indicates that the duration of the video has been determined at least once by this player. */
   protected static final int $FLAG_VIDEO_DURATION_DETERMINED = 1 << 2;
 
-  /**
-   * Whether we can now get the actual video playback position directly from the video player.
-   */
-  protected static final int $FLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER = 1 << 3;
-
   /** Indicates that the video is manually paused by the user. */
-  protected static final int $FLAG_VIDEO_PAUSED_BY_USER = 1 << 4;
+  protected static final int $FLAG_VIDEO_PAUSED_BY_USER = 1 << 3;
 
   /**
    * Listener to be notified whenever it is necessary to change the video played to
@@ -99,7 +94,7 @@ public abstract class VideoPlayer implements IVideoPlayer {
   protected int mVideoHeight;
 
   /** How long the playback will last for. */
-  protected int mVideoDuration = NO_DURATION;
+  protected int mVideoDuration = TIME_UNSET;
 
   /** The string representation of the video duration. */
   /*package*/ String mVideoDurationString = DEFAULT_STRING_VIDEO_DURATION;
@@ -123,7 +118,7 @@ public abstract class VideoPlayer implements IVideoPlayer {
    * Normally this is requested by the user (e.g., dragging the video progress bar while
    * the player is not playing) or saved when the user leaves current UI.
    */
-  protected int mSeekOnPlay;
+  protected int mSeekOnPlay = TIME_UNSET;
 
   /** The amount of time we are stepping forward or backward for fast-forward and fast-rewind. */
   public static final int FAST_FORWARD_REWIND_INTERVAL = 15000; // ms
@@ -322,7 +317,7 @@ public abstract class VideoPlayer implements IVideoPlayer {
    */
   @NonNull
   protected final File getBaseVideoCacheDirectory() {
-    return new File(FileUtils.getAvailableCacheDir(mContext), "videos");
+    return new File(FileUtils.getAppCacheDir(mContext), "videos");
   }
 
   /**
@@ -338,22 +333,18 @@ public abstract class VideoPlayer implements IVideoPlayer {
   @Override
   public void setVideoUri(@Nullable Uri uri) {
     if (!ObjectsCompat.equals(uri, mVideoUri)) {
-      mVideoUri = uri;
-      if (mVideoView != null) {
-        mVideoView.onVideoUriChanged(uri);
-      }
-
+      onVideoUriChanged(uri);
       onVideoSizeChanged(0, 0);
-      onVideoDurationChanged(NO_DURATION);
+      onVideoDurationChanged(TIME_UNSET);
       mInternalFlags &= ~$FLAG_VIDEO_DURATION_DETERMINED;
       setTrackSelections(TRACK_SELECTION_UNSPECIFIED, TRACK_SELECTION_UNSPECIFIED, TRACK_SELECTION_UNSPECIFIED);
       if (isPlayerCreated()) {
         restartVideo(false);
       } else {
-        // Removes the $FLAG_VIDEO_PAUSED_BY_USER flag and resets mSeekOnPlay to 0 in case
-        // the player was previously released and has not been initialized yet.
+        // Removes the $FLAG_VIDEO_PAUSED_BY_USER flag and resets mSeekOnPlay to TIME_UNSET
+        // in case the player was previously released and has not been initialized yet.
         mInternalFlags &= ~$FLAG_VIDEO_PAUSED_BY_USER;
-        mSeekOnPlay = 0;
+        mSeekOnPlay = TIME_UNSET;
         if (uri == null) {
           // Sets the playback state to idle directly when the player is not created
           // and no video is set
@@ -365,10 +356,17 @@ public abstract class VideoPlayer implements IVideoPlayer {
     }
   }
 
+  protected void onVideoUriChanged(@Nullable Uri uri) {
+    mVideoUri = uri;
+    if (mVideoView != null) {
+      mVideoView.onVideoUriChanged(uri);
+    }
+  }
+
   /**
    * Similar to {@link #restartVideo()}, but preserving the track selections all depends.
    */
-  protected abstract void restartVideo(boolean saveTrackSelections);
+  protected abstract void restartVideo(boolean restoreTrackSelections);
 
   /**
    * @return whether or not the player object is created for playing the video(s)
@@ -444,7 +442,7 @@ public abstract class VideoPlayer implements IVideoPlayer {
   }
 
   /**
-   * Gets the video duration, replacing {@value #NO_DURATION} with 0.
+   * Gets the video duration, replacing {@value #TIME_UNSET} with 0.
    */
   /*package*/ final int getNoNegativeVideoDuration() {
     return Math.max(0, mVideoDuration);
@@ -593,7 +591,7 @@ public abstract class VideoPlayer implements IVideoPlayer {
   protected void onVideoDurationChanged(int duration) {
     if (mVideoDuration != duration) {
       mVideoDuration = duration;
-      mVideoDurationString = duration == NO_DURATION ?
+      mVideoDurationString = duration == TIME_UNSET ?
           DEFAULT_STRING_VIDEO_DURATION : TimeUtil.formatTimeByColon(duration);
 
       if (mVideoView != null) {

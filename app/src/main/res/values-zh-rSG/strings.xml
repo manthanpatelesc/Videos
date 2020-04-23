@@ -118,7 +118,7 @@
     <string name="updateLog">%1$sv%2$s 更新日志：</string>
     <string name="updateLogs">更新日志</string>
     <string name="userFeedback">用户反馈</string>
-    <string name="version">v1.9</string>
+    <string name="version">v1.9.1-beta01</string>
     <string name="videoCount">视频数：%d</string>
     <string name="videoDetails">视频详情</string>
     <string name="videoTitle">视频标题</string>

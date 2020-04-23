@@ -130,7 +130,7 @@ public class FileUtils {
     }
 
     @NonNull
-    public static File getAvailableCacheDir(@NonNull Context context) {
+    public static File getAppCacheDir(@NonNull Context context) {
         File dir;
         dir = context.getExternalCacheDir();
         if (dir == null) {

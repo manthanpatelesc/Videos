@@ -96,6 +96,7 @@ public class LibvpxVideoRenderer extends SimpleDecoderVideoRenderer {
       @Nullable Handler eventHandler,
       @Nullable VideoRendererEventListener eventListener,
       int maxDroppedFramesToNotify) {
+    //noinspection deprecation
     this(
         allowedJoiningTimeMs,
         eventHandler,
@@ -124,8 +125,8 @@ public class LibvpxVideoRenderer extends SimpleDecoderVideoRenderer {
    *     int, int, int)}} instead, and pass DRM-related parameters to the {@link MediaSource}
    *     factories.
    */
+  @SuppressWarnings("DeprecatedIsStillUsed")
   @Deprecated
-  @SuppressWarnings("deprecation")
   public LibvpxVideoRenderer(
       long allowedJoiningTimeMs,
       @Nullable Handler eventHandler,
@@ -133,6 +134,7 @@ public class LibvpxVideoRenderer extends SimpleDecoderVideoRenderer {
       int maxDroppedFramesToNotify,
       @Nullable DrmSessionManager<ExoMediaCrypto> drmSessionManager,
       boolean playClearSamplesWithoutKeys) {
+    //noinspection deprecation
     this(
         allowedJoiningTimeMs,
         eventHandler,
@@ -157,7 +159,6 @@ public class LibvpxVideoRenderer extends SimpleDecoderVideoRenderer {
    * @param numInputBuffers Number of input buffers.
    * @param numOutputBuffers Number of output buffers.
    */
-  @SuppressWarnings("deprecation")
   public LibvpxVideoRenderer(
       long allowedJoiningTimeMs,
       @Nullable Handler eventHandler,
@@ -166,6 +167,7 @@ public class LibvpxVideoRenderer extends SimpleDecoderVideoRenderer {
       int threads,
       int numInputBuffers,
       int numOutputBuffers) {
+    //noinspection deprecation
     this(
         allowedJoiningTimeMs,
         eventHandler,
@@ -200,6 +202,7 @@ public class LibvpxVideoRenderer extends SimpleDecoderVideoRenderer {
    *     int, int, int)}} instead, and pass DRM-related parameters to the {@link MediaSource}
    *     factories.
    */
+  @SuppressWarnings("DeprecatedIsStillUsed")
   @Deprecated
   public LibvpxVideoRenderer(
       long allowedJoiningTimeMs,

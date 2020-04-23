@@ -23,12 +23,13 @@ live streams that you can find to play in the `Online Videos` section of the app
 <img src="https://github.com/ApksHolder/Videos/blob/master/screenshot_01.jpg" width="256">&nbsp;
 <img src="https://github.com/ApksHolder/Videos/blob/master/screenshot_02.jpg" width="256">&nbsp;
 <img src="https://github.com/ApksHolder/Videos/blob/master/screenshot_03.jpg" width="256"><br/>
-<img src="https://github.com/ApksHolder/Videos/blob/master/screenshot_04.jpg" width="256">
+<img src="https://github.com/ApksHolder/Videos/blob/master/screenshot_04.jpg" width="256">&nbsp;
 <img src="https://github.com/ApksHolder/Videos/blob/master/screenshot_05.jpg" width="256"><br/>
-<img src="https://github.com/ApksHolder/Videos/blob/master/screenshot_06.jpg" width="256">
+<img src="https://github.com/ApksHolder/Videos/blob/master/screenshot_06.jpg" width="256">&nbsp;
 <img src="https://github.com/ApksHolder/Videos/blob/master/screenshot_07.jpg" width="455"><br/>
 <img src="https://github.com/ApksHolder/Videos/blob/master/screenshot_08.jpg" width="455">
 <img src="https://github.com/ApksHolder/Videos/blob/master/screenshot_09.jpg" width="455">
+<img src="https://github.com/ApksHolder/Videos/blob/master/screenshot_10.jpg" width="455">
 
 ## Developing Videos
 

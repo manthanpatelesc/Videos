@@ -20,6 +20,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
+import androidx.collection.SimpleArrayMap;
 
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.DefaultRenderersFactory;
@@ -30,8 +31,11 @@ import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.RenderersFactory;
 import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.Timeline;
+import com.google.android.exoplayer2.source.MediaSource;
 import com.google.android.exoplayer2.source.MediaSourceFactory;
+import com.google.android.exoplayer2.source.MergingMediaSource;
 import com.google.android.exoplayer2.source.ProgressiveMediaSource;
+import com.google.android.exoplayer2.source.SingleSampleMediaSource;
 import com.google.android.exoplayer2.source.TrackGroup;
 import com.google.android.exoplayer2.source.TrackGroupArray;
 import com.google.android.exoplayer2.source.dash.DashMediaSource;
@@ -69,12 +73,16 @@ public class ExoVideoPlayer extends VideoPlayer {
 
   private static final String TAG = "ExoVideoPlayer";
 
+  private static final int $FLAG_PLAY_WHEN_PREPARED = 1 << 31;
+
   private String mUserAgent;
 
   private SimpleExoPlayer mExoPlayer;
   private DefaultTrackSelector mTrackSelector;
   private MediaSourceFactory mMediaSourceFactory;
   private MediaSourceFactory mTmpMediaSourceFactory;
+  private SimpleArrayMap<Uri, String[]/*{mimeType, language}*/> mSubtitles;
+  private static SingleSampleMediaSource.Factory sSubtitleSourceFactory;
   private static DataSource.Factory sDefaultDataSourceFactory;
 
   private final AudioManager.OnAudioFocusChangeListener mOnAudioFocusChangeListener
@@ -157,6 +165,13 @@ public class ExoVideoPlayer extends VideoPlayer {
     }
   }
 
+  private SingleSampleMediaSource.Factory getSubtitleSourceFactory() {
+    if (sSubtitleSourceFactory == null) {
+      sSubtitleSourceFactory = new SingleSampleMediaSource.Factory(getDefaultDataSourceFactory());
+    }
+    return sSubtitleSourceFactory;
+  }
+
   /**
    * @return the default {@link DataSource.Factory} created by this class, which will be used for
    * various of {@link MediaSourceFactory}s (if the user specified one is not set).
@@ -204,8 +219,16 @@ public class ExoVideoPlayer extends VideoPlayer {
   }
 
   @Override
-  public void setVideoResourceId(int resId) {
+  public final void setVideoResourceId(int resId) {
     setVideoPath(resId == 0 ? null : "rawresource:///" + resId);
+  }
+
+  @Override
+  protected void onVideoUriChanged(@Nullable Uri uri) {
+    if (mSubtitles != null) {
+      mSubtitles.clear();
+    }
+    super.onVideoUriChanged(uri);
   }
 
   @Override
@@ -249,7 +272,9 @@ public class ExoVideoPlayer extends VideoPlayer {
               if (getPlaybackState() == PLAYBACK_STATE_PREPARING) {
                 restoreTrackSelections();
                 setPlaybackState(PLAYBACK_STATE_PREPARED);
-                play(false);
+                if ((mInternalFlags & $FLAG_PLAY_WHEN_PREPARED) != 0) {
+                  play(false);
+                }
               }
               break;
 
@@ -268,7 +293,7 @@ public class ExoVideoPlayer extends VideoPlayer {
             mInternalFlags |= $FLAG_VIDEO_DURATION_DETERMINED;
           }
           final long duration = mExoPlayer.getDuration();
-          onVideoDurationChanged(duration == C.TIME_UNSET ? NO_DURATION : (int) duration);
+          onVideoDurationChanged(duration == C.TIME_UNSET ? TIME_UNSET : (int) duration);
         }
 
         @Override
@@ -332,7 +357,7 @@ public class ExoVideoPlayer extends VideoPlayer {
           mVideoView.showSubtitles(cues);
         }
       });
-      startVideo();
+      startVideo(true);
 
       MediaButtonEventReceiver.setMediaButtonEventHandler(
           new MediaButtonEventHandler(new Messenger(new MsgHandler(this))));
@@ -346,10 +371,33 @@ public class ExoVideoPlayer extends VideoPlayer {
     }
   }
 
-  private void startVideo() {
+  private void startVideo(boolean playWhenPrepared) {
     if (mVideoUri != null) {
+      if (playWhenPrepared) {
+        mInternalFlags |= $FLAG_PLAY_WHEN_PREPARED;
+      } else {
+        mInternalFlags &= ~$FLAG_PLAY_WHEN_PREPARED;
+      }
+
       setPlaybackState(PLAYBACK_STATE_PREPARING);
-      mExoPlayer.prepare(obtainMediaSourceFactory(mVideoUri).createMediaSource(mVideoUri));
+
+      MediaSource mediaSource = obtainMediaSourceFactory(mVideoUri).createMediaSource(mVideoUri);
+      if (mSubtitles != null && !mSubtitles.isEmpty()) {
+        int size = mSubtitles.size();
+        MediaSource[] mediaSources = new MediaSource[size + 1];
+        mediaSources[0] = mediaSource;
+        for (int i = 0; i < size; i++) {
+          Uri subtitleUri = mSubtitles.keyAt(i);
+          String[] subtitleData = mSubtitles.valueAt(i);
+          mediaSources[i + 1] = getSubtitleSourceFactory().createMediaSource(
+              subtitleUri,
+              Format.createTextSampleFormat(null, subtitleData[0], 0, subtitleData[1]),
+              C.TIME_UNSET);
+        }
+        mExoPlayer.prepare(new MergingMediaSource(mediaSources));
+      } else {
+        mExoPlayer.prepare(mediaSource);
+      }
     } else {
       setPlaybackState(PLAYBACK_STATE_IDLE);
     }
@@ -402,20 +450,30 @@ public class ExoVideoPlayer extends VideoPlayer {
   }
 
   @Override
-  protected void restartVideo(boolean saveTrackSelections) {
-    // First, resets mSeekOnPlay to 0 in case the ExoPlayer object is (being) released.
-    // This ensures the video to be started at its beginning position the next time it resumes.
-    mSeekOnPlay = 0;
+  protected void restartVideo(boolean restoreTrackSelections) {
+    restartVideo(restoreTrackSelections, false, true);
+  }
+
+  private void restartVideo(boolean restoreTrackSelections, boolean restorePlaybackPosition,
+                            boolean playWhenPrepared) {
+    if (!restorePlaybackPosition) {
+      // First, resets mSeekOnPlay to TIME_UNSET in case the ExoPlayer object is released.
+      // This ensures the video to be started at its beginning position the next time it resumes.
+      mSeekOnPlay = TIME_UNSET;
+    }
     if (mExoPlayer != null) {
-      if (saveTrackSelections) {
+      if (restorePlaybackPosition &&
+          mSeekOnPlay == TIME_UNSET && getPlaybackState() != PLAYBACK_STATE_COMPLETED) {
+        mSeekOnPlay = getVideoProgress();
+      }
+      if (restoreTrackSelections) {
         saveTrackSelections();
       }
       // Not clear the $FLAG_VIDEO_DURATION_DETERMINED flag
-      mInternalFlags &= ~($FLAG_VIDEO_PAUSED_BY_USER
-          | $FLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER);
+      mInternalFlags &= ~$FLAG_VIDEO_PAUSED_BY_USER;
       pause(false);
       resetExoPlayer();
-      startVideo();
+      startVideo(playWhenPrepared);
     }
   }
 
@@ -459,6 +517,7 @@ public class ExoVideoPlayer extends VideoPlayer {
 
       case PLAYBACK_STATE_ERROR:
         // Retries the failed playback after error occurred
+        mInternalFlags |= $FLAG_PLAY_WHEN_PREPARED;
         setPlaybackState(PLAYBACK_STATE_PREPARING);
         mExoPlayer.retry();
         break;
@@ -490,14 +549,13 @@ public class ExoVideoPlayer extends VideoPlayer {
               mExoPlayer.setVolume(1.0f);
             }
             mExoPlayer.setPlayWhenReady(true);
-            if (mSeekOnPlay != 0) {
+            if (mSeekOnPlay != TIME_UNSET) {
               seekToInternal(mSeekOnPlay);
-              mSeekOnPlay = 0;
+              mSeekOnPlay = TIME_UNSET;
             } else if (playbackState == PLAYBACK_STATE_COMPLETED) {
               seekToInternal(0);
             }
             mInternalFlags &= ~$FLAG_VIDEO_PAUSED_BY_USER;
-            mInternalFlags |= $FLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER;
             onVideoStarted();
 
             // Register MediaButtonEventReceiver every time the video starts, which
@@ -535,7 +593,7 @@ public class ExoVideoPlayer extends VideoPlayer {
     if (mExoPlayer != null) {
       final boolean playing = isPlaying();
 
-      if (getPlaybackState() != PLAYBACK_STATE_COMPLETED) {
+      if (mSeekOnPlay == TIME_UNSET && getPlaybackState() != PLAYBACK_STATE_COMPLETED) {
         mSeekOnPlay = getVideoProgress();
       }
       saveTrackSelections();
@@ -550,8 +608,6 @@ public class ExoVideoPlayer extends VideoPlayer {
       mExoPlayer = null;
       mTrackSelector = null;
       mTmpMediaSourceFactory = null;
-      // Not clear the $FLAG_VIDEO_DURATION_DETERMINED flag
-      mInternalFlags &= ~$FLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER;
       // Resets the cached playback speed to prepare for the next resume of the video player
       mPlaybackSpeed = DEFAULT_PLAYBACK_SPEED;
 
@@ -599,14 +655,17 @@ public class ExoVideoPlayer extends VideoPlayer {
   }
 
   private int getVideoProgress0() {
-    if ((mInternalFlags & $FLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER) != 0) {
-      return (int) mExoPlayer.getCurrentPosition();
+    if (mSeekOnPlay != TIME_UNSET) {
+      return mSeekOnPlay;
     }
     if (getPlaybackState() == PLAYBACK_STATE_COMPLETED) {
       // If the video completed and the ExoPlayer object was released, we would get 0.
       return mVideoDuration;
     }
-    return mSeekOnPlay;
+    if (mExoPlayer != null) {
+      return (int) mExoPlayer.getCurrentPosition();
+    }
+    return 0;
   }
 
   @Override
@@ -897,6 +956,22 @@ public class ExoVideoPlayer extends VideoPlayer {
         return true;
       default:
         return false;
+    }
+  }
+
+  @Override
+  public void addSubtitleSource(@NonNull Uri uri, @NonNull String mimeType, @Nullable String language) {
+    if (mSubtitles == null) {
+      mSubtitles = new SimpleArrayMap<>(1);
+    }
+    mSubtitles.put(uri, new String[]{mimeType, language});
+
+    if (mExoPlayer != null) {
+      final int playbackState = getPlaybackState();
+      final boolean playWhenPrepared =
+          playbackState == PLAYBACK_STATE_PREPARING && (mInternalFlags & $FLAG_PLAY_WHEN_PREPARED) != 0
+              || playbackState == PLAYBACK_STATE_PLAYING;
+      restartVideo(true, true, playWhenPrepared);
     }
   }
 

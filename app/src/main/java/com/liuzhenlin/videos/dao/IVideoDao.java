@@ -7,9 +7,11 @@ package com.liuzhenlin.videos.dao;
 
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Build;
 import android.provider.MediaStore;
 
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 
 import com.liuzhenlin.videos.model.Video;
 
@@ -24,6 +26,8 @@ public interface IVideoDao {
     String VIDEO_SIZE = MediaStore.Video.Media.SIZE;
     String VIDEO_DURATION = MediaStore.Video.Media.DURATION;
     String VIDEO_RESOLUTION = MediaStore.Video.Media.RESOLUTION;
+    @RequiresApi(Build.VERSION_CODES.Q)
+    String VIDEO_ORIENTATION = MediaStore.Video.Media.ORIENTATION;
 
     boolean insertVideo(@Nullable Video video);
 

@@ -10,8 +10,8 @@ android {
         applicationId "com.liuzhenlin.videos"
         minSdkVersion 14
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 36
-        versionName "1.9"
+        versionCode 36 // 36 -> 37
+        versionName "1.9.1-beta01"
 
         vectorDrawables.useSupportLibrary = true
 
@@ -55,10 +55,10 @@ dependencies {
 
     implementation 'com.google.code.gson:gson:2.8.6'
 
-    implementation 'com.sun.mail:android-mail:1.6.4'
-    implementation 'com.sun.mail:android-activation:1.6.4'
+    implementation 'com.sun.mail:android-mail:1.6.5'
+    implementation 'com.sun.mail:android-activation:1.6.5'
 
-    implementation 'androidx.exifinterface:exifinterface:1.1.0'
+    implementation 'androidx.exifinterface:exifinterface:1.2.0'
 
     debugImplementation 'com.squareup.leakcanary:leakcanary-android:1.6.3'
     releaseImplementation 'com.squareup.leakcanary:leakcanary-android-no-op:1.6.3'

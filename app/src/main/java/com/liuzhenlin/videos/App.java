@@ -29,8 +29,6 @@ public class App extends Application {
 
     private static App sApp;
 
-    private static volatile String sAppDirectory;
-
     private volatile String mAuthority;
 
     private int mStatusHeight;
@@ -82,16 +80,13 @@ public class App extends Application {
     }
 
     @NonNull
-    public static String getAppDirectory() {
-        if (sAppDirectory == null) {
-            synchronized (App.class) {
-                if (sAppDirectory == null) {
-                    sAppDirectory = Environment.getExternalStorageDirectory() + File.separator
-                            + "videos_lzl";
-                }
-            }
+    public static File getAppExternalFilesDir() {
+        File dir = new File(Environment.getExternalStorageDirectory(), "videos_lzl");
+        if (!dir.exists()) {
+            //noinspection ResultOfMethodCallIgnored
+            dir.mkdirs();
         }
-        return sAppDirectory;
+        return dir;
     }
 
     @NonNull

@@ -12,6 +12,7 @@ import android.media.AudioManager;
 import android.media.MediaFormat;
 import android.media.MediaPlayer;
 import android.media.PlaybackParams;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Messenger;
 import android.util.Log;
@@ -55,19 +56,14 @@ public class SystemVideoPlayer extends VideoPlayer {
   private static final int $FLAG_VIDEO_VOLUME_TURNED_DOWN_AUTOMATICALLY = 1 << 31;
 
   /**
-   * Flag indicates that a position seek request happens when the video is not playing.
-   */
-  private static final int $FLAG_SEEK_POSITION_WHILE_VIDEO_PAUSED = 1 << 30;
-
-  /**
    * If true, MediaPlayer is moving the media to some specified time position
    */
-  private static final int $FLAG_SEEKING = 1 << 29;
+  private static final int $FLAG_SEEKING = 1 << 30;
 
   /**
    * If true, MediaPlayer is temporarily pausing playback internally in order to buffer more data.
    */
-  private static final int $FLAG_BUFFERING = 1 << 28;
+  private static final int $FLAG_BUFFERING = 1 << 29;
 
   private MediaPlayer mMediaPlayer;
 
@@ -146,7 +142,7 @@ public class SystemVideoPlayer extends VideoPlayer {
   }
 
   @Override
-  public void setVideoResourceId(@RawRes int resId) {
+  public final void setVideoResourceId(@RawRes int resId) {
     setVideoPath(resId == 0 ? null : "android.resource://" + mContext.getPackageName() + "/" + resId);
   }
 
@@ -335,17 +331,16 @@ public class SystemVideoPlayer extends VideoPlayer {
   }
 
   @Override
-  protected void restartVideo(boolean saveTrackSelections) {
-    // First, resets mSeekOnPlay to 0 in case the MediaPlayer object is (being) released.
+  protected void restartVideo(boolean restoreTrackSelections) {
+    // First, resets mSeekOnPlay to TIME_UNSET in case the MediaPlayer object is released.
     // This ensures the video to be started at its beginning position the next time it resumes.
-    mSeekOnPlay = 0;
+    mSeekOnPlay = TIME_UNSET;
     if (mMediaPlayer != null) {
-      if (saveTrackSelections) {
+      if (restoreTrackSelections) {
         saveTrackSelections();
       }
       // Not clear the $FLAG_VIDEO_DURATION_DETERMINED flag
       mInternalFlags &= ~($FLAG_VIDEO_PAUSED_BY_USER
-          | $FLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER
           | $FLAG_SEEKING
           | $FLAG_BUFFERING);
       // Resets below to prepare for the next resume of the video player
@@ -395,13 +390,12 @@ public class SystemVideoPlayer extends VideoPlayer {
         mInternalFlags &= ~($FLAG_SEEKING | $FLAG_BUFFERING);
         mPlaybackSpeed = DEFAULT_PLAYBACK_SPEED;
         mBuffering = 0;
-        if ((mInternalFlags & $FLAG_SEEK_POSITION_WHILE_VIDEO_PAUSED) == 0) {
+        if (mSeekOnPlay == TIME_UNSET) {
           // Record the current playback position only if there is no external program code
           // requesting a position seek in this case.
           mSeekOnPlay = getVideoProgress();
         }
         saveTrackSelections();
-        mInternalFlags &= ~$FLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER;
         stopVideo();
         startVideo();
         break;
@@ -430,9 +424,9 @@ public class SystemVideoPlayer extends VideoPlayer {
           case AudioManager.AUDIOFOCUS_REQUEST_GRANTED:
             mMediaPlayer.start();
             // Position seek each time works correctly only if the player engine is started
-            if (mSeekOnPlay != 0) {
+            if (mSeekOnPlay != TIME_UNSET) {
               seekToInternal(mSeekOnPlay);
-              mSeekOnPlay = 0;
+              mSeekOnPlay = TIME_UNSET;
             }
             if (mUserPlaybackSpeed != mPlaybackSpeed) {
               setPlaybackSpeedInternal(mUserPlaybackSpeed);
@@ -443,7 +437,6 @@ public class SystemVideoPlayer extends VideoPlayer {
               mMediaPlayer.setVolume(1.0f, 1.0f);
             }
             mInternalFlags &= ~$FLAG_VIDEO_PAUSED_BY_USER;
-            mInternalFlags |= $FLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER;
             onVideoStarted();
 
             // Register MediaButtonEventReceiver every time the video starts, which
@@ -481,7 +474,7 @@ public class SystemVideoPlayer extends VideoPlayer {
     if (mMediaPlayer != null) {
       final boolean playing = isPlaying();
 
-      if (getPlaybackState() != PLAYBACK_STATE_COMPLETED) {
+      if (mSeekOnPlay == TIME_UNSET && getPlaybackState() != PLAYBACK_STATE_COMPLETED) {
         mSeekOnPlay = getVideoProgress();
       }
       saveTrackSelections();
@@ -497,8 +490,7 @@ public class SystemVideoPlayer extends VideoPlayer {
       // Not clear the $FLAG_VIDEO_DURATION_DETERMINED flag
       mInternalFlags &= ~($FLAG_VIDEO_VOLUME_TURNED_DOWN_AUTOMATICALLY
           | $FLAG_SEEKING
-          | $FLAG_BUFFERING
-          | $FLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER);
+          | $FLAG_BUFFERING);
       // Resets below to prepare for the next resume of the video player
       mPlaybackSpeed = DEFAULT_PLAYBACK_SPEED;
       mBuffering = 0;
@@ -534,10 +526,8 @@ public class SystemVideoPlayer extends VideoPlayer {
     if (isPlaying()) {
       seekToInternal(positionMs);
     } else {
-      mInternalFlags |= $FLAG_SEEK_POSITION_WHILE_VIDEO_PAUSED;
       mSeekOnPlay = positionMs;
       play(fromUser);
-      mInternalFlags &= ~$FLAG_SEEK_POSITION_WHILE_VIDEO_PAUSED;
     }
   }
 
@@ -546,7 +536,7 @@ public class SystemVideoPlayer extends VideoPlayer {
    */
   private void seekToInternal(int positionMs) {
     // Unable to seek while streaming live content
-    if (mVideoDuration != NO_DURATION) {
+    if (mVideoDuration != TIME_UNSET) {
       if ((mInternalFlags & $FLAG_BUFFERING) == 0) {
         if (mVideoView != null)
           mVideoView.showLoadingView(true);
@@ -569,6 +559,9 @@ public class SystemVideoPlayer extends VideoPlayer {
   }
 
   private int getVideoProgress0() {
+    if (mSeekOnPlay != TIME_UNSET) {
+      return mSeekOnPlay;
+    }
     if (getPlaybackState() == PLAYBACK_STATE_COMPLETED) {
       // 1. If the video completed and the MediaPlayer object was released, we would get 0.
       // 2. The playback position from the MediaPlayer, usually, is not the duration of the video
@@ -576,10 +569,10 @@ public class SystemVideoPlayer extends VideoPlayer {
       // case of which instead, here is the duration returned to avoid progress inconsistencies.
       return mVideoDuration;
     }
-    if ((mInternalFlags & $FLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER) != 0) {
+    if (mMediaPlayer != null) {
       return mMediaPlayer.getCurrentPosition();
     }
-    return mSeekOnPlay;
+    return 0;
   }
 
   @Override
@@ -636,7 +629,6 @@ public class SystemVideoPlayer extends VideoPlayer {
 //    }
 //  }
 
-  @SuppressWarnings("BooleanMethodIsAlwaysInverted")
   private boolean supportTrackSelection() {
     return Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN && mMediaPlayer != null;
   }
@@ -852,6 +844,26 @@ public class SystemVideoPlayer extends VideoPlayer {
       index = -1;
     }
     return index >= 0 ? index : INVALID_TRACK_INDEX;
+  }
+
+  @Override
+  public void addSubtitleSource(@NonNull Uri uri, @NonNull String mimeType, @Nullable String language) {
+    if (supportTrackSelection()) {
+      try {
+        //@throws IllegalStateException if called in an invalid state.
+        mMediaPlayer.addTimedTextSource(mContext, uri, mimeType);
+      } catch (IllegalArgumentException e) {
+        final String msg = e.getMessage();
+        if (msg != null && msg.startsWith("Illegal mimeType")) {
+          Log.e(TAG, "",
+              new IllegalArgumentException("Illegal mimeType for subtitle source: " + mimeType));
+        }
+      } catch (RuntimeException ignored) {
+        //
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
   }
 
   @Override

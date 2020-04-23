@@ -16,7 +16,6 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.IBinder;
@@ -33,7 +32,6 @@ import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 import androidx.appcompat.app.AppCompatDialog;
 import androidx.core.app.NotificationCompat;
-import androidx.core.content.FileProvider;
 import androidx.core.util.ObjectsCompat;
 
 import com.google.gson.JsonArray;
@@ -84,7 +82,7 @@ public final class MergeAppUpdateChecker {
     private static final int TIMEOUT_READ = 30 * 1000; // ms
 
     private static final String LINK_APP_INFOS =
-            "https://gitee.com/lzl_s/Videos-Service/raw/master/app/Android/app.json";
+            "https://gitee.com/lzl_s/Videos-Server/raw/master/app/Android/app.json";
 
     private String mAppName;
     private String mVersionName;
@@ -424,11 +422,7 @@ public final class MergeAppUpdateChecker {
         // with background work
         private static final int COUNT_DOWNLOAD_APP_TASK = Math.max(2, Math.min(CPU_COUNT - 1, 4));
 
-        private final ExecutorService mDownloadAppExecutor =
-                Build.VERSION.SDK_INT > Build.VERSION_CODES.N
-                        ? Executors.newWorkStealingPool(COUNT_DOWNLOAD_APP_TASK)
-                        : Executors.newFixedThreadPool(COUNT_DOWNLOAD_APP_TASK);
-
+        private ExecutorService mDownloadAppExecutor;
         private List<DownloadAppPartTask> mDownloadAppPartTasks;
         private String[] mAppPartLinks;
         private File[] mApkParts;
@@ -478,13 +472,7 @@ public final class MergeAppUpdateChecker {
             mReceiver = new CancelAppUpdateReceiver();
             registerReceiver(mReceiver, new IntentFilter(CancelAppUpdateReceiver.ACTION));
 
-            final String dirPath = App.getAppDirectory();
-            File dir = new File(dirPath);
-            if (!dir.exists()) {
-                //noinspection ResultOfMethodCallIgnored
-                dir.mkdirs();
-            }
-            mApk = new File(dir,
+            mApk = new File(App.getAppExternalFilesDir(),
                     intent.getStringExtra(EXTRA_APP_NAME) + " "
                             + intent.getStringExtra(EXTRA_VERSION_NAME).replace(".", "_")
                             + ".apk");
@@ -507,6 +495,9 @@ public final class MergeAppUpdateChecker {
             mAppPartLinks = intent.getStringArrayExtra(EXTRA_APP_PART_LINKS);
             mApkParts = new File[mAppPartLinks.length];
             mDownloadAppPartTasks = new ArrayList<>(mApkParts.length);
+            mDownloadAppExecutor = Build.VERSION.SDK_INT > Build.VERSION_CODES.N
+                    ? Executors.newWorkStealingPool(COUNT_DOWNLOAD_APP_TASK)
+                    : Executors.newFixedThreadPool(COUNT_DOWNLOAD_APP_TASK);
             for (int i = 0; i < mApkParts.length; i++) {
                 mApkParts[i] = new File(mApk.getPath().replace(".apk", i + ".apk"));
                 mDownloadAppPartTasks.add(new DownloadAppPartTask());
@@ -533,7 +524,7 @@ public final class MergeAppUpdateChecker {
             if (!mCanceled.getAndSet(true)) {
                 if (mRunning) {
                     cancel();
-                } else {
+                } else if (mDownloadAppExecutor != null) {
                     mDownloadAppExecutor.shutdown();
                 }
             }
@@ -543,23 +534,27 @@ public final class MergeAppUpdateChecker {
         }
 
         private void cancel() {
-            if (mDownloadAppPartTasks != null) {
-                for (DownloadAppPartTask task : mDownloadAppPartTasks) {
-                    task.cancel(false);
+            if (mDownloadAppExecutor != null) {
+                if (mDownloadAppPartTasks != null) {
+                    for (DownloadAppPartTask task : mDownloadAppPartTasks) {
+                        task.cancel(false);
+                    }
                 }
+                mDownloadAppExecutor.shutdown();
             }
-            mDownloadAppExecutor.shutdown();
 
-            deleteApk();
+            deleteApkParts();
 
             stopService();
             mNotificationManager.cancel(ID_NOTIFICATION);
         }
 
-        private void deleteApk() {
-            if (mApk != null) {
-                //noinspection ResultOfMethodCallIgnored
-                mApk.delete();
+        private void deleteApkParts() {
+            if (mApkParts != null) {
+                for (File apkPart : mApkParts) {
+                    //noinspection ResultOfMethodCallIgnored
+                    apkPart.delete();
+                }
             }
         }
 
@@ -728,16 +723,7 @@ public final class MergeAppUpdateChecker {
                 return;
             }
 
-            Intent it = new Intent(Intent.ACTION_VIEW).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            // Android 7.0 共享文件需要通过 FileProvider 添加临时权限，否则系统会抛出 FileUriExposedException.
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                it.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                Uri contentUri = FileProvider.getUriForFile(
-                        mContext, App.getInstance(mContext).getAuthority(), apk);
-                it.setDataAndType(contentUri, "application/vnd.android.package-archive");
-            } else {
-                it.setDataAndType(Uri.fromFile(apk), "application/vnd.android.package-archive");
-            }
+            Intent it = Utils.createPackageInstaller(mContext, apk);
 
 //                mContext.startActivity(it); // MIUI默认应用在后台时无法弹出界面
 

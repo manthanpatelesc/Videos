@@ -5,6 +5,7 @@
 
 package com.liuzhenlin.videos.dao;
 
+import android.annotation.SuppressLint;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
@@ -45,9 +46,25 @@ public final class VideoListItemDao implements IVideoListItemDao {
     private final ContentResolver mContentResolver;
     private final SQLiteDatabase mDataBase;
 
-    private static final String[] PROJECTION_VIDEO_URI = {
-            VIDEO_ID, VIDEO_NAME, VIDEO_PATH, VIDEO_SIZE, VIDEO_DURATION, VIDEO_RESOLUTION
-    };
+    private static final String[] PROJECTION_VIDEO_URI =
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q //@formatter:off
+                    ? new String[]{
+                            VIDEO_ID,
+                            VIDEO_NAME,
+                            VIDEO_PATH,
+                            VIDEO_SIZE,
+                            VIDEO_DURATION,
+                            VIDEO_RESOLUTION,
+                            VIDEO_ORIENTATION
+                    }
+                    : new String[]{
+                            VIDEO_ID,
+                            VIDEO_NAME,
+                            VIDEO_PATH,
+                            VIDEO_SIZE,
+                            VIDEO_DURATION,
+                            VIDEO_RESOLUTION
+                    }; //@formatter:on
 
     private static String sResolutionSeparator;
     private static final String SEPARATOR_LOWERCASE_X = "x";
@@ -284,6 +301,7 @@ public final class VideoListItemDao implements IVideoListItemDao {
     }
 
 //    @RecentlyNonNull
+    @SuppressLint("NewApi")
     public Video buildVideo(@NonNull Cursor cursor) {
         Video video = new Video();
 
@@ -329,6 +347,14 @@ public final class VideoListItemDao implements IVideoListItemDao {
                         }
                         video.setWidth(Integer.parseInt(resolution.substring(0, separatorIndex)));
                         video.setHeight(Integer.parseInt(resolution.substring(separatorIndex + 1)));
+                    }
+                    break;
+                case VIDEO_ORIENTATION:
+                    final int orientation = cursor.getInt(i);
+                    if (orientation == 90 || orientation == 270) {
+                        int swap = video.getWidth();
+                        video.setWidth(video.getHeight());
+                        video.setHeight(swap);
                     }
                     break;
             }

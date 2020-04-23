@@ -22,7 +22,7 @@ import java.util.*
  */
 
 inline val Fragment.contextThemedFirst get() = activity ?: contextRequired
-inline val Fragment.contextRequired get() = requireContext()
+inline val Fragment.contextRequired get() = context ?: App.getInstanceUnsafe()!!
 
 private val sVideoListItemComparator = Comparator<VideoListItem> { item, item2 ->
     if (item is Video) {

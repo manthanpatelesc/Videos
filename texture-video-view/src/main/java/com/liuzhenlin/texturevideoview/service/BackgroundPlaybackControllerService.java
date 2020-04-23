@@ -13,6 +13,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
@@ -59,6 +60,8 @@ public class BackgroundPlaybackControllerService extends Service {
     private String mPause;
     private String mPkgName;
     private Bitmap mAppIcon;
+    private int mThumbMaxWidth;
+    private int mThumbMaxHeight;
     @ColorInt
     private static int sNotificationActionIconTint = -1;
 
@@ -127,10 +130,13 @@ public class BackgroundPlaybackControllerService extends Service {
     @Override
     protected void attachBaseContext(Context base) {
         super.attachBaseContext(base);
-        mPlay = getString(R.string.play);
-        mPause = getString(R.string.pause);
+        Resources res = getResources();
+        mPlay = res.getString(R.string.play);
+        mPause = res.getString(R.string.pause);
         mPkgName = getPackageName();
         mAppIcon = BitmapUtils.drawableToBitmap(getApplicationInfo().loadIcon(getPackageManager()));
+        mThumbMaxWidth = res.getDimensionPixelSize(R.dimen.notification_thumb_max_width);
+        mThumbMaxHeight = res.getDimensionPixelSize(R.dimen.notification_thumb_max_height);
         if (sNotificationActionIconTint == -1) {
             sNotificationActionIconTint =
                     new TextAppearanceSpan(this, R.style.TextAppearance_Compat_Notification_Media)
@@ -181,6 +187,8 @@ public class BackgroundPlaybackControllerService extends Service {
             Glide.with(this)
                     .asBitmap()
                     .load(mediaUri.toString())
+                    .override(mThumbMaxWidth, mThumbMaxHeight)
+                    .fitCenter()
                     .into(mGlideTarget);
         }
         resetNotificationView();
@@ -325,7 +333,12 @@ public class BackgroundPlaybackControllerService extends Service {
             if (uri == null) {
                 rm.clear(mGlideTarget);
             } else {
-                rm.asBitmap().load(uri.toString()).into(mGlideTarget);
+                rm
+                        .asBitmap()
+                        .load(uri.toString())
+                        .override(mThumbMaxWidth, mThumbMaxHeight)
+                        .fitCenter()
+                        .into(mGlideTarget);
             }
         }
 

@@ -107,7 +107,6 @@ public class FileUtils2 {
             while ((i = in.read(bytes)) != -1) {
                 out.write(bytes, 0, i);
             }
-            out.flush();
 
             return true;
         } catch (IOException e) {
@@ -269,39 +268,34 @@ public class FileUtils2 {
     // 计算文件的 MD5 值
     @Nullable
     public static String getFileMD5(@Nullable File file) {
-        if (file == null || !file.isFile()) {
-            return null;
-        }
-
-        InputStream in = null;
-        try {
-            in = new FileInputStream(file);
-
-            MessageDigest digest = MessageDigest.getInstance("MD5");
-
-            int len;
-            final byte[] buffer = new byte[8 * 1024];
-            while ((len = in.read(buffer)) != -1) {
-                digest.update(buffer, 0, len);
-            }
-            return new BigInteger(1, digest.digest()).toString(16);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        } finally {
-            if (in != null) {
-                try {
-                    in.close();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        }
+        return getFileDigest(file, "MD5");
     }
 
     // 计算文件的 SHA-1 值
     @Nullable
     public static String getFileSha1(@Nullable File file) {
+        return getFileDigest(file, "SHA-1");
+    }
+
+    // 计算文件的 SHA-256 值
+    @Nullable
+    public static String getFileSha256(@Nullable File file) {
+        return getFileDigest(file, "SHA-256");
+    }
+
+    // 计算文件的 SHA-384 值
+    @Nullable
+    public static String getFileSha384(@Nullable File file) {
+        return getFileDigest(file, "SHA-384");
+    }
+
+    // 计算文件的 SHA-512 值
+    @Nullable
+    public static String getFileSha512(@Nullable File file) {
+        return getFileDigest(file, "SHA-512");
+    }
+
+    private static String getFileDigest(File file, String algorithm) {
         if (file == null || !file.isFile()) {
             return null;
         }
@@ -310,7 +304,7 @@ public class FileUtils2 {
         try {
             in = new FileInputStream(file);
 
-            MessageDigest digest = MessageDigest.getInstance("SHA-1");
+            MessageDigest digest = MessageDigest.getInstance(algorithm);
 
             int len;
             final byte[] buffer = new byte[8 * 1024];
@@ -325,7 +319,7 @@ public class FileUtils2 {
             if (in != null) {
                 try {
                     in.close();
-                } catch (Exception e) {
+                } catch (IOException e) {
                     //
                 }
             }

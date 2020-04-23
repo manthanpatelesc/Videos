@@ -16,9 +16,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.net.Uri;
 import android.os.AsyncTask;
-import android.os.Build;
 import android.os.IBinder;
 import android.os.Message;
 import android.util.Log;
@@ -33,7 +31,6 @@ import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 import androidx.appcompat.app.AppCompatDialog;
 import androidx.core.app.NotificationCompat;
-import androidx.core.content.FileProvider;
 import androidx.core.util.ObjectsCompat;
 
 import com.google.gson.JsonElement;
@@ -518,13 +515,7 @@ public final class AppUpdateChecker {
                         onDownloadError();
 
                     } else {
-                        final String dirPath = App.getAppDirectory();
-                        File dir = new File(dirPath);
-                        if (!dir.exists()) {
-                            //noinspection ResultOfMethodCallIgnored
-                            dir.mkdirs();
-                        }
-                        mApk = new File(dir,
+                        mApk = new File(App.getAppExternalFilesDir(),
                                 strings[INDEX_APP_NAME] + " "
                                         + strings[INDEX_VERSION_NAME].replace(".", "_")
                                         + ".apk");
@@ -779,16 +770,7 @@ public final class AppUpdateChecker {
                     return;
                 }
 
-                Intent it = new Intent(Intent.ACTION_VIEW).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                // Android 7.0 共享文件需要通过 FileProvider 添加临时权限，否则系统会抛出 FileUriExposedException.
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                    it.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                    Uri contentUri = FileProvider.getUriForFile(
-                            mContext, App.getInstance(mContext).getAuthority(), apk);
-                    it.setDataAndType(contentUri, "application/vnd.android.package-archive");
-                } else {
-                    it.setDataAndType(Uri.fromFile(apk), "application/vnd.android.package-archive");
-                }
+                Intent it = Utils.createPackageInstaller(mContext, apk);
 
 //                mContext.startActivity(it); // MIUI默认应用在后台时无法弹出界面
 

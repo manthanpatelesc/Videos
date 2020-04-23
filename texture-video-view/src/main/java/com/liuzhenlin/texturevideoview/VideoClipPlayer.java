@@ -162,9 +162,10 @@ import java.io.IOException;
         @Override
         public int getDuration() {
             if (mVlcPlayer != null) {
-                return (int) mVlcPlayer.getLength();
+                final long duration = mVlcPlayer.getLength();
+                return duration == 0L ? -1 : (int) duration;
             }
-            return 0;
+            return -1;
         }
 
         @Override
@@ -277,9 +278,10 @@ import java.io.IOException;
         @Override
         public int getDuration() {
             if (mExoPlayer != null) {
-                return (int) mExoPlayer.getDuration();
+                final long duration = mExoPlayer.getDuration();
+                return duration == C.TIME_UNSET ? -1 : (int) duration;
             }
-            return (int) C.TIME_UNSET;
+            return -1;
         }
 
         @Override

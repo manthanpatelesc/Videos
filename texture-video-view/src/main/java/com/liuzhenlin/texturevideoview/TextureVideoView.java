@@ -277,7 +277,7 @@ import java.util.List;
  *             // (the primary external storage directory concatenating with this application name).
  *             &#064;Nullable
  *             &#064;Override
- *             public String getFileOutputDirectory() {
+ *             public String getAppExternalFilesDir() {
  *                 return null;
  *             }
  *         });
@@ -368,7 +368,8 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
         }
 
         /**
-         * Gets the base directory used to store the captured video photos or cutout short-videos/GIFs.
+         * Gets the base external storage directory for your app to store the captured video photos
+         * or cutout short-videos/GIFs.
          * <p>
          * If the returned value is nonnull, the final storage directory will be the directory
          * with `/screenshots`, '/clips/ShortVideos' or '/clips/GIFs' appended,
@@ -376,7 +377,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
          * will be created (if it does not exist) as the basis.
          */
         @Nullable
-        default String getFileOutputDirectory() {
+        default String getAppExternalFilesDir() {
             return null;
         }
     }
@@ -450,13 +451,8 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
     /** If the controls are showing, this is marked into {@link #mPrivateFlags}. */
     private static final int PFLAG_CONTROLS_SHOWING = 1;
 
-    /**
-     * Once set, the controls will stay showing even if you call {@link #showControls(boolean)}
-     * with a `false` passed into (in this case, it does nothing), and the internal will
-     * manage them logically. This usually happens when user is interacting with some basic widget
-     * (e.g., dragging the video progress bar or choosing a proper speed for the current player).
-     */
-    private static final int PFLAG_CONTROLS_SHOW_STICKILY = 1 << 1;
+    /** Once set, any method call to {@link #showControls(boolean, boolean)} will do thing. */
+    private static final int PFLAG_IGNORE_SHOW_CONTROLS_METHOD_CALLS = 1 << 1;
 
     /** Set by {@link #setLocked(boolean, boolean)} */
     private static final int PFLAG_LOCKED = 1 << 2;
@@ -482,9 +478,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
     /** Set via {@link #setCanSkipToNext(boolean)} */
     private static final int PFLAG_CAN_SKIP_TO_NEXT = 1 << 8;
 
-    /**
-     * The last aggregated visibility. Used to detect when it truly changes.
-     */
+    /** The last aggregated visibility. Used to detect when it truly changes. */
     private static final int PFLAG_AGGREGATED_VISIBLE = 1 << 9;
 
     @ViewMode
@@ -829,13 +823,16 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
             @Override
             public void onDrawerSlide(@NonNull View drawerView, float slideOffset) {
                 if (scrollState == STATE_SETTLING) {
+                    // NOTE: showControls(boolean) will not work in the case that the drawer is visible.
                     if (slideOffset < 0.5f && slideOffset < this.slideOffset) {
                         if (!isControlsShowing()) {
+                            mPrivateFlags &= ~PFLAG_IGNORE_SHOW_CONTROLS_METHOD_CALLS;
                             showControls(true);
                         }
                     } else if (slideOffset > 0.5f && slideOffset > this.slideOffset) {
                         if (isControlsShowing()) {
                             showControls(false);
+                            mPrivateFlags |= PFLAG_IGNORE_SHOW_CONTROLS_METHOD_CALLS;
                         }
                     }
                 }
@@ -852,7 +849,9 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                                 final int state = sOpenStateField.getInt(mDrawerView.getLayoutParams());
                                 if ((state & FLAG_IS_OPENING) != 0) {
                                     showControls(false);
+                                    mPrivateFlags |= PFLAG_IGNORE_SHOW_CONTROLS_METHOD_CALLS;
                                 } else if ((state & FLAG_IS_CLOSING) != 0) {
+                                    mPrivateFlags &= ~PFLAG_IGNORE_SHOW_CONTROLS_METHOD_CALLS;
                                     showControls(true);
                                 }
                             } catch (IllegalAccessException e) {
@@ -880,8 +879,9 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
             }
         });
 
-        mContentView.setOnTouchListener(mOnChildTouchListener);
         mContentView.setTouchInterceptor(mOnChildTouchListener);
+        mContentView.setOnTouchListener(mOnChildTouchListener);
+        mDrawerView.setOnTouchListener(mOnChildTouchListener);
 
         mTitleText.setOnClickListener(mOnChildClickListener);
         mShareButton.setOnClickListener(mOnChildClickListener);
@@ -1002,8 +1002,8 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                         }
                         // Filter the non-user-triggered selection changes, so that the visibility of
                         // the controls stay unchanged.
-                        if ((mPrivateFlags & PFLAG_CONTROLS_SHOW_STICKILY) != 0) {
-                            mPrivateFlags &= ~PFLAG_CONTROLS_SHOW_STICKILY;
+                        if ((mPrivateFlags & PFLAG_IGNORE_SHOW_CONTROLS_METHOD_CALLS) != 0) {
+                            mPrivateFlags &= ~PFLAG_IGNORE_SHOW_CONTROLS_METHOD_CALLS;
                             showControls(true, false);
                             checkCameraButtonsVisibilities();
                         }
@@ -1214,7 +1214,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
             if (lastVideoPlayer.mVideoWidth != 0 || lastVideoPlayer.mVideoHeight != 0) {
                 videoPlayer.onVideoSizeChanged(lastVideoPlayer.mVideoWidth, lastVideoPlayer.mVideoHeight);
             }
-            if (lastVideoPlayer.mVideoDuration != IVideoPlayer.NO_DURATION) {
+            if (lastVideoPlayer.mVideoDuration != IVideoPlayer.TIME_UNSET) {
                 videoPlayer.onVideoDurationChanged(lastVideoPlayer.mVideoDuration);
                 videoPlayer.seekTo(lastVideoPlayer.getVideoProgress(), false);
             }
@@ -1893,7 +1893,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
      * @param animate whether to fade in/out the controls smoothly or not
      */
     public void showControls(boolean show, boolean animate) {
-        if ((mPrivateFlags & PFLAG_CONTROLS_SHOW_STICKILY) != 0 || isDrawerVisible(mDrawerView)) {
+        if ((mPrivateFlags & PFLAG_IGNORE_SHOW_CONTROLS_METHOD_CALLS) != 0) {
             return;
         }
         if (show) {
@@ -2097,7 +2097,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                 checkCameraButtonAbility();
                 mVideoCameraButton.setEnabled(vp != null
                         && vp.mVideoWidth != 0 && vp.mVideoHeight != 0
-                        && vp.mVideoDuration != IVideoPlayer.NO_DURATION);
+                        && vp.mVideoDuration != IVideoPlayer.TIME_UNSET);
             }
         } else {
             mMinimizeButton.setEnabled(vp != null && vp.mVideoWidth != 0 && vp.mVideoHeight != 0);
@@ -2213,14 +2213,14 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                     mVideoPlayer.pause(true);
                 }
 
-                final String fileOutputDirectory = obtainFileOutputDirectory();
+                final String appExternalFilesDir = obtainAppExternalFilesDir();
                 mSaveCapturedPhotoTask = new AsyncTask<Void, Void, File>() {
                     @SuppressLint("SimpleDateFormat")
                     @Override
                     public File doInBackground(Void... voids) {
                         return FileUtils.saveBitmapToDisk(mContext,
                                 bitmap, Bitmap.CompressFormat.PNG, 100,
-                                fileOutputDirectory + "/screenshots",
+                                appExternalFilesDir + "/screenshots",
                                 mTitle + "_"
                                         + new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss-SSS") //@formatter:off
                                                 .format(System.currentTimeMillis()) //@formatter:on
@@ -2331,10 +2331,10 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
         content.startAnimation(animation);
     }
 
-    private String obtainFileOutputDirectory() {
+    private String obtainAppExternalFilesDir() {
         String directory = null;
         if (mOpCallback != null) {
-            directory = mOpCallback.getFileOutputDirectory();
+            directory = mOpCallback.getAppExternalFilesDir();
         }
         if (directory == null) {
             directory = Environment.getExternalStorageDirectory() + "/" + mAppName;
@@ -2349,7 +2349,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
         VideoPlayer videoPlayer = mVideoPlayer;
         // Not available when video info is waiting to be known
         if (videoPlayer == null
-                || videoPlayer.mVideoDuration == IVideoPlayer.NO_DURATION
+                || videoPlayer.mVideoDuration == IVideoPlayer.TIME_UNSET
                 || (videoPlayer.mVideoWidth == 0 || videoPlayer.mVideoHeight == 0)) {
             return;
         }
@@ -2432,7 +2432,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                     return;
                 }
 
-                final String destDirectory = obtainFileOutputDirectory()
+                final String destDirectory = obtainAppExternalFilesDir()
                         + "/clips/" + (cutoutShortVideo ? "ShortVideos" : "GIFs");
                 final String destName = mTitle + "_"
                         + new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss-SSS") //@formatter:off
@@ -2818,19 +2818,27 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
 
             @Override
             public boolean onDown(MotionEvent e) {
-                return isLocked() || isSpinnerPopupShowing();
+                return isLocked() || isSpinnerPopupShowing() /*|| isDrawerVisible(mDrawerView)*/;
             }
 
             @Override
             public boolean onSingleTapUp(MotionEvent e) {
-                return isLocked() || isSpinnerPopupShowing();
+                if (isLocked() || isSpinnerPopupShowing()) {
+                    return true;
+                }
+                if (isDrawerVisible(mDrawerView)) {
+                    closeDrawer(mDrawerView);
+                    return true;
+                }
+                return false;
             }
 
             @Override
             public boolean onSingleTapConfirmed(MotionEvent e) {
                 if (isSpinnerPopupShowing()) {
                     dismissSpinnerPopup();
-                } else {
+
+                } else if (!isDrawerVisible(mDrawerView)) {
                     showControls(!isControlsShowing());
                 }
                 return true;
@@ -2838,13 +2846,10 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
 
             @Override
             public boolean onDoubleTap(MotionEvent e) {
-                if (isLocked()) {
-                    return true;
-                }
                 if (isSpinnerPopupShowing()) {
                     dismissSpinnerPopup();
 
-                } else if (mVideoPlayer != null) {
+                } else if (mVideoPlayer != null && !(isLocked() || isDrawerVisible(mDrawerView))) {
                     mVideoPlayer.toggle(true);
                 }
                 return true;
@@ -2857,12 +2862,12 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
 
             @Override
             public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
-                return isLocked() || isSpinnerPopupShowing();
+                return isLocked() || isSpinnerPopupShowing() /*|| isDrawerVisible(mDrawerView)*/;
             }
 
             @Override
             public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-                return isLocked() /*|| isSpinnerPopupShowing()*/;
+                return isLocked() /*|| isSpinnerPopupShowing() || isDrawerVisible(mDrawerView)*/;
             }
         });
 
@@ -2891,6 +2896,8 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
         public boolean onTouch(View v, MotionEvent event) {
             if (v == mContentView) {
                 return onTouchContent(event);
+            } else if (v == mDrawerView) {
+                return onTouchDrawerTransparentArea(event);
             } else if (v == mSpeedSpinner) {
                 return onTouchSpinner(event);
             }
@@ -2939,7 +2946,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
 
         @SuppressLint("ClickableViewAccessibility")
         void onClickSpinner() {
-            mPrivateFlags |= PFLAG_CONTROLS_SHOW_STICKILY;
+            mPrivateFlags |= PFLAG_IGNORE_SHOW_CONTROLS_METHOD_CALLS;
             showControls(-1, true);
             checkCameraButtonsVisibilities();
 
@@ -2985,14 +2992,14 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                 // This is a little bit of a hack, but... we need to get notified when the spinner's
                 // popup window dismisses, so as not to cause the controls unhiddable (even if
                 // the client calls showControls(false), it does nothing for the
-                // PFLAG_CONTROLS_SHOW_STICKILY flag keeps it from doing what the client wants).
+                // PFLAG_IGNORE_SHOW_CONTROLS_METHOD_CALLS flag keeps it from doing what the client wants).
                 mSpinnerPopup.setOnDismissListener(() -> {
                     // First, lets the internal one get notified to release some related resources
                     listener.onDismiss();
 
                     // Then, do what we want (hide the controls in both the vertical ends after
                     // a delay of 5 seconds)
-                    mPrivateFlags &= ~PFLAG_CONTROLS_SHOW_STICKILY;
+                    mPrivateFlags &= ~PFLAG_IGNORE_SHOW_CONTROLS_METHOD_CALLS;
                     showControls(true, false);
                     checkCameraButtonsVisibilities();
 
@@ -3002,6 +3009,11 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
             } catch (IllegalAccessException e) {
                 e.printStackTrace();
             }
+        }
+
+        boolean onTouchDrawerTransparentArea(MotionEvent event) {
+            detector.onTouchEvent(event);
+            return true;
         }
 
         boolean onTouchContent(MotionEvent event) {
@@ -3537,7 +3549,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
         public void onStartTrackingTouch(SeekBar seekBar) {
             current = start = seekBar.getProgress();
 
-            mPrivateFlags |= PFLAG_CONTROLS_SHOW_STICKILY;
+            mPrivateFlags |= PFLAG_IGNORE_SHOW_CONTROLS_METHOD_CALLS;
             showControls(-1, true);
             // Do not refresh the video progress bar with the current playback position
             // while the user is dragging it.
@@ -3706,7 +3718,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                     mVideoPlayer.seekTo(progress, true);
             }
 
-            mPrivateFlags &= ~PFLAG_CONTROLS_SHOW_STICKILY;
+            mPrivateFlags &= ~PFLAG_IGNORE_SHOW_CONTROLS_METHOD_CALLS;
             showControls(true, false);
 
             if (mmr != null) {
@@ -4065,11 +4077,12 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
         setKeepScreenOn(true);
         adjustToggleState(true);
         if (mViewMode != VIEW_MODE_MINIMUM) {
-            if ((mPrivateFlags & PFLAG_CONTROLS_SHOW_STICKILY) != 0) {
-                // If the PFLAG_CONTROLS_SHOW_STICKILY flag is marked into mPrivateFlags, Calling
-                // showControls(true) is meaningless as this flag is a hindrance for the subsequent
-                // program in that method to continue. So we need resend MSG_REFRESH_VIDEO_PROGRESS
-                // to make sure the video seek bar to be updated as the video plays.
+            if ((mPrivateFlags & PFLAG_IGNORE_SHOW_CONTROLS_METHOD_CALLS) != 0) {
+                // If the PFLAG_IGNORE_SHOW_CONTROLS_METHOD_CALLS flag is marked into mPrivateFlags,
+                // Calling showControls(true) is meaningless as this flag is a hindrance for
+                // the subsequent program in that method to continue.
+                // So we need resend MSG_REFRESH_VIDEO_PROGRESS to make sure the video seek bar
+                // to be updated as the video plays.
                 mMsgHandler.removeMessages(MsgHandler.MSG_REFRESH_VIDEO_PROGRESS);
                 mMsgHandler.sendEmptyMessage(MsgHandler.MSG_REFRESH_VIDEO_PROGRESS);
             } else {

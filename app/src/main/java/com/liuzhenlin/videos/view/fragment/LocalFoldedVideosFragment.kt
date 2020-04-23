@@ -627,7 +627,8 @@ class LocalFoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, Vie
                 visibility = mVideoOptionsFrame.visibility
                 isChecked = video.isChecked
             }
-            VideoUtils2.loadVideoThumbnailIntoImageView(holder.videoImage, video)
+            VideoUtils2.loadVideoThumbnailIntoFragmentImageView(
+                    this@LocalFoldedVideosFragment, holder.videoImage, video)
             holder.videoNameText.text = video.name
             holder.videoSizeText.text = FileUtils2.formatFileSize(video.size.toDouble())
             holder.videoProgressAndDurationText.text =

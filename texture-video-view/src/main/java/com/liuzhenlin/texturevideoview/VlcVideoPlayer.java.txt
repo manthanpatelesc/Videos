@@ -8,6 +8,7 @@ package com.liuzhenlin.texturevideoview;
 import android.content.Context;
 import android.media.AudioFocusRequest;
 import android.media.AudioManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Messenger;
 import android.util.Log;
@@ -54,19 +55,14 @@ public class VlcVideoPlayer extends VideoPlayer {
   private static final String TAG = "VlcVideoPlayer";
 
   /**
-   * Flag indicates that a position seek request happens when the video is not playing.
-   */
-  private static final int $FLAG_SEEK_POSITION_WHILE_VIDEO_PAUSED = 1 << 31;
-
-  /**
    * If true, MediaPlayer is moving the media to some specified time position
    */
-  private static final int $FLAG_SEEKING = 1 << 30;
+  private static final int $FLAG_SEEKING = 1 << 31;
 
   /**
    * If true, MediaPlayer is temporarily pausing playback internally in order to buffer more data.
    */
-  private static final int $FLAG_BUFFERING = 1 << 29;
+  private static final int $FLAG_BUFFERING = 1 << 30;
 
   private LibVLC mLibVLC;
   private MediaPlayer mMediaPlayer;
@@ -405,17 +401,16 @@ public class VlcVideoPlayer extends VideoPlayer {
   }
 
   @Override
-  protected void restartVideo(boolean saveTrackSelections) {
-    // First, resets mSeekOnPlay to 0 in case the MediaPlayer object is (being) released.
+  protected void restartVideo(boolean restoreTrackSelections) {
+    // First, resets mSeekOnPlay to TIME_UNSET in case the MediaPlayer object is released.
     // This ensures the video to be started at its beginning position the next time it resumes.
-    mSeekOnPlay = 0;
+    mSeekOnPlay = TIME_UNSET;
     if (mMediaPlayer != null) {
-      if (saveTrackSelections) {
-        saveTrackSelections();
+      if (restoreTrackSelections) {
+        restoreTrackSelections();
       }
       // Not clear the $FLAG_VIDEO_DURATION_DETERMINED flag
       mInternalFlags &= ~($FLAG_VIDEO_PAUSED_BY_USER
-          | $FLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER
           | $FLAG_SEEKING
           | $FLAG_BUFFERING);
       pause(false);
@@ -468,13 +463,12 @@ public class VlcVideoPlayer extends VideoPlayer {
         // Retries the failed playback after error occurred
         mInternalFlags &= ~($FLAG_SEEKING | $FLAG_BUFFERING);
         mBuffering = 0;
-        if ((mInternalFlags & $FLAG_SEEK_POSITION_WHILE_VIDEO_PAUSED) == 0) {
+        if (mSeekOnPlay == TIME_UNSET) {
           // Record the current playback position only if there is no external program code
           // requesting a position seek in this case.
           mSeekOnPlay = getVideoProgress();
         }
         saveTrackSelections();
-        mInternalFlags &= ~$FLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER;
         resetVlcPlayer();
         startVideo();
         break;
@@ -507,12 +501,11 @@ public class VlcVideoPlayer extends VideoPlayer {
             }
             mMediaPlayer.play();
             // Position seek each time works correctly only if the player engine is started
-            if (mSeekOnPlay != 0) {
+            if (mSeekOnPlay != TIME_UNSET) {
               seekToInternal(mSeekOnPlay);
-              mSeekOnPlay = 0;
+              mSeekOnPlay = TIME_UNSET;
             }
             mInternalFlags &= ~$FLAG_VIDEO_PAUSED_BY_USER;
-            mInternalFlags |= $FLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER;
             onVideoStarted();
 
             // Register MediaButtonEventReceiver every time the video starts, which
@@ -550,7 +543,7 @@ public class VlcVideoPlayer extends VideoPlayer {
     if (mMediaPlayer != null) {
       final boolean playing = isPlaying();
 
-      if (getPlaybackState() != PLAYBACK_STATE_COMPLETED) {
+      if (mSeekOnPlay == TIME_UNSET && getPlaybackState() != PLAYBACK_STATE_COMPLETED) {
         mSeekOnPlay = getVideoProgress();
       }
       saveTrackSelections();
@@ -562,9 +555,7 @@ public class VlcVideoPlayer extends VideoPlayer {
       }
       releaseMediaPlayer();
       // Not clear the $FLAG_VIDEO_DURATION_DETERMINED flag
-      mInternalFlags &= ~($FLAG_SEEKING
-          | $FLAG_BUFFERING
-          | $FLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER);
+      mInternalFlags &= ~($FLAG_SEEKING | $FLAG_BUFFERING);
       // Resets below to prepare for the next resume of the video player
       mPlaybackSpeed = DEFAULT_PLAYBACK_SPEED;
       mBuffering = 0;
@@ -607,10 +598,8 @@ public class VlcVideoPlayer extends VideoPlayer {
     if (isPlaying()) {
       seekToInternal(positionMs);
     } else {
-      mInternalFlags |= $FLAG_SEEK_POSITION_WHILE_VIDEO_PAUSED;
       mSeekOnPlay = positionMs;
       play(fromUser);
-      mInternalFlags &= ~$FLAG_SEEK_POSITION_WHILE_VIDEO_PAUSED;
     }
   }
 
@@ -636,14 +625,17 @@ public class VlcVideoPlayer extends VideoPlayer {
   }
 
   private int getVideoProgress0() {
+    if (mSeekOnPlay != TIME_UNSET) {
+      return mSeekOnPlay;
+    }
     if (getPlaybackState() == PLAYBACK_STATE_COMPLETED) {
       // If the video completed and the MediaPlayer object was released, we would get 0.
       return mVideoDuration;
     }
-    if ((mInternalFlags & $FLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER) != 0) {
+    if (mMediaPlayer != null) {
       return (int) mMediaPlayer.getTime();
     }
-    return mSeekOnPlay;
+    return 0;
   }
 
   @Override
@@ -859,6 +851,11 @@ public class VlcVideoPlayer extends VideoPlayer {
       }
     }
     return INVALID_TRACK_INDEX;
+  }
+
+  @Override
+  public void addSubtitleSource(@NonNull Uri uri, @NonNull String mimeType, @Nullable String language) {
+    // Currently unsupported
   }
 
   @Override

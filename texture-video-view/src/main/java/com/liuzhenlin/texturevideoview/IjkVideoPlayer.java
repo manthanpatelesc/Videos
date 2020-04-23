@@ -58,19 +58,14 @@ public class IjkVideoPlayer extends VideoPlayer {
   private static final int $FLAG_VIDEO_VOLUME_TURNED_DOWN_AUTOMATICALLY = 1 << 31;
 
   /**
-   * Flag indicates that a position seek request happens when the video is not playing.
-   */
-  private static final int $FLAG_SEEK_POSITION_WHILE_VIDEO_PAUSED = 1 << 30;
-
-  /**
    * If true, IjkPlayer is moving the media to some specified time position
    */
-  private static final int $FLAG_SEEKING = 1 << 29;
+  private static final int $FLAG_SEEKING = 1 << 30;
 
   /**
    * If true, IjkPlayer is temporarily pausing playback internally in order to buffer more data.
    */
-  private static final int $FLAG_BUFFERING = 1 << 28;
+  private static final int $FLAG_BUFFERING = 1 << 29;
 
   private IjkMediaPlayer mIjkPlayer;
   private Surface mSurface;
@@ -158,14 +153,9 @@ public class IjkVideoPlayer extends VideoPlayer {
   }
 
   @Override
-  public void setVideoUri(@Nullable Uri uri) {
-    final Uri oldUri = mVideoUri;
-    final int videoRotation = mVideoRotation;
+  protected void onVideoUriChanged(@Nullable Uri uri) {
     mVideoRotation = 0;
-    super.setVideoUri(uri);
-    if (oldUri == uri) {
-      mVideoRotation = videoRotation;
-    }
+    super.onVideoUriChanged(uri);
   }
 
   @Override
@@ -195,7 +185,7 @@ public class IjkVideoPlayer extends VideoPlayer {
         }
         if ((mInternalFlags & $FLAG_VIDEO_DURATION_DETERMINED) == 0) {
           final int duration = (int) mp.getDuration();
-          onVideoDurationChanged(duration == 0 ? NO_DURATION : duration);
+          onVideoDurationChanged(duration == 0 ? TIME_UNSET : duration);
           mInternalFlags |= $FLAG_VIDEO_DURATION_DETERMINED;
         }
         restoreTrackSelections();
@@ -396,17 +386,16 @@ public class IjkVideoPlayer extends VideoPlayer {
   }
 
   @Override
-  protected void restartVideo(boolean saveTrackSelections) {
-    // First, resets mSeekOnPlay to 0 in case the IjkPlayer object is (being) released.
+  protected void restartVideo(boolean restoreTrackSelections) {
+    // First, resets mSeekOnPlay to TIME_UNSET in case the IjkPlayer object is released.
     // This ensures the video to be started at its beginning position the next time it resumes.
-    mSeekOnPlay = 0;
+    mSeekOnPlay = TIME_UNSET;
     if (mIjkPlayer != null) {
-      if (saveTrackSelections) {
+      if (restoreTrackSelections) {
         saveTrackSelections();
       }
       // Not clear the $FLAG_VIDEO_DURATION_DETERMINED flag
       mInternalFlags &= ~($FLAG_VIDEO_PAUSED_BY_USER
-          | $FLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER
           | $FLAG_SEEKING
           | $FLAG_BUFFERING);
       // Resets below to prepare for the next resume of the video player
@@ -456,13 +445,12 @@ public class IjkVideoPlayer extends VideoPlayer {
         mInternalFlags &= ~($FLAG_SEEKING | $FLAG_BUFFERING);
         mPlaybackSpeed = DEFAULT_PLAYBACK_SPEED;
         mBuffering = 0;
-        if ((mInternalFlags & $FLAG_SEEK_POSITION_WHILE_VIDEO_PAUSED) == 0) {
+        if (mSeekOnPlay == TIME_UNSET) {
           // Record the current playback position only if there is no external program code
           // requesting a position seek in this case.
           mSeekOnPlay = getVideoProgress();
         }
         saveTrackSelections();
-        mInternalFlags &= ~$FLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER;
         stopVideo();
         startVideo();
         break;
@@ -491,9 +479,9 @@ public class IjkVideoPlayer extends VideoPlayer {
           case AudioManager.AUDIOFOCUS_REQUEST_GRANTED:
             mIjkPlayer.start();
             // Position seek each time works correctly only if the player engine is started
-            if (mSeekOnPlay != 0) {
+            if (mSeekOnPlay != TIME_UNSET) {
               seekToInternal(mSeekOnPlay);
-              mSeekOnPlay = 0;
+              mSeekOnPlay = TIME_UNSET;
             }
             // Ensure the player's volume is at its maximum
             if ((mInternalFlags & $FLAG_VIDEO_VOLUME_TURNED_DOWN_AUTOMATICALLY) != 0) {
@@ -501,7 +489,6 @@ public class IjkVideoPlayer extends VideoPlayer {
               mIjkPlayer.setVolume(1.0f, 1.0f);
             }
             mInternalFlags &= ~$FLAG_VIDEO_PAUSED_BY_USER;
-            mInternalFlags |= $FLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER;
             onVideoStarted();
 
             // Register MediaButtonEventReceiver every time the video starts, which
@@ -539,7 +526,7 @@ public class IjkVideoPlayer extends VideoPlayer {
     if (mIjkPlayer != null) {
       final boolean playing = isPlaying();
 
-      if (getPlaybackState() != PLAYBACK_STATE_COMPLETED) {
+      if (mSeekOnPlay == TIME_UNSET && getPlaybackState() != PLAYBACK_STATE_COMPLETED) {
         mSeekOnPlay = getVideoProgress();
       }
       saveTrackSelections();
@@ -553,8 +540,7 @@ public class IjkVideoPlayer extends VideoPlayer {
       // Not clear the $FLAG_VIDEO_DURATION_DETERMINED flag
       mInternalFlags &= ~($FLAG_VIDEO_VOLUME_TURNED_DOWN_AUTOMATICALLY
           | $FLAG_SEEKING
-          | $FLAG_BUFFERING
-          | $FLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER);
+          | $FLAG_BUFFERING);
       // Resets below to prepare for the next resume of the video player
       mPlaybackSpeed = DEFAULT_PLAYBACK_SPEED;
       mBuffering = 0;
@@ -598,10 +584,8 @@ public class IjkVideoPlayer extends VideoPlayer {
     if (isPlaying()) {
       seekToInternal(positionMs);
     } else {
-      mInternalFlags |= $FLAG_SEEK_POSITION_WHILE_VIDEO_PAUSED;
       mSeekOnPlay = positionMs;
       play(fromUser);
-      mInternalFlags &= ~$FLAG_SEEK_POSITION_WHILE_VIDEO_PAUSED;
     }
   }
 
@@ -610,7 +594,7 @@ public class IjkVideoPlayer extends VideoPlayer {
    */
   private void seekToInternal(int positionMs) {
     // Unable to seek while streaming live content
-    if (mVideoDuration != NO_DURATION) {
+    if (mVideoDuration != TIME_UNSET) {
       if ((mInternalFlags & $FLAG_BUFFERING) == 0) {
         if (mVideoView != null)
           mVideoView.showLoadingView(true);
@@ -634,6 +618,9 @@ public class IjkVideoPlayer extends VideoPlayer {
   }
 
   private int getVideoProgress0() {
+    if (mSeekOnPlay != TIME_UNSET) {
+      return mSeekOnPlay;
+    }
     if (getPlaybackState() == PLAYBACK_STATE_COMPLETED) {
       // 1. If the video completed and the IjkPlayer object was released, we would get 0.
       // 2. The playback position from the IjkPlayer, usually, is not the duration of the video
@@ -641,10 +628,10 @@ public class IjkVideoPlayer extends VideoPlayer {
       // case of which instead, here is the duration returned to avoid progress inconsistencies.
       return mVideoDuration;
     }
-    if ((mInternalFlags & $FLAG_CAN_GET_ACTUAL_POSITION_FROM_PLAYER) != 0) {
+    if (mIjkPlayer != null) {
       return (int) mIjkPlayer.getCurrentPosition();
     }
-    return mSeekOnPlay;
+    return 0;
   }
 
   @Override
@@ -839,6 +826,11 @@ public class IjkVideoPlayer extends VideoPlayer {
       }
     }
     return index >= 0 ? index : INVALID_TRACK_INDEX;
+  }
+
+  @Override
+  public void addSubtitleSource(@NonNull Uri uri, @NonNull String mimeType, @Nullable String language) {
+    // Currently unsupported
   }
 
   @Override

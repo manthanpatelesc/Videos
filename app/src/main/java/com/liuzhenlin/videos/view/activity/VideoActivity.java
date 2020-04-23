@@ -120,8 +120,8 @@ public class VideoActivity extends SwipeBackActivity {
 
     private static final int PFLAG_STOPPED = 1 << 8;
 
-    private final int mStatusHeight = App.getInstanceUnsafe().getStatusHeightInPortrait();
-    private int mStatusHeightInLandscapeOfNotchSupportDevices;
+    private static int sStatusHeight;
+    private static int sStatusHeightInLandscapeOfNotchSupportDevice;
     private int mNotchHeight;
     @Nullable
     private ScreenNotchSwitchObserver mNotchSwitchObserver;
@@ -227,6 +227,9 @@ public class VideoActivity extends SwipeBackActivity {
             mPause = getString(R.string.pause);
             mFastForward = getString(R.string.fastForward);
             mFastRewind = getString(R.string.fastRewind);
+        }
+        if (sStatusHeight == 0) {
+            sStatusHeight = App.getInstance(newBase).getStatusHeightInPortrait();
         }
     }
 
@@ -382,8 +385,8 @@ public class VideoActivity extends SwipeBackActivity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
             mStatusBarView = findViewById(R.id.view_statusBar);
             ViewGroup.LayoutParams lp = mStatusBarView.getLayoutParams();
-            if (lp.height != mStatusHeight) {
-                lp.height = mStatusHeight;
+            if (lp.height != sStatusHeight) {
+                lp.height = sStatusHeight;
                 mStatusBarView.setLayoutParams(lp);
             }
 
@@ -599,8 +602,8 @@ public class VideoActivity extends SwipeBackActivity {
 
             @NonNull
             @Override
-            public String getFileOutputDirectory() {
-                return App.getAppDirectory();
+            public String getAppExternalFilesDir() {
+                return App.getAppExternalFilesDir().getPath();
             }
         });
     }
@@ -809,10 +812,10 @@ public class VideoActivity extends SwipeBackActivity {
     public void onConfigurationChanged(@NonNull Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
         if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE
-                && mStatusHeightInLandscapeOfNotchSupportDevices == 0) {
-            mStatusHeightInLandscapeOfNotchSupportDevices = SystemBarUtils.getStatusHeight(this);
+                && sStatusHeightInLandscapeOfNotchSupportDevice == 0) {
+            sStatusHeightInLandscapeOfNotchSupportDevice = SystemBarUtils.getStatusHeight(this);
             if (mVideoView.isInFullscreenMode()) {
-                mVideoView.setFullscreenMode(true, mStatusHeightInLandscapeOfNotchSupportDevices);
+                mVideoView.setFullscreenMode(true, sStatusHeightInLandscapeOfNotchSupportDevice);
             }
         }
     }
@@ -932,7 +935,7 @@ public class VideoActivity extends SwipeBackActivity {
                    (mPrivateFlags & PFLAG_SCREEN_NOTCH_SUPPORT) == 0
                 || (mPrivateFlags & PFLAG_SCREEN_ORIENTATION_PORTRAIT_IMMUTABLE) == 0
                           ) ? ((mPrivateFlags & PFLAG_SCREEN_NOTCH_SUPPORT) == 0) ?
-                                mStatusHeight : mStatusHeightInLandscapeOfNotchSupportDevices
+                                sStatusHeight : sStatusHeightInLandscapeOfNotchSupportDevice
                             : 0);
         //@formatter:on
         if (mVideoView.isControlsShowing()) {
