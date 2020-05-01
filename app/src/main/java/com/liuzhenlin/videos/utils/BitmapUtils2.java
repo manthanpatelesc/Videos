@@ -12,11 +12,11 @@ import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
-import androidx.exifinterface.media.ExifInterface;
 
 import androidx.annotation.ColorInt;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.exifinterface.media.ExifInterface;
 
 import java.io.IOException;
 
@@ -28,7 +28,7 @@ public class BitmapUtils2 {
     }
 
     @NonNull
-    public static Bitmap getTintedBitmap(@NonNull Bitmap bitmap, @ColorInt int tint) {
+    public static Bitmap tintedBitmap(@NonNull Bitmap bitmap, @ColorInt int tint) {
         if (!bitmap.isMutable()) {
             bitmap = bitmap.copy(bitmap.getConfig(), true);
         }
@@ -52,7 +52,6 @@ public class BitmapUtils2 {
         // 计算缩放比例
         final float widthScale = (float) reqWidth / width;
         final float heightScale = (float) reqHeight / height;
-
         // 创建一个matrix容器
         Matrix matrix = new Matrix();
         // 缩放
@@ -105,7 +104,7 @@ public class BitmapUtils2 {
         if (raw != null) {
             final int degrees = readPictureRotation(path);
             if (degrees != 0) {
-                return rotateBitmap(raw, degrees);
+                return rotatedBitmap(raw, degrees, true);
             }
         }
 
@@ -136,9 +135,14 @@ public class BitmapUtils2 {
      * 旋转图片
      */
     @NonNull
-    public static Bitmap rotateBitmap(@NonNull Bitmap src, float degrees) {
+    public static Bitmap rotatedBitmap(@NonNull Bitmap src, float degrees, boolean recycleInput) {
         Matrix matrix = new Matrix();
         matrix.postRotate(degrees);
-        return Bitmap.createBitmap(src, 0, 0, src.getWidth(), src.getHeight(), matrix, true);
+        Bitmap out = Bitmap.createBitmap(src, 0, 0, src.getWidth(), src.getHeight(), matrix, true);
+
+        if (recycleInput && out != src) {
+            src.recycle();
+        }
+        return out;
     }
 }

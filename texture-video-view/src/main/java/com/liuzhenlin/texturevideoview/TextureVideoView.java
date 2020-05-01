@@ -3793,7 +3793,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
 
         @SuppressLint("StaticFieldLeak")
         final class UpdateVideoThumbTask extends AsyncTask<Void, Object, Void> {
-            static final boolean RETRIEVE_SCALED_FRAME_FROM_MMR = false;
+            static final boolean RETRIEVE_SCALED_FRAME_FROM_MMR = true;
             static final float RATIO = 0.25f;
             int last = -1;
 
@@ -3805,8 +3805,8 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                     last = now;
 
                     View tv = mTextureView;
-                    final int width = (int) (tv.getWidth() * tv.getScaleX() * RATIO + 0.5f);
-                    final int height = (int) (tv.getHeight() * tv.getScaleY() * RATIO + 0.5f);
+                    final int width = (int) (tv.getWidth()/* * tv.getScaleX()*/ * RATIO + 0.5f);
+                    final int height = (int) (tv.getHeight()/* * tv.getScaleY()*/ * RATIO + 0.5f);
 
                     Bitmap thumb = null;
                     if (RETRIEVE_SCALED_FRAME_FROM_MMR

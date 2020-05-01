@@ -42,7 +42,6 @@ public class BitmapUtils {
         // 计算缩放比例
         final float widthScale = (float) reqWidth / width;
         final float heightScale = (float) reqHeight / height;
-
         // 创建一个matrix容器
         Matrix matrix = new Matrix();
         // 缩放

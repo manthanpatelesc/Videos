@@ -45,7 +45,7 @@ public final class ParallelThreadExecutor extends ThreadPoolExecutor {
         private final AtomicInteger count = new AtomicInteger();
 
         public Thread newThread(@NonNull Runnable r) {
-            return new Thread(r, "ParallelThreadExecutor #" + count.incrementAndGet());
+            return new Thread(r, "ParallelThread #" + count.incrementAndGet());
         }
     };
 
