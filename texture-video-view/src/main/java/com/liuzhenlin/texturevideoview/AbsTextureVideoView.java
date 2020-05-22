@@ -76,17 +76,14 @@ import java.util.List;
     public abstract void showSubtitles(@Nullable List<Cue> cues);
 
     /**
-     * Sets whether to show the loading indicator ring in the center of this view, normally set while
-     * the player is loading the video content or paused to buffer more data through progressive
-     * HTTP download.
+     * If the video seek bar is being dragged, calling this method will cause
+     * the video preview thumbnail displayed in the center top of this view to be hided.
+     *
+     * @param seekPlaybackPosition true to additionally move the current playback position
+     *                             to the position where the video seek bar is dragged,
+     *                             false to leave it out.
      */
-    public abstract void showLoadingView(boolean show);
-
-    /**
-     * Calling this method will cause an invocation to the video seek bar's onStopTrackingTouch()
-     * if the seek bar is being dragged, so as to hide the widgets showing in that case.
-     */
-    public abstract void cancelDraggingVideoSeekBar();
+    public abstract void cancelDraggingVideoSeekBar(boolean seekPlaybackPosition);
 
     /** @return true if we can skip the video played to the previous one */
     public abstract boolean canSkipToPrevious();
@@ -118,7 +115,7 @@ import java.util.List;
 
     /*package*/ abstract void onVideoRepeat();
 
-    /*package*/ abstract void onVideoSeekProcessed();
+    /*package*/ abstract void onVideoBufferingStateChanged(boolean buffering);
 
     /*package*/ abstract void onPlaybackSpeedChanged(float speed);
 

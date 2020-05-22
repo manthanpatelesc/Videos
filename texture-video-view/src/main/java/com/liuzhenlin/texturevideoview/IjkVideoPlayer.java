@@ -180,14 +180,12 @@ public class IjkVideoPlayer extends VideoPlayer {
       mIjkPlayer = new IjkMediaPlayer();
       resetIjkPlayerParams();
       mIjkPlayer.setOnPreparedListener(mp -> {
-        if (mVideoView != null) {
-          mVideoView.showLoadingView(false);
-        }
         if ((mInternalFlags & $FLAG_VIDEO_DURATION_DETERMINED) == 0) {
           final int duration = (int) mp.getDuration();
           onVideoDurationChanged(duration == 0 ? TIME_UNSET : duration);
           mInternalFlags |= $FLAG_VIDEO_DURATION_DETERMINED;
         }
+        onVideoBufferingStateChanged(false);
         restoreTrackSelections();
         setPlaybackState(PLAYBACK_STATE_PREPARED);
         play(false);
@@ -209,25 +207,21 @@ public class IjkVideoPlayer extends VideoPlayer {
       mIjkPlayer.setOnSeekCompleteListener(mp -> {
         mInternalFlags &= ~$FLAG_SEEKING;
         if ((mInternalFlags & $FLAG_BUFFERING) == 0) {
-          if (mVideoView != null)
-            mVideoView.showLoadingView(false);
+          onVideoBufferingStateChanged(false);
         }
-        onVideoSeekProcessed();
       });
       mIjkPlayer.setOnInfoListener((mp, what, extra) -> {
         switch (what) {
           case IMediaPlayer.MEDIA_INFO_BUFFERING_START:
             mInternalFlags |= $FLAG_BUFFERING;
             if ((mInternalFlags & $FLAG_SEEKING) == 0) {
-              if (mVideoView != null)
-                mVideoView.showLoadingView(true);
+              onVideoBufferingStateChanged(true);
             }
             break;
           case IMediaPlayer.MEDIA_INFO_BUFFERING_END:
             mInternalFlags &= ~$FLAG_BUFFERING;
             if ((mInternalFlags & $FLAG_SEEKING) == 0) {
-              if (mVideoView != null)
-                mVideoView.showLoadingView(false);
+              onVideoBufferingStateChanged(false);
             }
             break;
           case IMediaPlayer.MEDIA_INFO_VIDEO_ROTATION_CHANGED:
@@ -252,9 +246,7 @@ public class IjkVideoPlayer extends VideoPlayer {
         }
         showVideoErrorMsg(extra);
 
-        if (mVideoView != null) {
-          mVideoView.showLoadingView(false);
-        }
+        onVideoBufferingStateChanged(false);
         final boolean playing = isPlaying();
         setPlaybackState(PLAYBACK_STATE_ERROR);
         if (playing) {
@@ -337,6 +329,9 @@ public class IjkVideoPlayer extends VideoPlayer {
   }
 
   private void startVideo() {
+    if (mVideoView != null) {
+      mVideoView.cancelDraggingVideoSeekBar(false);
+    }
     if (mVideoUri != null) {
       try {
         mIjkPlayer.setDataSource(mContext, mVideoUri);
@@ -346,27 +341,16 @@ public class IjkVideoPlayer extends VideoPlayer {
 //        } else {
 //          mIjkPlayer.setDataSource(mContext, mVideoUri);
 //        }
-        if (mVideoView != null) {
-          mVideoView.showLoadingView(true);
-        }
+        onVideoBufferingStateChanged(true);
         setPlaybackState(PLAYBACK_STATE_PREPARING);
         mIjkPlayer.prepareAsync();
       } catch (IOException e) {
         e.printStackTrace();
         showVideoErrorMsg(IMediaPlayer.MEDIA_ERROR_IO);
-        if (mVideoView != null) {
-          mVideoView.showLoadingView(false); // in case it is already showing
-        }
         setPlaybackState(PLAYBACK_STATE_ERROR);
       }
     } else {
-      if (mVideoView != null) {
-        mVideoView.showLoadingView(false);
-      }
       setPlaybackState(PLAYBACK_STATE_IDLE);
-    }
-    if (mVideoView != null) {
-      mVideoView.cancelDraggingVideoSeekBar();
     }
   }
 
@@ -375,6 +359,7 @@ public class IjkVideoPlayer extends VideoPlayer {
     mIjkPlayer.stop();
     mIjkPlayer.reset();
     resetIjkPlayerParams();
+    onVideoBufferingStateChanged(false);
     if (mVideoView != null) {
       mVideoView.showSubtitles(null);
     }
@@ -523,7 +508,11 @@ public class IjkVideoPlayer extends VideoPlayer {
 
   @Override
   protected void closeVideoInternal(boolean fromUser) {
-    if (mIjkPlayer != null) {
+    final boolean playerCreated = mIjkPlayer != null;
+    if (mVideoView != null) {
+      mVideoView.cancelDraggingVideoSeekBar(playerCreated);
+    }
+    if (playerCreated) {
       final boolean playing = isPlaying();
 
       if (mSeekOnPlay == TIME_UNSET && getPlaybackState() != PLAYBACK_STATE_COMPLETED) {
@@ -541,6 +530,7 @@ public class IjkVideoPlayer extends VideoPlayer {
       mInternalFlags &= ~($FLAG_VIDEO_VOLUME_TURNED_DOWN_AUTOMATICALLY
           | $FLAG_SEEKING
           | $FLAG_BUFFERING);
+      onVideoBufferingStateChanged(false);
       // Resets below to prepare for the next resume of the video player
       mPlaybackSpeed = DEFAULT_PLAYBACK_SPEED;
       mBuffering = 0;
@@ -555,11 +545,7 @@ public class IjkVideoPlayer extends VideoPlayer {
 
       if (mVideoView != null) {
         mVideoView.showSubtitles(null);
-        mVideoView.showLoadingView(false);
       }
-    }
-    if (mVideoView != null) {
-      mVideoView.cancelDraggingVideoSeekBar();
     }
   }
 
@@ -595,11 +581,10 @@ public class IjkVideoPlayer extends VideoPlayer {
   private void seekToInternal(int positionMs) {
     // Unable to seek while streaming live content
     if (mVideoDuration != TIME_UNSET) {
-      if ((mInternalFlags & $FLAG_BUFFERING) == 0) {
-        if (mVideoView != null)
-          mVideoView.showLoadingView(true);
-      }
       mInternalFlags |= $FLAG_SEEKING;
+      if ((mInternalFlags & $FLAG_BUFFERING) == 0) {
+        onVideoBufferingStateChanged(true);
+      }
       positionMs = clampedPositionMs(positionMs);
       mIjkPlayer.seekTo(positionMs);
 //      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

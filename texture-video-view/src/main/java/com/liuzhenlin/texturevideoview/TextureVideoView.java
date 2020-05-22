@@ -193,6 +193,11 @@ import java.util.List;
  *             }
  *
  *             &#064;Override
+ *             public void onVideoBufferingStateChanged(boolean buffering) {
+ *                 // no-op
+ *             }
+ *
+ *             &#064;Override
  *             public void onVideoDurationChanged(int duration) {
  *                 // no-op
  *             }
@@ -481,6 +486,12 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
     /** The last aggregated visibility. Used to detect when it truly changes. */
     private static final int PFLAG_AGGREGATED_VISIBLE = 1 << 9;
 
+    /**
+     * Flag indicating that the playback position is not expected to be moved to
+     * where the video seek bar is dragged as we stop tracking touch on it.
+     */
+    private static final int PFLAG_DISALLOW_PLAYBACK_POSITION_SEEK_ON_STOP_TRACKING_TOUCH = 1 << 10;
+
     @ViewMode
     private int mViewMode = VIEW_MODE_DEFAULT;
 
@@ -688,7 +699,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
 
     private static Field sLeftDraggerField;
     private static Field sRightDraggerField;
-    private static Field sOpenStateField;
+    private static Field sDrawerOpenStateField;
 
     private static Field sListPopupField;
     private static Field sPopupField;
@@ -752,8 +763,8 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
         }
         try {
             Class<LayoutParams> lpClass = LayoutParams.class;
-            sOpenStateField = lpClass.getDeclaredField("openState");
-            sOpenStateField.setAccessible(true);
+            sDrawerOpenStateField = lpClass.getDeclaredField("openState");
+            sDrawerOpenStateField.setAccessible(true);
         } catch (NoSuchFieldException e) {
             e.printStackTrace();
         }
@@ -844,9 +855,9 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
             public void onDrawerStateChanged(int newState) {
                 switch (newState) {
                     case STATE_SETTLING:
-                        if (sOpenStateField != null) {
+                        if (sDrawerOpenStateField != null) {
                             try {
-                                final int state = sOpenStateField.getInt(mDrawerView.getLayoutParams());
+                                final int state = sDrawerOpenStateField.getInt(mDrawerView.getLayoutParams());
                                 if ((state & FLAG_IS_OPENING) != 0) {
                                     showControls(false);
                                     mPrivateFlags |= PFLAG_IGNORE_SHOW_CONTROLS_METHOD_CALLS;
@@ -1014,6 +1025,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                 public void onNothingSelected(AdapterView<?> parent) {
                 }
             });
+            refreshSpeedSpinner();
 
             if (sListPopupField != null && sPopupField != null) {
                 try {
@@ -1094,6 +1106,19 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
         }
     }
 
+    private void refreshSpeedSpinner() {
+        if (!(mVideoPlayer instanceof SystemVideoPlayer)
+                || Utils.isMediaPlayerPlaybackSpeedAdjustmentSupported()) {
+            mSpeedSpinner.setEnabled(true);
+        } else {
+            mSpeedSpinner.setEnabled(false);
+            mSpeedSpinner.setSelection(indexOfPlaybackSpeed(IVideoPlayer.DEFAULT_PLAYBACK_SPEED));
+            if (isSpinnerPopupShowing()) {
+                dismissSpinnerPopup();
+            }
+        }
+    }
+
     private int indexOfPlaybackSpeed(float speed) {
         final String speedString = speed + "x";
         for (int i = 0; i < mSpeedsStringArray.length; i++) {
@@ -1133,6 +1158,10 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
         // Closes the 'more' view first since we will not fully sync its UI state
         if (mMoreView != null) {
             closeDrawer(mDrawerView);
+        }
+
+        if (mSpeedSpinner != null) {
+            refreshSpeedSpinner();
         }
 
         // Due to special processing mechanism to the Surface used by bilibili's IjkMediaPlayer,
@@ -1655,10 +1684,10 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
         // Ensures the drawer view to be opened/closed normally during this layout change
         int openState = 0;
-        if (changed && sOpenStateField != null) {
+        if (changed && sDrawerOpenStateField != null) {
             LayoutParams lp = (LayoutParams) mDrawerView.getLayoutParams();
             try {
-                openState = sOpenStateField.getInt(lp);
+                openState = sDrawerOpenStateField.getInt(lp);
                 if ((openState & (FLAG_IS_OPENING | FLAG_IS_CLOSING)) != 0) {
                     if (mDragHelper == null) {
                         final int absHG = Utils.getAbsoluteHorizontalGravity(this, lp.gravity);
@@ -2043,8 +2072,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
         mSubtitleView.setCues(cues);
     }
 
-    @Override
-    public void showLoadingView(boolean show) {
+    private void showLoadingView(boolean show) {
         if (show) {
             if (mLoadingImage.getVisibility() != VISIBLE) {
                 mLoadingImage.setVisibility(VISIBLE);
@@ -2483,7 +2511,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
 
         final SurfaceHolder holder = sv.getHolder();
         final MediaSourceFactory factory =
-                Build.VERSION.SDK_INT >= 16 /* Jelly Bean */ && videoPlayer instanceof ExoVideoPlayer
+                Utils.canUseExoPlayer() && videoPlayer instanceof ExoVideoPlayer
                         ? ((ExoVideoPlayer) videoPlayer).obtainMediaSourceFactory(videoUri) : null;
         final VideoClipPlayer player = new VideoClipPlayer(mContext, holder, videoUri, mUserAgent, factory);
         final Runnable trackProgressRunnable = new Runnable() {
@@ -2758,11 +2786,16 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
 
     @SuppressWarnings("ClickableViewAccessibility")
     @Override
-    public void cancelDraggingVideoSeekBar() {
+    public void cancelDraggingVideoSeekBar(boolean seekPlaybackPosition) {
+        if (!seekPlaybackPosition) {
+            mPrivateFlags |= PFLAG_DISALLOW_PLAYBACK_POSITION_SEEK_ON_STOP_TRACKING_TOUCH;
+        }
+
         MotionEvent ev = null;
         if ((mOnChildTouchListener.touchFlags & OnChildTouchListener.TFLAG_ADJUSTING_VIDEO_PROGRESS) != 0) {
             ev = Utils.obtainCancelEvent();
             mOnChildTouchListener.onTouchContent(ev);
+
         } else if (mVideoSeekBar.isPressed()) {
             ev = Utils.obtainCancelEvent();
             mVideoSeekBar.onTouchEvent(ev);
@@ -2781,6 +2814,10 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
             });
         }
         if (ev != null) ev.recycle();
+
+        if (!seekPlaybackPosition) {
+            mPrivateFlags &= ~PFLAG_DISALLOW_PLAYBACK_POSITION_SEEK_ON_STOP_TRACKING_TOUCH;
+        }
     }
 
     private boolean isSpinnerPopupShowing() {
@@ -3454,9 +3491,17 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
             _90MinutesText.setSelected(tor != null && tor.offTime == TimedOffRunnable.OFF_TIME_90_MINUTES);
             _2HoursText.setSelected(tor != null && tor.offTime == TimedOffRunnable.OFF_TIME_2_HOURS);
             mediaplayerText.setSelected(videoPlayer instanceof SystemVideoPlayer);
-            exoplayerText.setSelected(videoPlayer instanceof ExoVideoPlayer);
             ijkplayerText.setSelected(videoPlayer instanceof IjkVideoPlayer);
-            vlcplayerText.setSelected(videoPlayer instanceof VlcVideoPlayer);
+            if (Utils.canUseExoPlayer()) {
+                exoplayerText.setSelected(videoPlayer instanceof ExoVideoPlayer);
+            } else {
+                exoplayerText.setVisibility(View.GONE);
+            }
+            if (Utils.canUseVlcPlayer()) {
+                vlcplayerText.setSelected(videoPlayer instanceof VlcVideoPlayer);
+            } else {
+                vlcplayerText.setVisibility(View.GONE);
+            }
             // Scrolls to a proper horizontal position to make the selected text user-visible
             ViewGroup hsvc = (ViewGroup) anHourText.getParent();
             HorizontalScrollView hsv = (HorizontalScrollView) hsvc.getParent();
@@ -3712,7 +3757,8 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
             // Avoids being called again in the cancelDraggingVideoSeekBar() method
             seekBar.setPressed(false);
 
-            if (mVideoPlayer != null) {
+            if ((mPrivateFlags & PFLAG_DISALLOW_PLAYBACK_POSITION_SEEK_ON_STOP_TRACKING_TOUCH) == 0
+                    && mVideoPlayer != null) {
                 final int progress = current;
                 if (progress != start)
                     mVideoPlayer.seekTo(progress, true);
@@ -3986,6 +4032,8 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                     .putExtra(InternalConsts.EXTRA_MEDIA_URI, vp == null ? null : vp.mVideoUri)
                     .putExtra(InternalConsts.EXTRA_MEDIA_TITLE, videoView.mTitle)
                     .putExtra(InternalConsts.EXTRA_IS_PLAYING, vp != null && vp.isPlaying())
+                    .putExtra(InternalConsts.EXTRA_IS_BUFFERING,
+                            vp != null && (vp.mInternalFlags & VideoPlayer.$FLAG_VIDEO_IS_BUFFERING) != 0)
                     .putExtra(InternalConsts.EXTRA_CAN_SKIP_TO_PREVIOUS, videoView.canSkipToPrevious())
                     .putExtra(InternalConsts.EXTRA_CAN_SKIP_TO_NEXT, videoView.canSkipToNext())
                     .putExtra(InternalConsts.EXTRA_MEDIA_PROGRESS,
@@ -4116,9 +4164,12 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
     }
 
     @Override
-    void onVideoSeekProcessed() {
+    void onVideoBufferingStateChanged(boolean buffering) {
+        showLoadingView(buffering);
+
         if (canAccessBackgroundPlaybackControllerService()) {
-            sBgPlaybackControllerServiceConn.service.onMediaSoughtTo(mVideoPlayer.getVideoProgress());
+            sBgPlaybackControllerServiceConn.service
+                    .onMediaBufferingStateChanged(buffering, mVideoPlayer.getVideoProgress());
         }
     }
 

@@ -263,9 +263,7 @@ public class ExoVideoPlayer extends VideoPlayer {
         @SuppressLint("SwitchIntDef")
         @Override
         public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
-          if (mVideoView != null) {
-            mVideoView.showLoadingView(playbackState == Player.STATE_BUFFERING);
-          }
+          onVideoBufferingStateChanged(playbackState == Player.STATE_BUFFERING);
 
           switch (playbackState) {
             case Player.STATE_READY:
@@ -301,11 +299,6 @@ public class ExoVideoPlayer extends VideoPlayer {
           if (reason == Player.DISCONTINUITY_REASON_PERIOD_TRANSITION) {
             onVideoRepeat();
           }
-        }
-
-        @Override
-        public void onSeekProcessed() {
-          onVideoSeekProcessed();
         }
 
         @Override
@@ -372,6 +365,9 @@ public class ExoVideoPlayer extends VideoPlayer {
   }
 
   private void startVideo(boolean playWhenPrepared) {
+    if (mVideoView != null) {
+      mVideoView.cancelDraggingVideoSeekBar(false);
+    }
     if (mVideoUri != null) {
       if (playWhenPrepared) {
         mInternalFlags |= $FLAG_PLAY_WHEN_PREPARED;
@@ -400,9 +396,6 @@ public class ExoVideoPlayer extends VideoPlayer {
       }
     } else {
       setPlaybackState(PLAYBACK_STATE_IDLE);
-    }
-    if (mVideoView != null) {
-      mVideoView.cancelDraggingVideoSeekBar();
     }
   }
 
@@ -590,7 +583,11 @@ public class ExoVideoPlayer extends VideoPlayer {
 
   @Override
   protected void closeVideoInternal(boolean fromUser) {
-    if (mExoPlayer != null) {
+    final boolean playerCreated = mExoPlayer != null;
+    if (mVideoView != null) {
+      mVideoView.cancelDraggingVideoSeekBar(playerCreated);
+    }
+    if (playerCreated) {
       final boolean playing = isPlaying();
 
       if (mSeekOnPlay == TIME_UNSET && getPlaybackState() != PLAYBACK_STATE_COMPLETED) {
@@ -618,9 +615,6 @@ public class ExoVideoPlayer extends VideoPlayer {
       if (playing) {
         onVideoStopped();
       }
-    }
-    if (mVideoView != null) {
-      mVideoView.cancelDraggingVideoSeekBar();
     }
   }
 

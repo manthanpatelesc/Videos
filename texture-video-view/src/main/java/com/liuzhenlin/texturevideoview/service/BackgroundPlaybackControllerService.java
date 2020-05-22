@@ -70,6 +70,7 @@ public class BackgroundPlaybackControllerService extends Service {
     private String mMediaTitle;
     private Bitmap mVideoThumb;
     private boolean mIsPlaying;
+    private boolean mIsBuffering;
     private boolean mCanSkipToPrevious;
     private boolean mCanSkipToNext;
     private long mMediaProgress;
@@ -162,6 +163,7 @@ public class BackgroundPlaybackControllerService extends Service {
         mMediaTitle = intent.getStringExtra(InternalConsts.EXTRA_MEDIA_TITLE);
         Uri mediaUri = intent.getParcelableExtra(InternalConsts.EXTRA_MEDIA_URI);
         mIsPlaying = intent.getBooleanExtra(InternalConsts.EXTRA_IS_PLAYING, false);
+        mIsBuffering = intent.getBooleanExtra(InternalConsts.EXTRA_IS_BUFFERING, false);
         mCanSkipToPrevious = intent.getBooleanExtra(InternalConsts.EXTRA_CAN_SKIP_TO_PREVIOUS, false);
         mCanSkipToNext = intent.getBooleanExtra(InternalConsts.EXTRA_CAN_SKIP_TO_NEXT, false);
         mMediaProgress = intent.getLongExtra(InternalConsts.EXTRA_MEDIA_PROGRESS, 0L);
@@ -229,6 +231,8 @@ public class BackgroundPlaybackControllerService extends Service {
     }
 
     private RemoteViews createNotificationView() {
+        final boolean playing = mIsPlaying && !mIsBuffering;
+
         RemoteViews nv = new RemoteViews(
                 mPkgName, R.layout.notification_background_playback_controller);
 
@@ -238,14 +242,14 @@ public class BackgroundPlaybackControllerService extends Service {
 
         setNotificationActionIconResource(nv,
                 R.id.btn_toggle,
-                mIsPlaying ? R.drawable.ic_pause_white_24dp : R.drawable.ic_play_white_24dp);
+                playing ? R.drawable.ic_pause_white_24dp : R.drawable.ic_play_white_24dp);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH_MR1) {
-            nv.setContentDescription(R.id.btn_toggle, mIsPlaying ? mPause : mPlay);
+            nv.setContentDescription(R.id.btn_toggle, playing ? mPause : mPlay);
         }
         nv.setOnClickPendingIntent(R.id.btn_toggle,
                 createNotificationActionIntent(
-                        mIsPlaying ? CONTROLLER_ACTION_PAUSE : CONTROLLER_ACTION_PLAY,
-                        mIsPlaying ? REQUEST_PAUSE : REQUEST_PLAY));
+                        playing ? CONTROLLER_ACTION_PAUSE : CONTROLLER_ACTION_PLAY,
+                        playing ? REQUEST_PAUSE : REQUEST_PLAY));
 
         nv.setViewVisibility(R.id.btn_skipPrevious, mCanSkipToPrevious ? View.VISIBLE : View.GONE);
         if (mCanSkipToPrevious) {
@@ -275,7 +279,7 @@ public class BackgroundPlaybackControllerService extends Service {
             if (remaining > 0) {
                 nv.setLong(R.id.countdownChronometer,
                         "setBase", SystemClock.elapsedRealtime() + remaining);
-                nv.setBoolean(R.id.countdownChronometer, "setStarted", mIsPlaying);
+                nv.setBoolean(R.id.countdownChronometer, "setStarted", playing);
             }
         }
 
@@ -365,7 +369,8 @@ public class BackgroundPlaybackControllerService extends Service {
             postNotificationIfForeground();
         }
 
-        public void onMediaSoughtTo(long positionMs) {
+        public void onMediaBufferingStateChanged(boolean buffering, long positionMs) {
+            mIsBuffering = buffering;
             mMediaProgress = positionMs;
             postNotificationIfForeground();
         }

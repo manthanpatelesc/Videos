@@ -59,6 +59,11 @@ public class DemoActivity extends AppCompatActivity {
             }
 
             @Override
+            public void onVideoBufferingStateChanged(boolean buffering) {
+                // no-op
+            }
+
+            @Override
             public void onVideoDurationChanged(int duration) {
                 // no-op
             }

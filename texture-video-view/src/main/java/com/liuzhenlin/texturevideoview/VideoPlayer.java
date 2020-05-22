@@ -10,7 +10,6 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.media.AudioManager;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Handler;
 import android.os.Message;
 import android.view.Surface;
@@ -62,11 +61,17 @@ public abstract class VideoPlayer implements IVideoPlayer {
   /** Set via {@link #setSingleVideoLoopPlayback(boolean)} */
   private static final int $FLAG_SINGLE_VIDEO_LOOP_PLAYBACK = 1 << 1;
 
+  /**
+   * Set as the video buffering starts, happening as the player prepares for the video to be played
+   * or more data need to be loaded for the playing video or a playback position seek requests.
+   */
+  /*package*/ static final int $FLAG_VIDEO_IS_BUFFERING = 1 << 2;
+
   /** Indicates that the duration of the video has been determined at least once by this player. */
-  protected static final int $FLAG_VIDEO_DURATION_DETERMINED = 1 << 2;
+  protected static final int $FLAG_VIDEO_DURATION_DETERMINED = 1 << 3;
 
   /** Indicates that the video is manually paused by the user. */
-  protected static final int $FLAG_VIDEO_PAUSED_BY_USER = 1 << 3;
+  protected static final int $FLAG_VIDEO_PAUSED_BY_USER = 1 << 4;
 
   /**
    * Listener to be notified whenever it is necessary to change the video played to
@@ -704,9 +709,22 @@ public abstract class VideoPlayer implements IVideoPlayer {
     }
   }
 
-  protected void onVideoSeekProcessed() {
-    if (mVideoView != null) {
-      mVideoView.onVideoSeekProcessed();
+  protected void onVideoBufferingStateChanged(boolean buffering) {
+    //noinspection DoubleNegation
+    if (((mInternalFlags & $FLAG_VIDEO_IS_BUFFERING) != 0) != buffering) {
+      mInternalFlags = buffering
+          ? mInternalFlags | $FLAG_VIDEO_IS_BUFFERING
+          : mInternalFlags & ~$FLAG_VIDEO_IS_BUFFERING;
+
+      if (mVideoView != null) {
+        mVideoView.onVideoBufferingStateChanged(buffering);
+      }
+
+      if (hasVideoListener()) {
+        for (int i = mVideoListeners.size() - 1; i >= 0; i--) {
+          mVideoListeners.get(i).onVideoBufferingStateChanged(buffering);
+        }
+      }
     }
   }
 
@@ -794,7 +812,7 @@ public abstract class VideoPlayer implements IVideoPlayer {
       }
 
       if (ExoVideoPlayer.class == vpClass) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+        if (Utils.canUseExoPlayer()) {
           //noinspection unchecked
           return (VP) new ExoVideoPlayer(context);
         }
@@ -807,7 +825,7 @@ public abstract class VideoPlayer implements IVideoPlayer {
       }
 
       if (VlcVideoPlayer.class == vpClass) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+        if (Utils.canUseVlcPlayer()) {
           //noinspection unchecked
           return (VP) new VlcVideoPlayer(context);
         }
@@ -818,21 +836,18 @@ public abstract class VideoPlayer implements IVideoPlayer {
       for (Constructor<VP> constructor : (Constructor<VP>[]) vpClass.getConstructors()) {
         Class<?>[] paramTypes = constructor.getParameterTypes();
         // Try to find a constructor that takes a single parameter whose type is
-        // the (super) type of the context.
+        // the (super) type of the context's.
         if (paramTypes.length == 1) {
-          try {
-            context.getClass().asSubclass(paramTypes[0]);
-          } catch (ClassCastException e) {
-            continue;
-          }
-          try {
-            return constructor.newInstance(context);
-          } catch (IllegalAccessException e) {
-            e.printStackTrace();
-          } catch (InstantiationException e) {
-            e.printStackTrace();
-          } catch (InvocationTargetException e) {
-            e.printStackTrace();
+          if (paramTypes[0].isAssignableFrom(context.getClass())) {
+            try {
+              return constructor.newInstance(context);
+            } catch (IllegalAccessException e) {
+              e.printStackTrace();
+            } catch (InstantiationException e) {
+              e.printStackTrace();
+            } catch (InvocationTargetException e) {
+              e.printStackTrace();
+            }
           }
         }
       }

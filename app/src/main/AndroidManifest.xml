@@ -11,7 +11,7 @@
 
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 
-    <!--    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />-->
+<!--    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />-->
 
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
@@ -38,19 +38,19 @@
             <intent-filter tools:ignore="AppLinkUrlError">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
 
                 <data android:mimeType="audio/*" />
                 <data android:mimeType="video/*" />
             </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
 
+            <intent-filter android:label="@string/playWithThisApp">
+                <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
 
-                <data android:scheme="http" />
                 <data android:mimeType="audio/*" />
                 <data android:mimeType="video/*" />
+                <data android:mimeType="text/*" tools:ignore="ExtraText">Uri char sequence</data>
             </intent-filter>
         </activity>
 
@@ -60,7 +60,7 @@
             android:configChanges="keyboardHidden|screenSize|smallestScreenSize|screenLayout|orientation"
             android:supportsPictureInPicture="true"
             android:launchMode="singleTask"
-            tools:ignore="LockedOrientationActivity,UnusedAttribute" />
+            tools:ignore="LockedOrientationActivity" />
 
         <activity
             android:name=".view.activity.MainActivity"

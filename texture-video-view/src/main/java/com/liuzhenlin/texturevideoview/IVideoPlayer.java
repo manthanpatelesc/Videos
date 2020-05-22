@@ -99,6 +99,18 @@ public interface IVideoPlayer {
         }
 
         /**
+         * Called when video buffering starts or stops.
+         * <p>
+         * Generally, video buffering starts as the player prepares for the video to be played
+         * or more data need to be loaded for the playing video
+         * or a playback position seek requests.
+         *
+         * @param buffering true for buffering start, false otherwise.
+         */
+        default void onVideoBufferingStateChanged(boolean buffering) {
+        }
+
+        /**
          * Called to indicate the video duration (in milliseconds), which could be
          * {@value #TIME_UNSET} if not available (e.g., streaming live content).
          */
@@ -170,7 +182,7 @@ public interface IVideoPlayer {
     /**
      * Checks whether the video is playing.
      *
-     * @return {@code true} if currently playing, {@code false} otherwise
+     * @return true if currently playing, false otherwise
      */
     default boolean isPlaying() {
         return getPlaybackState() == PLAYBACK_STATE_PLAYING;

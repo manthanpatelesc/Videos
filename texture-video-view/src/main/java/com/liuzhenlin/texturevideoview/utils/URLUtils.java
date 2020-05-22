@@ -70,7 +70,7 @@ public class URLUtils {
 
     private static final String DOMAIN_NAME_STR = "(" + HOST_NAME + "|" + IP_ADDRESS_STRING + ")";
 
-    private static final String PROTOCOL = "(?i:http|https|mms|rtmp|rtsp)://";
+    private static final String PROTOCOL = "(?i:http|https|rtmp|rtsp)://";
 
     private static final String USER_INFO = "(?:[a-zA-Z0-9\\$\\-\\_\\.\\+\\!\\*\\'\\(\\)"
             + "\\,\\;\\?\\&\\=]|(?:\\%[a-fA-F0-9]{2})){1,64}(?:\\:(?:[a-zA-Z0-9\\$\\-\\_"
@@ -117,15 +117,6 @@ public class URLUtils {
     }
 
     /**
-     * @return {@code true} if the url is a mms: url.
-     */
-    public static boolean isMmsUrl(String url) {
-        return url != null &&
-                url.length() > 5 &&
-                url.substring(0, 6).equalsIgnoreCase("mms://");
-    }
-
-    /**
      * @return {@code true} if the url is a rtmp: url.
      */
     public static boolean isRtmpUrl(String url) {
@@ -150,6 +141,6 @@ public class URLUtils {
         if (url == null || url.isEmpty()) {
             return false;
         }
-        return isHttpUrl(url) || isHttpsUrl(url) || isMmsUrl(url) || isRtmpUrl(url) || isRtspUrl(url);
+        return isHttpUrl(url) || isHttpsUrl(url) || isRtmpUrl(url) || isRtspUrl(url);
     }
 }

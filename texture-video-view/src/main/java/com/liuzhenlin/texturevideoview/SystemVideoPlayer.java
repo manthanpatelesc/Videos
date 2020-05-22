@@ -171,13 +171,11 @@ public class SystemVideoPlayer extends VideoPlayer {
         mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
       }
       mMediaPlayer.setOnPreparedListener(mp -> {
-        if (mVideoView != null) {
-          mVideoView.showLoadingView(false);
-        }
         if ((mInternalFlags & $FLAG_VIDEO_DURATION_DETERMINED) == 0) {
           onVideoDurationChanged(mp.getDuration());
           mInternalFlags |= $FLAG_VIDEO_DURATION_DETERMINED;
         }
+        onVideoBufferingStateChanged(false);
         restoreTrackSelections();
         setPlaybackState(PLAYBACK_STATE_PREPARED);
         play(false);
@@ -187,25 +185,21 @@ public class SystemVideoPlayer extends VideoPlayer {
       mMediaPlayer.setOnSeekCompleteListener(mp -> {
         mInternalFlags &= ~$FLAG_SEEKING;
         if ((mInternalFlags & $FLAG_BUFFERING) == 0) {
-          if (mVideoView != null)
-            mVideoView.showLoadingView(false);
+          onVideoBufferingStateChanged(false);
         }
-        onVideoSeekProcessed();
       });
       mMediaPlayer.setOnInfoListener((mp, what, extra) -> {
         switch (what) {
           case MediaPlayer.MEDIA_INFO_BUFFERING_START:
             mInternalFlags |= $FLAG_BUFFERING;
             if ((mInternalFlags & $FLAG_SEEKING) == 0) {
-              if (mVideoView != null)
-                mVideoView.showLoadingView(true);
+              onVideoBufferingStateChanged(true);
             }
             break;
           case MediaPlayer.MEDIA_INFO_BUFFERING_END:
             mInternalFlags &= ~$FLAG_BUFFERING;
             if ((mInternalFlags & $FLAG_SEEKING) == 0) {
-              if (mVideoView != null)
-                mVideoView.showLoadingView(false);
+              onVideoBufferingStateChanged(false);
             }
             break;
         }
@@ -219,9 +213,7 @@ public class SystemVideoPlayer extends VideoPlayer {
         }
         showVideoErrorMsg(extra);
 
-        if (mVideoView != null) {
-          mVideoView.showLoadingView(false);
-        }
+        onVideoBufferingStateChanged(false);
         final boolean playing = isPlaying();
         setPlaybackState(PLAYBACK_STATE_ERROR);
         if (playing) {
@@ -237,7 +229,7 @@ public class SystemVideoPlayer extends VideoPlayer {
           onPlaybackCompleted();
         }
       });
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+      if (supportTrackSelection()) {
         mMediaPlayer.setOnTimedTextListener((mp, timedText) -> {
           if (mVideoView != null) {
             mVideoView.showSubtitle(timedText.getText(), timedText.getBounds());
@@ -283,6 +275,9 @@ public class SystemVideoPlayer extends VideoPlayer {
   }
 
   private void startVideo() {
+    if (mVideoView != null) {
+      mVideoView.cancelDraggingVideoSeekBar(false);
+    }
     if (mVideoUri != null) {
       try {
         mMediaPlayer.setDataSource(mContext, mVideoUri);
@@ -292,34 +287,24 @@ public class SystemVideoPlayer extends VideoPlayer {
 //        } else {
 //          mMediaPlayer.setDataSource(mContext, mVideoUri);
 //        }
-        if (mVideoView != null) {
-          mVideoView.showLoadingView(true);
-        }
+        onVideoBufferingStateChanged(true);
         setPlaybackState(PLAYBACK_STATE_PREPARING);
         mMediaPlayer.prepareAsync();
 //        mMediaPlayer.setLooping(isSingleVideoLoopPlayback());
       } catch (IOException e) {
         e.printStackTrace();
         showVideoErrorMsg(/* MediaPlayer.MEDIA_ERROR_IO */ -1004);
-        if (mVideoView != null) {
-          mVideoView.showLoadingView(false); // in case it is already showing
-        }
         setPlaybackState(PLAYBACK_STATE_ERROR);
       }
     } else {
-      if (mVideoView != null) {
-        mVideoView.showLoadingView(false);
-      }
       setPlaybackState(PLAYBACK_STATE_IDLE);
-    }
-    if (mVideoView != null) {
-      mVideoView.cancelDraggingVideoSeekBar();
     }
   }
 
   private void stopVideo() {
     mMediaPlayer.stop();
     mMediaPlayer.reset();
+    onVideoBufferingStateChanged(false);
     if (mVideoView != null) {
       mVideoView.showSubtitles(null);
     }
@@ -471,7 +456,11 @@ public class SystemVideoPlayer extends VideoPlayer {
 
   @Override
   protected void closeVideoInternal(boolean fromUser) {
-    if (mMediaPlayer != null) {
+    final boolean playerCreated = mMediaPlayer != null;
+    if (mVideoView != null) {
+      mVideoView.cancelDraggingVideoSeekBar(playerCreated);
+    }
+    if (playerCreated) {
       final boolean playing = isPlaying();
 
       if (mSeekOnPlay == TIME_UNSET && getPlaybackState() != PLAYBACK_STATE_COMPLETED) {
@@ -491,6 +480,7 @@ public class SystemVideoPlayer extends VideoPlayer {
       mInternalFlags &= ~($FLAG_VIDEO_VOLUME_TURNED_DOWN_AUTOMATICALLY
           | $FLAG_SEEKING
           | $FLAG_BUFFERING);
+      onVideoBufferingStateChanged(false);
       // Resets below to prepare for the next resume of the video player
       mPlaybackSpeed = DEFAULT_PLAYBACK_SPEED;
       mBuffering = 0;
@@ -505,11 +495,7 @@ public class SystemVideoPlayer extends VideoPlayer {
 
       if (mVideoView != null) {
         mVideoView.showSubtitles(null);
-        mVideoView.showLoadingView(false);
       }
-    }
-    if (mVideoView != null) {
-      mVideoView.cancelDraggingVideoSeekBar();
     }
   }
 
@@ -537,11 +523,10 @@ public class SystemVideoPlayer extends VideoPlayer {
   private void seekToInternal(int positionMs) {
     // Unable to seek while streaming live content
     if (mVideoDuration != TIME_UNSET) {
-      if ((mInternalFlags & $FLAG_BUFFERING) == 0) {
-        if (mVideoView != null)
-          mVideoView.showLoadingView(true);
-      }
       mInternalFlags |= $FLAG_SEEKING;
+      if ((mInternalFlags & $FLAG_BUFFERING) == 0) {
+        onVideoBufferingStateChanged(true);
+      }
       positionMs = clampedPositionMs(positionMs);
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
         // Precise seek with larger performance overhead compared to the default one.
@@ -616,7 +601,7 @@ public class SystemVideoPlayer extends VideoPlayer {
   }
 
   private boolean canSetPlaybackSpeed(float speed) {
-    return Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && speed != mPlaybackSpeed;
+    return Utils.isMediaPlayerPlaybackSpeedAdjustmentSupported() && speed != mPlaybackSpeed;
   }
 
 //  @Override
@@ -630,7 +615,8 @@ public class SystemVideoPlayer extends VideoPlayer {
 //  }
 
   private boolean supportTrackSelection() {
-    return Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN && mMediaPlayer != null;
+    return /*Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN*/
+        Utils.isMediaPlayerTrackSelectionSupported() && mMediaPlayer != null;
   }
 
   @Override

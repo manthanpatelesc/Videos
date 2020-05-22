@@ -46,7 +46,6 @@ import androidx.recyclerview.widget.RecyclerView;
 import androidx.recyclerview.widget.StaggeredGridLayoutManager;
 
 import com.google.android.material.snackbar.Snackbar;
-import com.liuzhenlin.simrv.Utils;
 import com.liuzhenlin.swipeback.SwipeBackActivity;
 import com.liuzhenlin.swipeback.SwipeBackLayout;
 import com.liuzhenlin.texturevideoview.ExoVideoPlayer;
@@ -57,6 +56,7 @@ import com.liuzhenlin.texturevideoview.VideoPlayer;
 import com.liuzhenlin.texturevideoview.utils.FileUtils;
 import com.liuzhenlin.texturevideoview.utils.ShareUtils;
 import com.liuzhenlin.texturevideoview.utils.SystemBarUtils;
+import com.liuzhenlin.texturevideoview.utils.Utils;
 import com.liuzhenlin.videos.App;
 import com.liuzhenlin.videos.BuildConfig;
 import com.liuzhenlin.videos.Consts;
@@ -325,7 +325,8 @@ public class VideoActivity extends SwipeBackActivity {
             if (length > 0) {
                 mVideos = new Video[length];
                 for (int i = 0; i < length; i++) {
-                    video = buildVideoForUri((Uri) videoUriParcels[i], (String) videoTitleSerials[i]);
+                    video = buildVideoForUri((Uri) videoUriParcels[i],
+                            (String) (videoTitleSerials != null ? videoTitleSerials[i] : null));
                     if (stateRestore && video.getId() != Consts.NO_ID) {
                         video.setProgress(
                                 VideoListItemDao.getSingleton(this).getVideoProgress(video.getId()));
@@ -346,6 +347,15 @@ public class VideoActivity extends SwipeBackActivity {
         }
 
         Uri uri = intent.getData();
+        if (uri == null) {
+            uri = intent.getParcelableExtra(Intent.EXTRA_STREAM);
+            if (uri == null) {
+                CharSequence uriCharSequence = intent.getCharSequenceExtra(Intent.EXTRA_TEXT);
+                if (uriCharSequence != null) {
+                    uri = Uri.parse(uriCharSequence.toString());
+                }
+            }
+        }
         if (uri != null) {
             video = buildVideoForUri(uri, intent.getStringExtra(Consts.KEY_VIDEO_TITLE));
             if (stateRestore && video.getId() != Consts.NO_ID) {
@@ -361,13 +371,12 @@ public class VideoActivity extends SwipeBackActivity {
     }
 
     private Video buildVideoForUri(Uri uri, String videoTitle) {
-        Video video = null;
         String videoUrl = FileUtils.UriResolver.getPath(this, uri);
         if (videoUrl == null) {
             videoUrl = uri.toString();
-        } else {
-            video = VideoListItemDao.getSingleton(this).queryVideoByPath(videoUrl);
         }
+
+        Video video = VideoListItemDao.getSingleton(this).queryVideoByPath(videoUrl);
         if (video == null) {
             video = new Video();
             video.setId(Consts.NO_ID);
@@ -396,7 +405,7 @@ public class VideoActivity extends SwipeBackActivity {
         }
 
         mVideoView = findViewById(R.id.videoview);
-        VideoPlayer videoPlayer = Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN
+        VideoPlayer videoPlayer = Utils.canUseExoPlayer()
                 ? new ExoVideoPlayer(this) : new IjkVideoPlayer(this);
         mVideoPlayer = videoPlayer;
         videoPlayer.setVideoView(mVideoView);

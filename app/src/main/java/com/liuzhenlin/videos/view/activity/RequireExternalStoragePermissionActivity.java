@@ -9,7 +9,6 @@ import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 
@@ -18,7 +17,6 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.liuzhenlin.videos.R;
-import com.liuzhenlin.videos.view.fragment.VideoListItemOpsKt;
 
 import java.util.List;
 
@@ -81,11 +79,14 @@ public class RequireExternalStoragePermissionActivity extends AppCompatActivity
     }
 
     private void onPermissionGranted() {
-        Uri uri = getIntent().getData();
-        if (uri == null) {
-            startActivity(new Intent(this, MainActivity.class));
+        Intent intent = getIntent();
+        String action = intent.getAction();
+        if (Intent.ACTION_VIEW.equals(action) || Intent.ACTION_SEND.equals(action)) {
+            intent.setAction(null);
+            intent.setClass(this, VideoActivity.class);
+            startActivity(intent);
         } else {
-            VideoListItemOpsKt.playVideo(this, uri);
+            startActivity(new Intent(this, MainActivity.class));
         }
 
         finish();

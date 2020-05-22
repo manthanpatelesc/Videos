@@ -8,7 +8,7 @@
     <string name="brightnessProgress">Brightness: %.0f%%</string>
     <string name="brightnessFollowsSystem">Brightness: follows the system</string>
     <string name="volumeProgress">Volume: %.0f%%</string>
-    <string name="progress_duration">%s/%s</string>
+    <string name="progress_duration" translatable="false">%s/%s</string>
     <string name="lock">Lock</string>
     <string name="unlock">Unlock</string>
     <string name="videoThumbnail">Video Thumbnail</string>
@@ -76,13 +76,13 @@
     <!-- Name of a media track about which nothing is known. -->
     <string name="track_unknown">Unknown</string>
     <!-- Resolution of a video track. -->
-    <string name="track_resolution"><xliff:g id="width" example="1024">%1$d</xliff:g> × <xliff:g id="height" example="768">%2$d</xliff:g></string>
+    <string name="track_resolution" translatable="false"><xliff:g id="width" example="1024">%1$d</xliff:g> × <xliff:g id="height" example="768">%2$d</xliff:g></string>
     <!-- Describes the frame rate of a video track in frames per second. -->
-    <string name="track_frameRate"><xliff:g id="frameRate" example="25">%1$s<!--.2f--></xliff:g> fps</string>
+    <string name="track_frameRate" translatable="false"><xliff:g id="frameRate" example="25">%1$s<!--.2f--></xliff:g> fps</string>
     <!-- Describes the sample rate of a audio track in kilohertz. -->
-    <string name="track_sampleRate"><xliff:g id="sampleRate" example="44.1">%1$s<!--.2f--></xliff:g> kHz</string>
+    <string name="track_sampleRate" translatable="false"><xliff:g id="sampleRate" example="44.1">%1$s<!--.2f--></xliff:g> kHz</string>
     <!-- Describes the bitrate of a media track in megabits (https://en.wikipedia.org/wiki/Megabit) per second. -->
-    <string name="track_bitrate"><xliff:g id="bitrate" example="5.2">%1$s<!--.2f--></xliff:g> Mb/s</string>
+    <string name="track_bitrate" translatable="false"><xliff:g id="bitrate" example="5.2">%1$s<!--.2f--></xliff:g> Mb/s</string>
     <!-- Describes an audio track with one channel. -->
     <string name="track_mono">Mono</string>
     <!-- Describes an audio track with two channels. -->

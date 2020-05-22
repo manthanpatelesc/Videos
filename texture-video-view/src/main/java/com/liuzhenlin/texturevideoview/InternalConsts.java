@@ -37,6 +37,8 @@ public class InternalConsts {
     @RestrictTo(LIBRARY)
     public static final String EXTRA_IS_PLAYING = "extra_isPlaying";
     @RestrictTo(LIBRARY)
+    public static final String EXTRA_IS_BUFFERING = "extra_isBuffering";
+    @RestrictTo(LIBRARY)
     public static final String EXTRA_CAN_SKIP_TO_PREVIOUS = "extra_canSkipToPrevious";
     @RestrictTo(LIBRARY)
     public static final String EXTRA_CAN_SKIP_TO_NEXT = "extra_canSkipToNext";

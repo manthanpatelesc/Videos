@@ -71,7 +71,7 @@
 
     <style name="TextAppearance_ActionBarTitle">
         <item name="android:textSize" tools:ignore="SpUsage">
-            @dimen/actionbar_title_text_size
+            @dimen/homepage_actionbar_title_text_size
         </item>
         <item name="android:textColor">@android:color/white</item>
     </style>

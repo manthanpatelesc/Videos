@@ -14,7 +14,6 @@
     <string name="cancel">取消</string>
     <string name="cancelTop">取消置顶</string>
     <string name="cannotPlayThisVideo">无法播放此视频</string>
-    <string name="charsequenceProgress">%1$s/%2$s</string>
     <string name="checkForUpdates">检查更新</string>
     <string name="clickToInstallIt">点击安装</string>
     <string name="colon">：</string>
@@ -23,7 +22,6 @@
     <string name="confirm">@string/ok</string>
     <string name="connectionTimeout">连接超时</string>
     <string name="contactWay">联系方式</string>
-    <string name="copyright">Copyright © 2017–present 刘振林.\nAll rights reserved.</string>
     <string name="copyURL">复制链接</string>
     <string name="delete">删除</string>
     <string name="deleteFailed">删除 %s 失败</string>
@@ -62,10 +60,9 @@
     <string name="openOrCloseSideDrawer">打开或关闭侧边抽屉</string>
     <string name="optionalForMeToContactWithYou">选填，便于我与你联系</string>
     <string name="path">路径：%s</string>
-    <string name="percentProgress">%.2f%%</string>
     <string name="permissionsRequired">需要权限</string>
-    <string name="pictureCount">%d/3</string>
     <string name="pictures">图片（选填，提供问题截图）</string>
+    <string name="playWithThisApp">用“视频”播放</string>
     <string name="pleaseEnterTheIssuesYouEncounteredOrYourAdvice">请输入遇到的问题或建议…</string>
     <string name="pleaseGoToAppSettingsScreenFirstToAllowAppsFromThisSourceToBeInstalled">
         请前往应用程序设置界面以允许安装此来源的应用</string>
@@ -118,7 +115,6 @@
     <string name="updateLog">%1$sv%2$s 更新日志：</string>
     <string name="updateLogs">更新日志</string>
     <string name="userFeedback">用户反馈</string>
-    <string name="version">v1.9.1</string>
     <string name="videoCount">视频数：%d</string>
     <string name="videoDetails">视频详情</string>
     <string name="videoTitle">视频标题</string>
@@ -127,6 +123,5 @@
     <string name="videoThumbnail">视频缩略图</string>
     <string name="videodirThumbnail">视频目录缩略图</string>
     <string name="watching">正在观看…</string>
-    <string name="wordCount">%d/500</string>
     <string name="youHaveNotCommitted">您尚未提交</string>
 </resources>

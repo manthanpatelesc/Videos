@@ -223,9 +223,7 @@ public class VlcVideoPlayer extends VideoPlayer {
       mMediaPlayer.setEventListener(event -> {
         switch (event.type) {
           case MediaPlayer.Event.Opening:
-            if (mVideoView != null) {
-              mVideoView.showLoadingView(true);
-            }
+            onVideoBufferingStateChanged(true);
             break;
 
           case MediaPlayer.Event.Buffering:
@@ -238,14 +236,12 @@ public class VlcVideoPlayer extends VideoPlayer {
 
               mInternalFlags &= ~$FLAG_BUFFERING;
               if ((mInternalFlags & $FLAG_SEEKING) == 0) {
-                if (mVideoView != null)
-                  mVideoView.showLoadingView(false);
+                onVideoBufferingStateChanged(false);
               }
             } else {
               mInternalFlags |= $FLAG_BUFFERING;
               if ((mInternalFlags & $FLAG_SEEKING) == 0) {
-                if (mVideoView != null)
-                  mVideoView.showLoadingView(true);
+                onVideoBufferingStateChanged(true);
               }
             }
             break;
@@ -270,9 +266,7 @@ public class VlcVideoPlayer extends VideoPlayer {
           case MediaPlayer.Event.EncounteredError:
             showVideoErrorMsg(org.videolan.libvlc.media.MediaPlayer.MEDIA_ERROR_UNKNOWN);
 
-            if (mVideoView != null) {
-              mVideoView.showLoadingView(false);
-            }
+            onVideoBufferingStateChanged(false);
             final boolean playing = isPlaying();
             setPlaybackState(PLAYBACK_STATE_ERROR);
             if (playing) {
@@ -283,10 +277,7 @@ public class VlcVideoPlayer extends VideoPlayer {
           case MediaPlayer.Event.TimeChanged:
             if ((mInternalFlags & $FLAG_SEEKING) != 0 && (mInternalFlags & $FLAG_BUFFERING) == 0) {
               mInternalFlags &= ~$FLAG_SEEKING;
-              if (mVideoView != null) {
-                mVideoView.showLoadingView(false);
-              }
-              onVideoSeekProcessed();
+              onVideoBufferingStateChanged(false);
             }
             break;
 
@@ -370,6 +361,9 @@ public class VlcVideoPlayer extends VideoPlayer {
   }
 
   private void startVideo() {
+    if (mVideoView != null) {
+      mVideoView.cancelDraggingVideoSeekBar(false);
+    }
     if (mVideoUri != null) {
       final String url = mVideoUri.toString();
       final Media media;
@@ -383,15 +377,9 @@ public class VlcVideoPlayer extends VideoPlayer {
       media.addOption(":video-paused");
       mMediaPlayer.play(media);
     } else {
-      if (mVideoView != null) {
-        mVideoView.showLoadingView(false);
-      }
       mMediaPlayer.play("");
       mMediaPlayer.stop();
       setPlaybackState(PLAYBACK_STATE_IDLE);
-    }
-    if (mVideoView != null) {
-      mVideoView.cancelDraggingVideoSeekBar();
     }
   }
 
@@ -424,6 +412,7 @@ public class VlcVideoPlayer extends VideoPlayer {
   private void resetVlcPlayer() {
     mMediaPlayer.stop();
 //    mMediaPlayer.reset();
+    onVideoBufferingStateChanged(false);
   }
 
   @Override
@@ -540,7 +529,11 @@ public class VlcVideoPlayer extends VideoPlayer {
 
   @Override
   protected void closeVideoInternal(boolean fromUser) {
-    if (mMediaPlayer != null) {
+    final boolean playerCreated = mMediaPlayer != null;
+    if (mVideoView != null) {
+      mVideoView.cancelDraggingVideoSeekBar(playerCreated);
+    }
+    if (playerCreated) {
       final boolean playing = isPlaying();
 
       if (mSeekOnPlay == TIME_UNSET && getPlaybackState() != PLAYBACK_STATE_COMPLETED) {
@@ -567,12 +560,6 @@ public class VlcVideoPlayer extends VideoPlayer {
       if (playing) {
         onVideoStopped();
       }
-
-      if (mVideoView != null)
-        mVideoView.showLoadingView(false);
-    }
-    if (mVideoView != null) {
-      mVideoView.cancelDraggingVideoSeekBar();
     }
   }
 
@@ -583,6 +570,7 @@ public class VlcVideoPlayer extends VideoPlayer {
     mMediaPlayer = null;
     mLibVLC.release();
     mLibVLC = null;
+    onVideoBufferingStateChanged(false);
   }
 
   private void abandonAudioFocus() {
@@ -609,11 +597,10 @@ public class VlcVideoPlayer extends VideoPlayer {
   private void seekToInternal(int positionMs) {
     // Unable to seek while streaming live content
     if (mVideoDuration != NO_DURATION) {
-      if ((mInternalFlags & $FLAG_BUFFERING) == 0) {
-        if (mVideoView != null)
-          mVideoView.showLoadingView(true);
-      }
       mInternalFlags |= $FLAG_SEEKING;
+      if ((mInternalFlags & $FLAG_BUFFERING) == 0) {
+        onVideoBufferingStateChanged(true);
+      }
       positionMs = clampedPositionMs(positionMs);
       mMediaPlayer.setTime(positionMs);
     }

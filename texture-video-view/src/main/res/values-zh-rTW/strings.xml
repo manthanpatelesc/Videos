@@ -8,7 +8,6 @@
     <string name="brightnessProgress">亮度：%.0f%%</string>
     <string name="brightnessFollowsSystem">亮度：跟随系统</string>
     <string name="volumeProgress">音量：%.0f%%</string>
-    <string name="progress_duration">%s/%s</string>
     <string name="lock">锁定</string>
     <string name="unlock">不锁定</string>
     <string name="videoThumbnail">视频缩略图</string>
@@ -62,10 +61,6 @@
     <string name="subtitle">字幕</string>
     <string name="track_selection_none">无</string>
     <string name="track_unknown">未知</string>
-    <string name="track_resolution">%1$d × %2$d</string>
-    <string name="track_frameRate">%1$s<!--.2f--> fps</string>
-    <string name="track_sampleRate">%1$s<!--.2f--> kHz</string>
-    <string name="track_bitrate">%1$s<!--.2f--> Mb/s</string>
     <string name="track_mono">单声道</string>
     <string name="track_stereo">立体声</string>
     <string name="track_surround">环绕声</string>

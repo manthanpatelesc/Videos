@@ -294,6 +294,37 @@ public class Utils {
     }
 
     /**
+     * Returns whether the playback speed of {@link MediaPlayer} can be adjusted
+     * while it is being used, depending on the the system version of the user hardware device.
+     */
+    public static boolean isMediaPlayerPlaybackSpeedAdjustmentSupported() {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.M;
+    }
+
+    /**
+     * Returns whether audio/video/subtitle track selection is supported for {@link MediaPlayer},
+     * depending on the the system version of the user hardware device.
+     */
+    public static boolean isMediaPlayerTrackSelectionSupported() {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP;
+    }
+
+    /**
+     * Returns whether the {@link ExoPlayer} can be used on the system of the user device.
+     */
+    public static boolean canUseExoPlayer() {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN;
+    }
+
+    /**
+     * Returns whether the {@link rg.videolan.libvlc.MediaPlayer} can be used on
+     * the system of the user device.
+     */
+    public static boolean canUseVlcPlayer() {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1;
+    }
+
+    /**
      * Creates a new MotionEvent with {@link MotionEvent#ACTION_CANCEL} action being performed,
      * filling in a subset of the basic motion values. Those not specified here are:
      * <ul>

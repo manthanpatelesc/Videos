@@ -15,7 +15,6 @@
     <string name="cancel">Cancel</string>
     <string name="cancelTop">Cancel Top</string>
     <string name="cannotPlayThisVideo">Cannot play this video</string>
-    <string name="charsequenceProgress">%1$s/%2$s</string>
     <string name="checkForUpdates">Check for Updates</string>
     <string name="clickToInstallIt">Click to install it</string>
     <string name="colon">:</string>
@@ -24,7 +23,6 @@
     <string name="confirm">@string/ok</string>
     <string name="connectionTimeout">Connection timeout</string>
     <string name="contactWay">Contact way</string>
-    <string name="copyright">Copyright © 2017–present 刘振林.\nAll rights reserved.</string>
     <string name="copyURL">Copy URL</string>
     <string name="delete">Delete</string>
     <string name="deleteFailed">Failed to delete %s</string>
@@ -64,10 +62,9 @@
     <string name="openOrCloseSideDrawer">Open or close the side drawer</string>
     <string name="optionalForMeToContactWithYou">Optional, for me to contact with you</string>
     <string name="path">Path: %s</string>
-    <string name="percentProgress">%.2f%%</string>
     <string name="permissionsRequired">Permissions Required</string>
-    <string name="pictureCount">%d/3</string>
     <string name="pictures">Pictures (Optional, provide screenshots of the issue(s))</string>
+    <string name="playWithThisApp">Play with Videos</string>
     <string name="pleaseEnterTheIssuesYouEncounteredOrYourAdvice">
         Please enter the issues you encountered or your advice…</string>
     <string name="pleaseGoToAppSettingsScreenFirstToAllowAppsFromThisSourceToBeInstalled">
@@ -126,7 +123,6 @@
     <string name="updateLog">%1$sv%2$s update log: </string>
     <string name="updateLogs">Update Logs</string>
     <string name="userFeedback">User Feedback</string>
-    <string name="version">v1.9.1</string>
     <string name="videoCount">Video count: %d</string>
     <string name="videoDetails">Video Details</string>
     <string name="videoTitle">Video Title</string>
@@ -135,10 +131,16 @@
     <string name="videoThumbnail">Video thumbnail</string>
     <string name="videodirThumbnail">Video directory thumbnail</string>
     <string name="watching">Watching…</string>
-    <string name="wordCount">%d/500</string>
     <string name="youHaveNotCommitted">You Have Not Committed</string>
 
     <string name="appName_chinese" translatable="false">视频</string>
+    <string name="version" translatable="false">1.9.2-beta01</string>
+    <string name="copyright" translatable="false">Copyright © 2017–present 刘振林.\nAll rights reserved.</string>
+    <string name="projectLink" translatable="false">https://github.com/lzls/Videos</string>
+    <string name="pictureCount" translatable="false">%d/3</string>
+    <string name="wordCount" translatable="false">%d/500</string>
+    <string name="charsequenceProgress" translatable="false">%1$s/%2$s</string>
+    <string name="percentProgress" translatable="false">%.2f%%</string>
     <string name="updateAppendedColon" translatable="false">更新：</string>
     <string name="downloadNotificationChannelId" translatable="false">%s__download_notification_channel</string>
     <string name="msgNotificationChannelId" translatable="false">%s__msg_notification_channel</string>
