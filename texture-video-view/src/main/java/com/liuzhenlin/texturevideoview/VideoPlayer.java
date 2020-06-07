@@ -16,6 +16,7 @@ import android.view.Surface;
 import android.widget.Toast;
 
 import androidx.annotation.CallSuper;
+import androidx.annotation.MainThread;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
@@ -46,6 +47,7 @@ import java.util.List;
  *
  * @author 刘振林
  */
+@MainThread
 public abstract class VideoPlayer implements IVideoPlayer {
 
   protected final Context mContext; // the Application Context
@@ -289,7 +291,7 @@ public abstract class VideoPlayer implements IVideoPlayer {
   }
 
   private byte getVideoTrackSelection() {
-    // Casting an int to byte preserves the sign bit
+    // Casting a video track selection from int to byte preserves the sign bit
     return (byte) ((mTrackSelections & VIDEO_TRACK_SELECTION_MASK)
         >> VIDEO_TRACK_SELECTION_MASK_SHIFT);
   }
@@ -300,7 +302,7 @@ public abstract class VideoPlayer implements IVideoPlayer {
   }
 
   private byte getAudioTrackSelection() {
-    // Casting an int to byte preserves the sign bit
+    // Casting an audio track selection from int to byte preserves the sign bit
     return (byte) ((mTrackSelections & AUDIO_TRACK_SELECTION_MASK)
         >> AUDIO_TRACK_SELECTION_MASK_SHIFT);
   }
@@ -311,7 +313,7 @@ public abstract class VideoPlayer implements IVideoPlayer {
   }
 
   private short getSubtitleTrackSelection() {
-    // Casting an int to short preserves the sign bit
+    // Casting a subtitle track selection from int to short preserves the sign bit
     return (short) ((mTrackSelections & SUBTITLE_TRACK_SELECTION_MASK)
         >> SUBTITLE_TRACK_SELECTION_MASK_SHIFT);
   }
@@ -837,17 +839,15 @@ public abstract class VideoPlayer implements IVideoPlayer {
         Class<?>[] paramTypes = constructor.getParameterTypes();
         // Try to find a constructor that takes a single parameter whose type is
         // the (super) type of the context's.
-        if (paramTypes.length == 1) {
-          if (paramTypes[0].isAssignableFrom(context.getClass())) {
-            try {
-              return constructor.newInstance(context);
-            } catch (IllegalAccessException e) {
-              e.printStackTrace();
-            } catch (InstantiationException e) {
-              e.printStackTrace();
-            } catch (InvocationTargetException e) {
-              e.printStackTrace();
-            }
+        if (paramTypes.length == 1 && paramTypes[0].isAssignableFrom(context.getClass())) {
+          try {
+            return constructor.newInstance(context);
+          } catch (IllegalAccessException e) {
+            e.printStackTrace();
+          } catch (InstantiationException e) {
+            e.printStackTrace();
+          } catch (InvocationTargetException e) {
+            e.printStackTrace();
           }
         }
       }

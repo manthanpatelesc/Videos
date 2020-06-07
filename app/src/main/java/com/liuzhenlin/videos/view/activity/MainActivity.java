@@ -522,7 +522,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             null, null, mForwardDrawable, null);
                 }
             }
-            return super.getView(position, convertView, mDrawerList);
+            return super.getView(position, convertView, listview);
         }
 
         final class ViewHolder {

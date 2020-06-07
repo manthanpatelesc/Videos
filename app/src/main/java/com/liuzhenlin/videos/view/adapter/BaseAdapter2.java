@@ -29,19 +29,21 @@ public abstract class BaseAdapter2 extends BaseAdapter {
     public void notifyItemChanged(int position) {
         if (mAdapterView == null) return;
 
-        // 第一个可见item的位置
+        final int headerCount;
+        if (mAdapterView instanceof ListView) {
+            headerCount = ((ListView) mAdapterView).getHeaderViewsCount();
+        } else {
+            headerCount = 0;
+        }
+        final int unwrappedPosition = headerCount + position;
+
         final int firstVisiblePosition = mAdapterView.getFirstVisiblePosition();
-        // 最后一个可见item的位置
         final int lastVisiblePosition = mAdapterView.getLastVisiblePosition();
 
-        // 在看得见范围内才更新，不可见的滑动后自动会调用getView方法更新
-        if (position >= firstVisiblePosition && position <= lastVisiblePosition) {
-            int itemIndex = position - firstVisiblePosition;
-            if (mAdapterView instanceof ListView) {
-                ListView listView = (ListView) mAdapterView;
-                itemIndex += listView.getHeaderViewsCount();
-            }
-            // 获取指定位置的view对象
+        // 在可见范围内的才更新；不可见的在列表滚动后，列表会自动调用getView方法进行更新
+        if (unwrappedPosition >= firstVisiblePosition && unwrappedPosition <= lastVisiblePosition) {
+            int itemIndex = unwrappedPosition - firstVisiblePosition;
+            // 获取并更新指定位置的itemView
             View itemView = mAdapterView.getChildAt(itemIndex);
             getView(position, itemView, mAdapterView);
         }

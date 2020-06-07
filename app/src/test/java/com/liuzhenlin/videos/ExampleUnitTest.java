@@ -21,7 +21,7 @@ public class ExampleUnitTest {
 
     @Test
     public void test() {
-        final String directory = "/Users/liuzhenlin/AndroidStudio/projects/Videos/app/release";
+        final String directory = "/Users/liuzhenlin/AppData/AndroidStudio/projects/Videos/app/release";
         final String fileName = "app-release";
         final String extension = ".apk";
 

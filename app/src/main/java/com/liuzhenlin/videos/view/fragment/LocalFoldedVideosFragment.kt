@@ -280,11 +280,10 @@ class LocalFoldedVideosFragment : SwipeBackFragment(), View.OnClickListener, Vie
             }
             R.id.btn_top -> {
                 val index = v.tag as Int
-
                 val video = mVideos[index]
+
                 val topped = !video.isTopped
                 video.isTopped = topped
-
                 VideoListItemDao.getSingleton(v.context).setVideoListItemTopped(video, topped)
 
                 val newIndex = mVideos.reordered().indexOf(video)

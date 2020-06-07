@@ -6,8 +6,8 @@
     "apkData": {
       "type": "MAIN",
       "splits": [],
-      "versionCode": 37,
-      "versionName": "1.9.2-beta01",
+      "versionCode": 38,
+      "versionName": "1.9.2",
       "enabled": true,
       "outputFile": "app-debug.apk",
       "fullName": "debug",
