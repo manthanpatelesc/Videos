@@ -18,7 +18,7 @@ import androidx.annotation.Nullable;
 
 import com.liuzhenlin.texturevideoview.misc.ParallelThreadExecutor;
 import com.liuzhenlin.videos.R;
-import com.liuzhenlin.videos.model.MailInfo;
+import com.liuzhenlin.videos.bean.MailInfo;
 
 /**
  * @author 刘振林
