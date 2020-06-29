@@ -57,8 +57,7 @@ public class Utils {
      */
     public static void copyPlainTextToClipboard(@NonNull Context context,
                                                 @Nullable String label, @Nullable String text) {
-        ClipboardManager cm = (ClipboardManager)
-                context.getApplicationContext().getSystemService(Context.CLIPBOARD_SERVICE);
+        ClipboardManager cm = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
         // 创建纯文本型ClipData
         ClipData cd = ClipData.newPlainText(label, text);
         // 将ClipData内容放到系统剪贴板里
