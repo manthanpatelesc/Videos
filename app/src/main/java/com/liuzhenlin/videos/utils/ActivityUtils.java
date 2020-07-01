@@ -20,6 +20,7 @@ import java.util.Map;
 /**
  * @author 刘振林
  */
+@SuppressWarnings("rawtypes")
 public class ActivityUtils {
     private ActivityUtils() {
     }
@@ -142,9 +143,10 @@ public class ActivityUtils {
         try {
             // public final class ActivityThread...
             @SuppressLint("PrivateApi")
-            Class<?> activityThreadClass = Class.forName("android.app.ActivityThread");
+            Class activityThreadClass = Class.forName("android.app.ActivityThread");
 
             // public static ActivityThread currentActivityThread() {...}
+            @SuppressWarnings("unchecked")
             Object currentActivityThread = activityThreadClass
                     .getMethod("currentActivityThread")
                     .invoke(activityThreadClass);

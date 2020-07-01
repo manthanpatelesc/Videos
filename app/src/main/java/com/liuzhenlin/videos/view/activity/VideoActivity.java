@@ -262,6 +262,7 @@ public class VideoActivity extends SwipeBackActivity {
             recordVideoProgress(video);
 
             final boolean needPlaylist = mVideos.length > 1;
+            //noinspection rawtypes
             TextureVideoView.PlayListAdapter adapter = mVideoView.getPlayListAdapter();
             if (needPlaylist && adapter != null) {
                 adapter.notifyDataSetChanged();
@@ -1341,6 +1342,7 @@ public class VideoActivity extends SwipeBackActivity {
     private void notifyItemSelectionChanged(int oldPosition, int position, boolean checkNewItemVisibility) {
         if (mPlayList == null) return;
 
+        //noinspection rawtypes
         RecyclerView.Adapter adapter = mPlayList.getAdapter();
         assert adapter != null;
         adapter.notifyItemChanged(oldPosition, sRefreshVideoProgressPayload);
