@@ -209,7 +209,7 @@ import static java.lang.Runtime.getRuntime;
    * @param context Decoder context.
    * @param outputBuffer Output buffer for the decoded frame.
    * @return {@link #GAV1_OK} if successful, {@link #GAV1_DECODE_ONLY} if successful but the frame
-   *     is decode-only, {@link #GAV1_ERROR} if an error occurred.
+   *         is decode-only, {@link #GAV1_ERROR} if an error occurred.
    */
   private native int gav1GetFrame(
           long context, VideoDecoderOutputBuffer outputBuffer, boolean decodeOnly);

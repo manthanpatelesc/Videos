@@ -26,8 +26,8 @@ import java.io.File;
  * @author 刘振林
  */
 public class DemoActivity extends AppCompatActivity {
-    private TextureVideoView mVideoView;
-    private VideoPlayer mVideoPlayer;
+    /*synthetic*/ TextureVideoView mVideoView;
+    /*synthetic*/ VideoPlayer mVideoPlayer;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {

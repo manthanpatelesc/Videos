@@ -77,7 +77,7 @@ public class ExoVideoPlayer extends VideoPlayer {
 
   private String mUserAgent;
 
-  private SimpleExoPlayer mExoPlayer;
+  /*synthetic*/ SimpleExoPlayer mExoPlayer;
   private DefaultTrackSelector mTrackSelector;
   private MediaSourceFactory mMediaSourceFactory;
   private MediaSourceFactory mTmpMediaSourceFactory;
@@ -143,7 +143,7 @@ public class ExoVideoPlayer extends VideoPlayer {
 
   /**
    * @return the user (the person that may be using this class) specified {@link MediaSourceFactory}
-   * for reading the media content(s)
+   *         for reading the media content(s)
    */
   @Nullable
   public MediaSourceFactory getMediaSourceFactory() {
@@ -174,7 +174,7 @@ public class ExoVideoPlayer extends VideoPlayer {
 
   /**
    * @return the default {@link DataSource.Factory} created by this class, which will be used for
-   * various of {@link MediaSourceFactory}s (if the user specified one is not set).
+   *         various of {@link MediaSourceFactory}s (if the user specified one is not set).
    */
   @NonNull
   public DataSource.Factory getDefaultDataSourceFactory() {
@@ -201,9 +201,9 @@ public class ExoVideoPlayer extends VideoPlayer {
 
   /**
    * @return a user agent string based on the application name resolved from the context object
-   * of the view this player is bound to and the `exoplayer-core` library version,
-   * which can be used to create a {@link com.google.android.exoplayer2.upstream.DataSource.Factory}
-   * instance for the {@link MediaSourceFactory} subclasses.
+   *         of the view this player is bound to and the `exoplayer-core` library version,
+   *         which can be used to create a {@link com.google.android.exoplayer2.upstream.DataSource.Factory}
+   *         instance for the {@link MediaSourceFactory} subclasses.
    */
   @NonNull
   public String getUserAgent() {
@@ -574,7 +574,7 @@ public class ExoVideoPlayer extends VideoPlayer {
   /**
    * Similar to {@link #pause(boolean)}}, but does not check the playback state.
    */
-  private void pauseInternal(boolean fromUser) {
+  /*synthetic*/ void pauseInternal(boolean fromUser) {
     mExoPlayer.setPlayWhenReady(false);
     mInternalFlags = mInternalFlags & ~$FLAG_VIDEO_PAUSED_BY_USER
         | (fromUser ? $FLAG_VIDEO_PAUSED_BY_USER : 0);

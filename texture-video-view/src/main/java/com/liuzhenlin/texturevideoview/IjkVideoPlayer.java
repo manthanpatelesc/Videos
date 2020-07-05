@@ -67,7 +67,7 @@ public class IjkVideoPlayer extends VideoPlayer {
    */
   private static final int $FLAG_BUFFERING = 1 << 29;
 
-  private IjkMediaPlayer mIjkPlayer;
+  /*synthetic*/ IjkMediaPlayer mIjkPlayer;
   private Surface mSurface;
 
   /** Rotation degrees of the played video source */

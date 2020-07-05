@@ -54,7 +54,7 @@ public class VideoClipView extends FrameLayout {
     /** @see #getThumbGalleryWidth() */
     private int mThumbGalleryWidth;
     /** @see #getThumbDisplayHeight() */
-    private final int mThumbDisplayHeight;
+    /*synthetic*/ final int mThumbDisplayHeight;
 
     private final Drawable mClipBackwards;
     private final Drawable mClipBackwardsDark;
@@ -100,7 +100,7 @@ public class VideoClipView extends FrameLayout {
     private int mMinimumUnselectedClipDuration = DEFAULT_MIN_UNSELECTED_CLIP_DURATION;
 
     private final int[] mTmpSelectionInterval = sNoSelectionInterval.clone();
-    private static final int[] sNoSelectionInterval = {0, 0};
+    /*synthetic*/ static final int[] sNoSelectionInterval = {0, 0};
 
     private boolean mFirstLayout = true;
     private boolean mInLayout;
@@ -1008,6 +1008,9 @@ public class VideoClipView extends FrameLayout {
     private final class ThumbsAdapter extends RecyclerView.Adapter<ThumbsAdapter.ViewHolder> {
 
         final List<Bitmap> thumbnails = new ArrayList<>();
+
+        ThumbsAdapter() {
+        }
 
         @NonNull
         @Override

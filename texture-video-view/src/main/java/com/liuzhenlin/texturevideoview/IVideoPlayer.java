@@ -245,7 +245,7 @@ public interface IVideoPlayer {
 
     /**
      * @return an estimate of the position in the current content window up to which data is
-     * buffered, in milliseconds.
+     *         buffered, in milliseconds.
      */
     int getVideoBufferProgress();
 
@@ -253,20 +253,20 @@ public interface IVideoPlayer {
      * Gets the duration of the video.
      *
      * @return the duration in milliseconds, if no duration is available (for example,
-     * if streaming live content or the duration is not determined yet),
-     * then {@value TIME_UNSET} is returned.
+     *         if streaming live content or the duration is not determined yet),
+     *         then {@value TIME_UNSET} is returned.
      */
     int getVideoDuration();
 
     /**
      * @return the width of the video, or 0 if there is no video or the width has not been
-     * determined yet.
+     *         determined yet.
      */
     int getVideoWidth();
 
     /**
      * @return the height of the video, or 0 if there is no video or the height has not been
-     * determined yet.
+     *         determined yet.
      */
     int getVideoHeight();
 
@@ -345,8 +345,8 @@ public interface IVideoPlayer {
      *                  {@link TrackInfo#TRACK_TYPE_AUDIO} or
      *                  {@link TrackInfo#TRACK_TYPE_SUBTITLE}.
      * @return index of the video, audio, or subtitle track currently selected for playback;
-     * {@value #INVALID_TRACK_INDEX} is returned when there is no selected track for {@code trackType}
-     * or when {@code trackType} is not one of video, audio, or subtitle.
+     *         {@value #INVALID_TRACK_INDEX} is returned when there is no selected track for {@code trackType}
+     *         or when {@code trackType} is not one of video, audio, or subtitle.
      */
     int getSelectedTrackIndex(@TrackInfo.TrackType int trackType);
 

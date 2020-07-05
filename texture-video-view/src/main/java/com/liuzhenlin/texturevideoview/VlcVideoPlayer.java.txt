@@ -65,7 +65,7 @@ public class VlcVideoPlayer extends VideoPlayer {
   private static final int $FLAG_BUFFERING = 1 << 30;
 
   private LibVLC mLibVLC;
-  private MediaPlayer mMediaPlayer;
+  /*synthetic*/ MediaPlayer mMediaPlayer;
 
   /**
    * How much of the network-based video has been buffered from the media stream received
@@ -313,7 +313,7 @@ public class VlcVideoPlayer extends VideoPlayer {
               mInternalFlags |= $FLAG_VIDEO_DURATION_DETERMINED;
             }
             final int duration = (int) event.getLengthChanged();
-            onVideoDurationChanged(duration == 0 ? NO_DURATION : duration);
+            onVideoDurationChanged(duration == 0 ? TIME_UNSET : duration);
             break;
         }
       });
@@ -596,7 +596,7 @@ public class VlcVideoPlayer extends VideoPlayer {
    */
   private void seekToInternal(int positionMs) {
     // Unable to seek while streaming live content
-    if (mVideoDuration != NO_DURATION) {
+    if (mVideoDuration != TIME_UNSET) {
       mInternalFlags |= $FLAG_SEEKING;
       if ((mInternalFlags & $FLAG_BUFFERING) == 0) {
         onVideoBufferingStateChanged(true);

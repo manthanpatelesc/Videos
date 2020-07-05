@@ -59,25 +59,25 @@ public class BackgroundPlaybackControllerService extends Service {
     private String mPlay;
     private String mPause;
     private String mPkgName;
-    private Bitmap mAppIcon;
-    private int mThumbMaxWidth;
-    private int mThumbMaxHeight;
+    /*synthetic*/ Bitmap mAppIcon;
+    /*synthetic*/ int mThumbMaxWidth;
+    /*synthetic*/ int mThumbMaxHeight;
     @ColorInt
     private static int sNotificationActionIconTint = -1;
 
     private Messenger mMessenger;
 
-    private String mMediaTitle;
-    private Bitmap mVideoThumb;
-    private boolean mIsPlaying;
-    private boolean mIsBuffering;
-    private boolean mCanSkipToPrevious;
-    private boolean mCanSkipToNext;
-    private long mMediaProgress;
-    private long mMediaDuration;
+    /*synthetic*/ String mMediaTitle;
+    /*synthetic*/ Bitmap mVideoThumb;
+    /*synthetic*/ boolean mIsPlaying;
+    /*synthetic*/ boolean mIsBuffering;
+    /*synthetic*/ boolean mCanSkipToPrevious;
+    /*synthetic*/ boolean mCanSkipToNext;
+    /*synthetic*/ long mMediaProgress;
+    /*synthetic*/ long mMediaDuration;
 
-    private NotificationManager mNotificationManager;
-    private NotificationCompat.Builder mNotificationBuilder;
+    /*synthetic*/ NotificationManager mNotificationManager;
+    /*synthetic*/ NotificationCompat.Builder mNotificationBuilder;
     private static final int ID_NOTIFICATION = 0x7fffffff;
 
     private static final String EXTRA_CONTROLLER_ACTION = "extra_controllerAction";
@@ -102,9 +102,9 @@ public class BackgroundPlaybackControllerService extends Service {
 
     private ControllerActionReceiver mReceiver;
 
-    private boolean mIsForeground;
+    /*synthetic*/ boolean mIsForeground;
 
-    private final Target<Bitmap> mGlideTarget = new CustomTarget<Bitmap>() {
+    /*synthetic*/ final Target<Bitmap> mGlideTarget = new CustomTarget<Bitmap>() {
         @Override
         public void onResourceReady(@NonNull Bitmap icon, @Nullable Transition<? super Bitmap> transition) {
             mVideoThumb = icon;
@@ -212,7 +212,7 @@ public class BackgroundPlaybackControllerService extends Service {
         return false;
     }
 
-    private void postNotificationIfForeground() {
+    /*synthetic*/ void postNotificationIfForeground() {
         Handler handler = InternalConsts.getMainThreadHandler();
         handler.removeCallbacks(mPostNotificationRunnable);
         if (mIsForeground) {
@@ -224,7 +224,7 @@ public class BackgroundPlaybackControllerService extends Service {
         }
     }
 
-    private void resetNotificationView() {
+    /*synthetic*/ void resetNotificationView() {
         RemoteViews nv = createNotificationView();
         mNotificationBuilder.setCustomContentView(nv);
         mNotificationBuilder.setCustomBigContentView(nv);
@@ -313,7 +313,7 @@ public class BackgroundPlaybackControllerService extends Service {
                 0);
     }
 
-    private void sendMsg(int what) {
+    /*synthetic*/ void sendMsg(int what) {
         Message msg = Message.obtain(null, what);
         try {
             mMessenger.send(msg);
@@ -389,6 +389,9 @@ public class BackgroundPlaybackControllerService extends Service {
     private final class ControllerActionReceiver extends BroadcastReceiver {
         static final String ACTION =
                 "action_BackgroundPlaybackControllerService$ControllerActionReceiver";
+
+        ControllerActionReceiver() {
+        }
 
         @Override
         public void onReceive(Context context, Intent intent) {

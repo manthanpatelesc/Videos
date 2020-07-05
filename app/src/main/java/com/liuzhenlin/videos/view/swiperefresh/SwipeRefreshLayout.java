@@ -188,7 +188,7 @@ public class SwipeRefreshLayout extends ViewGroup
     /** @see #setLegacyRequestDisallowInterceptTouchEventEnabled */
     private boolean mEnableLegacyRequestDisallowInterceptTouch;
 
-    private Animation.AnimationListener mRefreshListener = new Animation.AnimationListener() {
+    private final Animation.AnimationListener mRefreshListener = new Animation.AnimationListener() {
         @Override
         public void onAnimationStart(Animation animation) {
         }

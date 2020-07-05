@@ -11,7 +11,7 @@ public interface ISwipeBackFragment {
 
     /**
      * @return whether popping up this Fragment from the back stack that holds it through
-     * swipe-back gesture is enabled or not.
+     *         swipe-back gesture is enabled or not.
      * @see #setSwipeBackEnabled(boolean)
      */
     boolean isSwipeBackEnabled();

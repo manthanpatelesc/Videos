@@ -320,7 +320,7 @@ public abstract class VideoPlayer implements IVideoPlayer {
 
   /**
    * @return Base directory for storing generated cache files of the video(s) that will be
-   * downloaded from HTTP server onto disk.
+   *         downloaded from HTTP server onto disk.
    */
   @NonNull
   protected final File getBaseVideoCacheDirectory() {

@@ -65,7 +65,7 @@ public class SystemVideoPlayer extends VideoPlayer {
    */
   private static final int $FLAG_BUFFERING = 1 << 29;
 
-  private MediaPlayer mMediaPlayer;
+  /*synthetic*/ MediaPlayer mMediaPlayer;
 
   /**
    * How much of the network-based video has been buffered from the media stream received

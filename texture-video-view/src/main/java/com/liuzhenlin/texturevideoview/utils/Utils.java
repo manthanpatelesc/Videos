@@ -137,7 +137,8 @@ public class Utils {
      *
      * @param trackType One of the {@code TRACK_TYPE_*} constants defined in class {@link TrackInfo}.
      * @return The mapped media track type for MediaPlayer or
-     * {@link MediaPlayer.TrackInfo#MEDIA_TRACK_TYPE_UNKNOWN} for an illegal input TrackType constant.
+     *         {@link MediaPlayer.TrackInfo#MEDIA_TRACK_TYPE_UNKNOWN}
+     *         for an illegal input TrackType constant.
      */
     @RequiresApi(Build.VERSION_CODES.JELLY_BEAN)
     public static int getTrackTypeForMediaPlayer(@TrackInfo.TrackType int trackType) {
@@ -159,7 +160,8 @@ public class Utils {
      *
      * @param trackType One of the {@code TRACK_TYPE_*} constants defined in class {@link TrackInfo}.
      * @return The mapped media track type for IjkPlayer or
-     * {@link IjkTrackInfo#MEDIA_TRACK_TYPE_UNKNOWN} for an illegal input TrackType constant.
+     *         {@link IjkTrackInfo#MEDIA_TRACK_TYPE_UNKNOWN}
+     *         for an illegal input TrackType constant.
      */
     public static int getTrackTypeForIjkPlayer(@TrackInfo.TrackType int trackType) {
         switch (trackType) {
@@ -180,7 +182,7 @@ public class Utils {
      *
      * @param trackType One of the {@code TRACK_TYPE_*} constants defined in class {@link TrackInfo}.
      * @return The mapped media track type for ExoPlayer or
-     * {@link C#TRACK_TYPE_UNKNOWN} for an illegal input TrackType constant.
+     *         {@link C#TRACK_TYPE_UNKNOWN} for an illegal input TrackType constant.
      */
     public static int getTrackTypeForExoPlayer(@TrackInfo.TrackType int trackType) {
         switch (trackType) {

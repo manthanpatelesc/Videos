@@ -590,7 +590,7 @@ public class SlidingItemMenuRecyclerView extends RecyclerView {
      *
      * @param position the position of the item in the data set of the adapter
      * @return true if the menu of the child view that represents the given position can be opened;
-     * false if the position is not laid out or the item does not have a menu.
+     *         false if the position is not laid out or the item does not have a menu.
      * @see #openItemAtPosition(int, boolean)
      */
     public boolean openItemAtPosition(int position) {
@@ -603,7 +603,7 @@ public class SlidingItemMenuRecyclerView extends RecyclerView {
      * @param position the position of the item in the data set of the adapter
      * @param animate  whether this scroll should be smooth
      * @return true if the menu of the child view that represents the given position can be opened;
-     * false if the position is not laid out or the item does not have a menu.
+     *         false if the position is not laid out or the item does not have a menu.
      */
     public boolean openItemAtPosition(int position, boolean animate) {
         final LayoutManager lm = getLayoutManager();
@@ -693,7 +693,7 @@ public class SlidingItemMenuRecyclerView extends RecyclerView {
      * This method does not cancel the translation animator of the 'itemView', for which it is used
      * to update the item view's horizontal scrolled position.
      */
-    private void baseTranslateItemViewXBy(ViewGroup itemView, float dx) {
+    /*synthetic*/ void baseTranslateItemViewXBy(ViewGroup itemView, float dx) {
         if (dx == 0) return;
 
         final float translationX = itemView.getChildAt(0).getTranslationX() + dx;

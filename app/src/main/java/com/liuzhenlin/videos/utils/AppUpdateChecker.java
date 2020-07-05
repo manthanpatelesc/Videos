@@ -33,6 +33,7 @@ import androidx.appcompat.app.AppCompatDialog;
 import androidx.core.app.NotificationCompat;
 import androidx.core.util.ObjectsCompat;
 
+import com.bumptech.glide.util.Synthetic;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -77,25 +78,25 @@ public final class AppUpdateChecker {
     private static final String LINK_APP_INFOS =
             "https://raw.githubusercontent.com/lzls/Videos/release/app.json";
 
-    private String mAppName;
-    private String mVersionName;
-    private String mAppLink;
-    private String mAppSha1;
-    private StringBuilder mUpdateLog;
-    private String mPromptDialogAnchorActivityClsName;
+    @Synthetic String mAppName;
+    @Synthetic String mVersionName;
+    @Synthetic String mAppLink;
+    @Synthetic String mAppSha1;
+    @Synthetic StringBuilder mUpdateLog;
+    @Synthetic String mPromptDialogAnchorActivityClsName;
 
-    private final Context mContext;
-    private final Handler mHandler;
-    private boolean mToastResult;
+    @Synthetic final Context mContext;
+    @Synthetic final Handler mHandler;
+    @Synthetic boolean mToastResult;
     private boolean mCheckInProgress;
 
-    private List<OnResultListener> mListeners;
+    @Synthetic List<OnResultListener> mListeners;
 
     private static final String EXTRA_APP_NAME = "extra_appName";
     private static final String EXTRA_VERSION_NAME = "extra_versionName";
     private static final String EXTRA_APP_LINK = "extra_appLink";
     private static final String EXTRA_APP_SHA1 = "extra_appSha1";
-    private Intent mServiceIntent;
+    @Synthetic Intent mServiceIntent;
 
     private static final Singleton<Context, AppUpdateChecker> sAppUpdateCheckerSingleton =
             new Singleton<Context, AppUpdateChecker>() {
@@ -116,7 +117,7 @@ public final class AppUpdateChecker {
         mHandler = new Handler();
     }
 
-    private boolean hasOnResultListener() {
+    @Synthetic boolean hasOnResultListener() {
         return mListeners != null && !mListeners.isEmpty();
     }
 
@@ -265,7 +266,7 @@ public final class AppUpdateChecker {
     /**
      * 弹出对话框，提醒用户更新
      */
-    private void showUpdatePromptDialog() {
+    @Synthetic void showUpdatePromptDialog() {
         Activity anchorActivity = ActivityUtils.getActivityForName(mPromptDialogAnchorActivityClsName);
         if (anchorActivity == null || anchorActivity.isFinishing()) {
             Log.w(TAG, "The Activity in which the dialog should run does'nt exist, " +
@@ -331,7 +332,7 @@ public final class AppUpdateChecker {
         dialog.show();
     }
 
-    private void reset() {
+    @Synthetic void reset() {
         mAppName = null;
         mVersionName = null;
         mAppLink = null;
@@ -346,6 +347,9 @@ public final class AppUpdateChecker {
         static final int MSG_STOP_UPDATE_APP_SERVICE = -1;
         static final int MSG_NO_NEW_VERSION = 0;
         static final int MSG_FIND_NEW_VERSION = 1;
+
+        Handler() {
+        }
 
         @Override
         public void handleMessage(@NonNull Message msg) {
@@ -377,7 +381,7 @@ public final class AppUpdateChecker {
         private static final int INDEX_APP_LINK = 2;
         private static final int INDEX_APP_SHA1 = 3;
 
-        private UpdateAppTask mTask;
+        @Synthetic UpdateAppTask mTask;
 
         private CancelAppUpdateReceiver mReceiver;
 
@@ -417,6 +421,9 @@ public final class AppUpdateChecker {
         private static final class CancelAppUpdateReceiver extends BroadcastReceiver {
             static final String ACTION =
                     "action_AppUpdateChecker$UpdateAppService$CancelAppUpdateReceiver";
+
+            CancelAppUpdateReceiver() {
+            }
 
             @Override
             public void onReceive(Context context, Intent intent) {
@@ -487,7 +494,7 @@ public final class AppUpdateChecker {
                 mService.startForeground(ID_NOTIFICATION, mNotificationBuilder.build());
             }
 
-            private RemoteViews createNotificationView() {
+            @Synthetic RemoteViews createNotificationView() {
                 RemoteViews nv = new RemoteViews(mPkgName, R.layout.notification_download_app);
                 nv.setOnClickPendingIntent(R.id.btn_cancel_danv,
                         PendingIntent.getBroadcast(mContext,
@@ -607,7 +614,7 @@ public final class AppUpdateChecker {
                 }
             }
 
-            private void stopService() {
+            @Synthetic void stopService() {
                 mService.mTask = null;
                 mService.stopForeground(true);
                 getHandler().sendEmptyMessage(Handler.MSG_STOP_UPDATE_APP_SERVICE);
@@ -617,7 +624,7 @@ public final class AppUpdateChecker {
                 return getSingleton(mContext).mHandler;
             }
 
-            private void onConnectionTimeout() {
+            @Synthetic void onConnectionTimeout() {
                 if (!isCancelled()) {
                     getHandler().post(new Runnable() {
                         @Override
@@ -630,7 +637,7 @@ public final class AppUpdateChecker {
                 }
             }
 
-            private void onReadTimeout() {
+            @Synthetic void onReadTimeout() {
                 if (!isCancelled()) {
                     getHandler().post(new Runnable() {
                         @Override
@@ -643,7 +650,7 @@ public final class AppUpdateChecker {
                 }
             }
 
-            private void onDownloadError() {
+            @Synthetic void onDownloadError() {
                 if (!isCancelled()) {
                     getHandler().post(new Runnable() {
                         @Override

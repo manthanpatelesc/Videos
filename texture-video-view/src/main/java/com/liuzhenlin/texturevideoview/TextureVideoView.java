@@ -451,7 +451,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
 
     private static final String TAG = "TextureVideoView";
 
-    private int mPrivateFlags = PFLAG_CONTROLS_SHOWING;
+    /*synthetic*/ int mPrivateFlags = PFLAG_CONTROLS_SHOWING;
 
     /** If the controls are showing, this is marked into {@link #mPrivateFlags}. */
     private static final int PFLAG_CONTROLS_SHOWING = 1;
@@ -539,109 +539,111 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
     private static final int TIMEOUT_SHOW_CAPTURED_PHOTO = 3000; // ms
 
     @Nullable
-    private VideoPlayer mVideoPlayer;
+    /*synthetic*/ VideoPlayer mVideoPlayer;
 
     /** The listener for all the events related to this view we publish. */
     @Nullable
-    private EventListener mEventListener;
+    /*synthetic*/ EventListener mEventListener;
 
     @Nullable
-    private OpCallback mOpCallback;
+    /*synthetic*/ OpCallback mOpCallback;
 
-    private final ConstraintLayout mContentView;
-    private final ViewGroup mDrawerView;
+    /*synthetic*/ final ConstraintLayout mContentView;
+    /*synthetic*/ final ViewGroup mDrawerView;
 
-    private final RecyclerView mPlayList;
-    private View mMoreView;
-    private TrackSelectionView mTrackSelectionView;
+    /*synthetic*/ final RecyclerView mPlayList;
+    /*synthetic*/ View mMoreView;
+    /*synthetic*/ TrackSelectionView mTrackSelectionView;
 
     /** Shows the video playback. */
-    private final TextureView mTextureView;
+    /*synthetic*/ final TextureView mTextureView;
     /** Caches the Surface created for this view. */
-    private Surface mSurface;
+    /*synthetic*/ Surface mSurface;
     /** Surface used by the {@link VideoPlayer} set for this view. */
-    private Surface mUsedSurface; // null or mSurface
+    /*synthetic*/ Surface mUsedSurface; // null or mSurface
 
     private final SubtitleView mSubtitleView;
     private static final CaptionStyleCompat sDefaultCaptionStyle =
             new CaptionStyleCompat(
-                    /* foregroundColor */ Color.WHITE,
-                    /* backgroundColor */ Color.TRANSPARENT,
+                    /* foregroundColor= */ Color.WHITE,
+                    /* backgroundColor= */ Color.TRANSPARENT,
                     /* windowColor= */ Color.TRANSPARENT,
                     /* edgeType= */ CaptionStyleCompat.EDGE_TYPE_OUTLINE,
                     /* edgeColor= */ Color.BLACK,
                     /* typeface= */ null);
 
-    private final ViewGroup mTopControlsFrame;
-    private final TextView mTitleText;
-    private final View mShareButton;
-    private final View mTrackButton;
-    private final View mMoreButton;
+    /*synthetic*/ final ViewGroup mTopControlsFrame;
+    /*synthetic*/ final TextView mTitleText;
+    /*synthetic*/ final View mShareButton;
+    /*synthetic*/ final View mTrackButton;
+    /*synthetic*/ final View mMoreButton;
 
-    private final ImageView mLockUnlockButton;
-    private final View mCameraButton;
-    private final View mVideoCameraButton;
+    /*synthetic*/ final ImageView mLockUnlockButton;
+    /*synthetic*/ final View mCameraButton;
+    /*synthetic*/ final View mVideoCameraButton;
 
-    private final ViewGroup mBrightnessOrVolumeFrame;
+    /*synthetic*/ final ViewGroup mBrightnessOrVolumeFrame;
     private final TextView mBrightnessOrVolumeText;
-    private final ProgressBar mBrightnessOrVolumeProgress;
+    /*synthetic*/ final ProgressBar mBrightnessOrVolumeProgress;
 
     private final ViewGroup mBottomControlsFrame;
-    private ImageView mToggleButton;
-    private SeekBar mVideoSeekBar;
-    // Bottom controls only in non-fullscreen mode
+    /*synthetic*/ ImageView mToggleButton;
+    /*synthetic*/ SeekBar mVideoSeekBar;
+    // BEGIN fields: Bottom controls only in non-fullscreen mode
     private TextView mVideoProgressText;
     private TextView mVideoDurationText;
-    private View mMinimizeButton;
-    private View mFullscreenButton;
-    // Bottom controls only in fullscreen mode
-    private View mSkipNextButton;
+    /*synthetic*/ View mMinimizeButton;
+    /*synthetic*/ View mFullscreenButton;
+    // END fields: Bottom controls only in non-fullscreen mode
+    // BEGIN fields: Bottom controls only in fullscreen mode
+    /*synthetic*/ View mSkipNextButton;
     private TextView mVideoProgressDurationText;
-    private AppCompatSpinner mSpeedSpinner;
-    private View mChooseEpisodeButton;
+    /*synthetic*/ AppCompatSpinner mSpeedSpinner;
+    /*synthetic*/ View mChooseEpisodeButton;
+    // END fields: Bottom controls only in fullscreen mode
 
     /**
      * Scrim view with a 33.3% black background shows on our TextureView to obscure primary
      * video frames while the video thumb text is visible to the user.
      */
-    private final View mScrimView;
-    private final TextView mSeekingVideoThumbText;
+    /*synthetic*/ final View mScrimView;
+    /*synthetic*/ final TextView mSeekingVideoThumbText;
 
-    private final ViewGroup mSeekingTextProgressFrame;
-    private final TextView mSeekingProgressDurationText;
-    private final ProgressBar mSeekingProgress;
+    /*synthetic*/ final ViewGroup mSeekingTextProgressFrame;
+    /*synthetic*/ final TextView mSeekingProgressDurationText;
+    /*synthetic*/ final ProgressBar mSeekingProgress;
 
     private final ImageView mLoadingImage;
     private final CircularProgressDrawable mLoadingDrawable;
 
-    private View mCapturedPhotoView;
-    private Bitmap mCapturedBitmap;
-    private File mSavedPhoto;
-    private AsyncTask<Void, Void, File> mSaveCapturedPhotoTask;
+    /*synthetic*/ View mCapturedPhotoView;
+    /*synthetic*/ Bitmap mCapturedBitmap;
+    /*synthetic*/ File mSavedPhoto;
+    /*synthetic*/ AsyncTask<Void, Void, File> mSaveCapturedPhotoTask;
 
     private View mClipView;
-    private AsyncTask<Void, Bitmap, Void> mLoadClipThumbsTask;
+    /*synthetic*/ AsyncTask<Void, Bitmap, Void> mLoadClipThumbsTask;
 
     private ListPopupWindow mSpinnerListPopup;
-    private PopupWindow mSpinnerPopup;
+    /*synthetic*/ PopupWindow mSpinnerPopup;
 
     /** The minimum height of the drawer views (the playlist and the 'more' view) */
-    private int mDrawerViewMinimumHeight;
+    /*synthetic*/ int mDrawerViewMinimumHeight;
 
     /** Caches the initial `paddingTop` of the top controls frame */
-    private final int mNavInitialPaddingTop;
+    /*synthetic*/ final int mNavInitialPaddingTop;
 
     /** Title of the video */
-    private String mTitle;
+    /*synthetic*/ String mTitle;
 
     private final String mStringPlay;
     private final String mStringPause;
     private final String mStringLock;
-    private final String mStringUnlock;
+    /*synthetic*/ final String mStringUnlock;
     private final String mStringBrightnessFollowsSystem;
     private final String[] mSpeedsStringArray;
-    private final float mSeekingViewHorizontalOffset;
-    private final float mSeekingVideoThumbCornerRadius;
+    /*synthetic*/ final float mSeekingViewHorizontalOffset;
+    /*synthetic*/ final float mSeekingVideoThumbCornerRadius;
 
     /**
      * Bright complement to the primary branding color. By default, this is the color applied to
@@ -661,16 +663,16 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
     private static final Interpolator sStretchShrinkVideoInterpolator = new OvershootInterpolator();
 
     private final OnChildTouchListener mOnChildTouchListener = new OnChildTouchListener();
-    private final OnChildClickListener mOnChildClickListener = new OnChildClickListener();
-    private final OnVideoSeekBarChangeListener mOnVideoSeekBarChangeListener =
+    /*synthetic*/ final OnChildClickListener mOnChildClickListener = new OnChildClickListener();
+    /*synthetic*/ final OnVideoSeekBarChangeListener mOnVideoSeekBarChangeListener =
             new OnVideoSeekBarChangeListener();
 
-    private final MsgHandler mMsgHandler = new MsgHandler(this);
+    /*synthetic*/ final MsgHandler mMsgHandler = new MsgHandler(this);
 
     /**
      * Runnable used to turn off the video playback when a scheduled time point is arrived.
      */
-    private TimedOffRunnable mTimedOffRunnable;
+    /*synthetic*/ TimedOffRunnable mTimedOffRunnable;
 
     /** Indicating that the brightness value of a window should follow the system's */
     public static final int BRIGHTNESS_FOLLOWS_SYSTEM = -1;
@@ -687,9 +689,9 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
     private static final int RATIO_VOLUME_PROGRESS_TO_VOLUME = 20;
 
     /** Maximum volume of the system media audio stream ({@link AudioManager#STREAM_MUSIC}). */
-    private final int mMaxVolume;
+    /*synthetic*/ final int mMaxVolume;
 
-    private final AudioManager mAudioManager;
+    /*synthetic*/ final AudioManager mAudioManager;
 
     private static BackgroundPlaybackControllerServiceConn sBgPlaybackControllerServiceConn;
 
@@ -699,13 +701,13 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
 
     private static Field sLeftDraggerField;
     private static Field sRightDraggerField;
-    private static Field sDrawerOpenStateField;
+    /*synthetic*/ static Field sDrawerOpenStateField;
 
     private static Field sListPopupField;
     private static Field sPopupField;
     private static Field sPopupDecorViewField;
     private static Field sForceIgnoreOutsideTouchField;
-    private static Field sPopupOnDismissListenerField;
+    /*synthetic*/ static Field sPopupOnDismissListenerField;
 
     static {
         try {
@@ -1273,7 +1275,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
 
     /**
      * @return the brightness of the window this view is attached to or 0
-     * if no {@link OpCallback} is set.
+     *         if no {@link OpCallback} is set.
      */
     public int getBrightness() {
         if (mOpCallback != null) {
@@ -1298,11 +1300,11 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
         }
     }
 
-    private int volumeToProgress(int volume) {
+    /*synthetic*/ int volumeToProgress(int volume) {
         return volume * RATIO_VOLUME_PROGRESS_TO_VOLUME;
     }
 
-    private int progressToVolume(int progress) {
+    /*synthetic*/ int progressToVolume(int progress) {
         return (int) ((float) progress / RATIO_VOLUME_PROGRESS_TO_VOLUME + 0.5f);
     }
 
@@ -1534,7 +1536,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
 
     /**
      * @return whether the video is forced to be stretched in proportion to fit the layout size
-     * in fullscreen.
+     *         in fullscreen.
      */
     public boolean isVideoStretchedToFitFullscreenLayout() {
         return (mPrivateFlags & PFLAG_VIDEO_STRETCHED_TO_FIT_FULLSCREEN_LAYOUT) != 0;
@@ -1550,7 +1552,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
         setVideoStretchedToFitFullscreenLayoutInternal(stretched, true);
     }
 
-    private void setVideoStretchedToFitFullscreenLayoutInternal(boolean stretched, boolean checkSwitch) {
+    /*synthetic*/ void setVideoStretchedToFitFullscreenLayoutInternal(boolean stretched, boolean checkSwitch) {
         if (stretched == isVideoStretchedToFitFullscreenLayout()) {
             return;
         }
@@ -1808,19 +1810,19 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
 
     /**
      * @return the present mode for this view, maybe one of
-     * {@link #VIEW_MODE_DEFAULT},
-     * {@link #VIEW_MODE_MINIMUM},
-     * {@link #VIEW_MODE_FULLSCREEN},
-     * {@link #VIEW_MODE_LOCKED_FULLSCREEN},
-     * {@link #VIEW_MODE_VIDEO_STRETCHED_FULLSCREEN},
-     * {@link #VIEW_MODE_VIDEO_STRETCHED_LOCKED_FULLSCREEN}
+     *         {@link #VIEW_MODE_DEFAULT},
+     *         {@link #VIEW_MODE_MINIMUM},
+     *         {@link #VIEW_MODE_FULLSCREEN},
+     *         {@link #VIEW_MODE_LOCKED_FULLSCREEN},
+     *         {@link #VIEW_MODE_VIDEO_STRETCHED_FULLSCREEN},
+     *         {@link #VIEW_MODE_VIDEO_STRETCHED_LOCKED_FULLSCREEN}
      */
     @ViewMode
     public final int getViewMode() {
         return mViewMode;
     }
 
-    private void setViewMode(@ViewMode int mode, boolean layoutMatches) {
+    /*synthetic*/ void setViewMode(@ViewMode int mode, boolean layoutMatches) {
         final int old = mViewMode;
         if (old != mode) {
             mViewMode = mode;
@@ -1945,7 +1947,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
      *                till {@link #hideControls(boolean)} is called.
      * @param animate whether to fade in the controls smoothly or not
      */
-    private void showControls(int timeout, boolean animate) {
+    /*synthetic*/ void showControls(int timeout, boolean animate) {
         mMsgHandler.removeMessages(MsgHandler.MSG_HIDE_CONTROLS);
 
         if ((mPrivateFlags & PFLAG_CONTROLS_SHOWING) == 0) {
@@ -2084,7 +2086,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
         }
     }
 
-    private void checkCameraButtonsVisibilities() {
+    /*synthetic*/ void checkCameraButtonsVisibilities() {
         boolean show = isControlsShowing() && isInFullscreenMode() && !isLocked();
         if (show && isSpinnerPopupShowing()) {
             final int[] location = new int[2];
@@ -2132,7 +2134,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
         }
     }
 
-    private void hideCapturedPhotoView(boolean share) {
+    /*synthetic*/ void hideCapturedPhotoView(boolean share) {
         if (mCapturedPhotoView != null) {
             Transition transition = null;
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
@@ -2180,7 +2182,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
         hideCapturedPhotoView(false);
     }
 
-    private void captureVideoPhoto() {
+    /*synthetic*/ void captureVideoPhoto() {
         if (mSurface == null) return;
 
         final int width = mTextureView.getWidth();
@@ -2359,7 +2361,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
         content.startAnimation(animation);
     }
 
-    private String obtainAppExternalFilesDir() {
+    /*synthetic*/ String obtainAppExternalFilesDir() {
         String directory = null;
         if (mOpCallback != null) {
             directory = mOpCallback.getAppExternalFilesDir();
@@ -2371,7 +2373,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
     }
 
     @SuppressLint("StaticFieldLeak")
-    private void showClipView() {
+    /*synthetic*/ void showClipView() {
         if (mClipView != null) return;
 
         VideoPlayer videoPlayer = mVideoPlayer;
@@ -2731,7 +2733,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
         }
     }
 
-    private void refreshBrightnessProgress(int progress) {
+    /*synthetic*/ void refreshBrightnessProgress(int progress) {
         if ((mOnChildTouchListener.touchFlags & OnChildTouchListener.TFLAG_ADJUSTING_BRIGHTNESS)
                 == OnChildTouchListener.TFLAG_ADJUSTING_BRIGHTNESS) {
             final boolean brightnessFollowsSystem = progress == -1;
@@ -2743,7 +2745,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
         }
     }
 
-    private void refreshVolumeProgress(int progress) {
+    /*synthetic*/ void refreshVolumeProgress(int progress) {
         if ((mOnChildTouchListener.touchFlags & OnChildTouchListener.TFLAG_ADJUSTING_VOLUME)
                 == OnChildTouchListener.TFLAG_ADJUSTING_VOLUME) {
             mBrightnessOrVolumeText.setText(mResources.getString(R.string.volumeProgress,
@@ -2752,11 +2754,11 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
         }
     }
 
-    private void refreshVideoProgress(int progress) {
+    /*synthetic*/ void refreshVideoProgress(int progress) {
         refreshVideoProgress(progress, true);
     }
 
-    private void refreshVideoProgress(int progress, boolean refreshSeekBar) {
+    /*synthetic*/ void refreshVideoProgress(int progress, boolean refreshSeekBar) {
         VideoPlayer videoPlayer = mVideoPlayer;
         if (videoPlayer == null) progress = 0;
         final int videoBufferProgress = videoPlayer == null ? 0 : videoPlayer.getVideoBufferProgress();
@@ -2820,17 +2822,19 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
         }
     }
 
-    private boolean isSpinnerPopupShowing() {
+    /*synthetic*/ boolean isSpinnerPopupShowing() {
         return mSpinnerPopup != null && mSpinnerPopup.isShowing();
     }
 
-    private void dismissSpinnerPopup() {
+    /*synthetic*/ void dismissSpinnerPopup() {
         if (mSpinnerListPopup != null) {
             mSpinnerListPopup.dismiss();
         }
     }
 
     private final class OnChildTouchListener implements OnTouchListener, ConstraintLayout.TouchInterceptor {
+        OnChildTouchListener() {
+        }
 
         int touchFlags;
         static final int TFLAG_STILL_DOWN_ON_POPUP = 1;
@@ -3244,6 +3248,9 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
     }
 
     private final class OnChildClickListener implements View.OnClickListener {
+        OnChildClickListener() {
+        }
+
         @Override
         public void onClick(View v) {
             if (mTitleText == v) {
@@ -3553,6 +3560,9 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
     }
 
     private final class OnVideoSeekBarChangeListener implements SeekBar.OnSeekBarChangeListener {
+        OnVideoSeekBarChangeListener() {
+        }
+
         int start;
         volatile int current;
         MediaMetadataRetriever mmr;
@@ -3969,6 +3979,9 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
         static final int OFF_TIME_90_MINUTES = 3 * OFF_TIME_30_MINUTES;
         static final int OFF_TIME_2_HOURS = 4 * OFF_TIME_30_MINUTES;
 
+        TimedOffRunnable() {
+        }
+
         @Override
         public void run() {
             mTimedOffRunnable = null;
@@ -3998,6 +4011,9 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
         BackgroundPlaybackControllerService.Binder service;
 
         TextureVideoView serviceHolder;
+
+        BackgroundPlaybackControllerServiceConn() {
+        }
 
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
@@ -4075,7 +4091,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
         sBgPlaybackControllerServiceConn.connectFor(this);
     }
 
-    private void tryStopBackgroundPlaybackControllerService() {
+    /*synthetic*/ void tryStopBackgroundPlaybackControllerService() {
         if (sBgPlaybackControllerServiceConn != null) {
             if (sBgPlaybackControllerServiceConn.disconnectFor(this)) {
                 sBgPlaybackControllerServiceConn = null;
