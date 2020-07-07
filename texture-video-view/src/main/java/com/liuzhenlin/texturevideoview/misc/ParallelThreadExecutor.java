@@ -5,6 +5,7 @@
 
 package com.liuzhenlin.texturevideoview.misc;
 
+import android.annotation.SuppressLint;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -73,6 +74,7 @@ public final class ParallelThreadExecutor extends ThreadPoolExecutor {
 
     private static final Singleton<Void, ParallelThreadExecutor> sParallelThreadExecutorSingleton =
             new Singleton<Void, ParallelThreadExecutor>() {
+                @SuppressLint("SyntheticAccessor")
                 @NonNull
                 @Override
                 protected ParallelThreadExecutor onCreate(Void... voids) {

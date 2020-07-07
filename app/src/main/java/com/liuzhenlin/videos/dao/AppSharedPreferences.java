@@ -5,6 +5,7 @@
 
 package com.liuzhenlin.videos.dao;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.SharedPreferences;
 
@@ -26,6 +27,7 @@ public final class AppSharedPreferences {
 
     private static final Singleton<Context, AppSharedPreferences> sAppSharedPreferencesSingleton =
             new Singleton<Context, AppSharedPreferences>() {
+                @SuppressLint("SyntheticAccessor")
                 @NonNull
                 @Override
                 protected AppSharedPreferences onCreate(Context... ctxs) {

@@ -86,6 +86,7 @@ public class ActivityUtils {
                     activityField.setAccessible(true);
                 }
                 Activity activity = (Activity) activityField.get(activityRecord);
+                //noinspection ConstantConditions
                 if (activity.getClass().getName().equals(activityClsName)) {
                     return activity;
                 }
@@ -123,6 +124,7 @@ public class ActivityUtils {
                     activityField.setAccessible(true);
                 }
                 Activity activity = (Activity) activityField.get(activityRecord);
+                //noinspection ConstantConditions
                 if (activity.getClass().getName().equals(activityClsName)) {
                     if (result == null) {
                         result = new ArrayList<>(1);

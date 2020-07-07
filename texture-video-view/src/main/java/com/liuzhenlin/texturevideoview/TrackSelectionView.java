@@ -166,6 +166,7 @@ public class TrackSelectionView extends LinearLayout {
       }
     }
 
+    //noinspection ConstantConditions
     mViewPager.getAdapter().notifyItemRangeChanged(0, TRACK_GROUP_COUNT, mTrackGroups);
   }
 
@@ -205,6 +206,7 @@ public class TrackSelectionView extends LinearLayout {
       } else {
         TrackListAdapter adapter = (TrackListAdapter) holder.recyclerView.getAdapter();
 
+        //noinspection ConstantConditions
         int oldTrackSelection = adapter.mTrackSelection;
         ComparableSparseArray<TrackInfo> oldTrackGroup = adapter.mTrackGroup;
 

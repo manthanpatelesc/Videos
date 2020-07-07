@@ -975,7 +975,6 @@ public class VideoActivity extends SwipeBackActivity {
         setFullscreenMode(fullscreen);
     }
 
-    @SuppressWarnings("SuspiciousNameCombination")
     @Synthetic void resizeVideoView() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && isInPictureInPictureMode()) {
             setVideoViewSize(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
@@ -1032,6 +1031,7 @@ public class VideoActivity extends SwipeBackActivity {
                 } else if ((mPrivateFlags & PFLAG_SCREEN_NOTCH_SUPPORT) != 0) {
 //                        mVideoView.setPadding(mNotchHeight, 0, 0, 0);
                     for (int i = 0, childCount = mVideoView.getChildCount(); i < childCount; i++) {
+                        //noinspection SuspiciousNameCombination
                         UiUtils.setViewMargins(mVideoView.getChildAt(i), mNotchHeight, 0, 0, 0);
                     }
                 }
@@ -1048,6 +1048,7 @@ public class VideoActivity extends SwipeBackActivity {
                 } else if ((mPrivateFlags & PFLAG_SCREEN_NOTCH_SUPPORT) != 0) {
 //                        mVideoView.setPadding(0, 0, mNotchHeight, 0);
                     for (int i = 0, childCount = mVideoView.getChildCount(); i < childCount; i++) {
+                        //noinspection SuspiciousNameCombination
                         UiUtils.setViewMargins(mVideoView.getChildAt(i), 0, 0, mNotchHeight, 0);
                     }
                 }
@@ -1348,7 +1349,7 @@ public class VideoActivity extends SwipeBackActivity {
 
         //noinspection rawtypes
         RecyclerView.Adapter adapter = mPlayList.getAdapter();
-        assert adapter != null;
+        //noinspection ConstantConditions
         adapter.notifyItemChanged(oldPosition, sRefreshVideoProgressPayload);
         adapter.notifyItemChanged(oldPosition, sHighlightSelectedItemIfExistsPayload);
         adapter.notifyItemChanged(position, sRefreshVideoProgressPayload);

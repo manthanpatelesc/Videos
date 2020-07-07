@@ -109,6 +109,7 @@ public final class MergeAppUpdateChecker {
 
     private static final Singleton<Context, MergeAppUpdateChecker> sMergeAppUpdateCheckerSingleton =
             new Singleton<Context, MergeAppUpdateChecker>() {
+                @SuppressLint("SyntheticAccessor")
                 @NonNull
                 @Override
                 protected MergeAppUpdateChecker onCreate(Context... ctxs) {
@@ -176,6 +177,7 @@ public final class MergeAppUpdateChecker {
                     conn.setConnectTimeout(TIMEOUT_CONNECTION);
                     conn.setReadTimeout(TIMEOUT_READ);
 
+                    //noinspection CharsetObjectCanBeUsed
                     reader = new BufferedReader(
                             new InputStreamReader(conn.getInputStream(), "utf-8"));
                     final char[] buffer = new char[1024];
@@ -212,6 +214,7 @@ public final class MergeAppUpdateChecker {
                     }
                 }
 
+                //noinspection ConstantConditions
                 JsonObject appInfos = JsonParser.parseString(json.toString()).getAsJsonObject()
                         .get("appInfos").getAsJsonObject();
 
@@ -476,6 +479,7 @@ public final class MergeAppUpdateChecker {
             mReceiver = new CancelAppUpdateReceiver();
             registerReceiver(mReceiver, new IntentFilter(CancelAppUpdateReceiver.ACTION));
 
+            //noinspection ConstantConditions
             mApk = new File(App.getAppExternalFilesDir(),
                     intent.getStringExtra(EXTRA_APP_NAME) + " "
                             + intent.getStringExtra(EXTRA_VERSION_NAME).replace(".", "_")
@@ -497,6 +501,7 @@ public final class MergeAppUpdateChecker {
             }
 
             mAppPartLinks = intent.getStringArrayExtra(EXTRA_APP_PART_LINKS);
+            //noinspection ConstantConditions
             mApkParts = new File[mAppPartLinks.length];
             mDownloadAppPartTasks = new ArrayList<>(mApkParts.length);
             mDownloadAppExecutor = Build.VERSION.SDK_INT > Build.VERSION_CODES.N

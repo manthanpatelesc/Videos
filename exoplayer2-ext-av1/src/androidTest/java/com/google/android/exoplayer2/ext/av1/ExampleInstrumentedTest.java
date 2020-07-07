@@ -1,8 +1,3 @@
-/*
- * Created on 2020-3-9 12:11:12 PM.
- * Copyright © 2020 刘振林. All rights reserved.
- */
-
 package com.google.android.exoplayer2.ext.av1;
 
 import android.content.Context;
@@ -27,6 +22,6 @@ public class ExampleInstrumentedTest {
         // Context of the app under test.
         Context appContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
-        assertEquals("com.google.android.exoplayer.ext.av1.test", appContext.getPackageName());
+        assertEquals("com.google.android.exoplayer2.ext.av1.test", appContext.getPackageName());
     }
 }

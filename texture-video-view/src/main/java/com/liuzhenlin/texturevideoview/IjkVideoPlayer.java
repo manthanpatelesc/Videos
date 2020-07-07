@@ -722,6 +722,7 @@ public class IjkVideoPlayer extends VideoPlayer {
         }
         trackInfos.add(trackInfo);
       }
+      //noinspection ToArrayCallWithZeroLengthArrayArgument
       return trackInfos.toArray(new TrackInfo[trackInfos.size()]);
     }
     return EMPTY_TRACK_INFOS;

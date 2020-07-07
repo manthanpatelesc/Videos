@@ -490,7 +490,8 @@ public class CircularCheckBox extends View implements Checkable {
             return;
         }
 
-        // draw left of the tick
+        // Draw left of the tick
+        //noinspection IfStatementWithIdenticalBranches
         if (mTickLength < mTickLeftPartLength) {
             final float step = Math.max(mCenterPoint.x / 10f, 5f);
             mTickLength += step;
@@ -507,13 +508,14 @@ public class CircularCheckBox extends View implements Checkable {
             mTickPath.moveTo(mTickKeyPoints[0].x, mTickKeyPoints[0].y);
             mTickPath.lineTo(stopX, stopY);
             canvas.drawPath(mTickPath, mTickPaint);
+
+            // Draw right of the tick
         } else {
             mTickPath.reset();
             mTickPath.moveTo(mTickKeyPoints[0].x, mTickKeyPoints[0].y);
             mTickPath.lineTo(mTickKeyPoints[1].x, mTickKeyPoints[1].y);
             canvas.drawPath(mTickPath, mTickPaint);
 
-            // draw right of the tick
             final float step = Math.max(mCenterPoint.x / 10f, 5f);
             mTickLength += step;
             if (mTickLength > mTickLeftPartLength + mTickRightPartLength) {

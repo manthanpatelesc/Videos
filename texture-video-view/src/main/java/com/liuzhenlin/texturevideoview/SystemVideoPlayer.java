@@ -706,6 +706,7 @@ public class SystemVideoPlayer extends VideoPlayer {
         }
         trackInfos.add(trackInfo);
       }
+      //noinspection ToArrayCallWithZeroLengthArrayArgument
       return trackInfos.toArray(new TrackInfo[trackInfos.size()]);
     } catch (RuntimeException ignored) {
       return EMPTY_TRACK_INFOS;
@@ -751,7 +752,6 @@ public class SystemVideoPlayer extends VideoPlayer {
     }
   }
 
-  @SuppressLint("SwitchIntDef")
   @RequiresApi(Build.VERSION_CODES.JELLY_BEAN)
   private int externalIndexToLibIndex(int externalIndex) {
     if (externalIndex >= 0) {
@@ -774,7 +774,6 @@ public class SystemVideoPlayer extends VideoPlayer {
     return -1;
   }
 
-  @SuppressLint("SwitchIntDef")
   @RequiresApi(Build.VERSION_CODES.JELLY_BEAN)
   private int libIndexToExternalIndex(int libIndex) {
     if (libIndex >= 0) {
@@ -814,6 +813,7 @@ public class SystemVideoPlayer extends VideoPlayer {
 
     int index = -1;
     try {
+      //noinspection StatementWithEmptyBody
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
         trackType = Utils.getTrackTypeForMediaPlayer(trackType);
         if (trackType != MediaPlayer.TrackInfo.MEDIA_TRACK_TYPE_UNKNOWN) {
