@@ -9,21 +9,19 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.os.AsyncTask
 import com.liuzhenlin.texturevideoview.misc.ParallelThreadExecutor
-import com.liuzhenlin.videos.toVideoListItems
 import com.liuzhenlin.videos.bean.Video
 import com.liuzhenlin.videos.bean.VideoListItem
 import com.liuzhenlin.videos.dao.VideoListItemDao
 import com.liuzhenlin.videos.deepCopy
 import com.liuzhenlin.videos.sortByElementName
+import com.liuzhenlin.videos.toVideoListItems
 import java.util.*
-import kotlin.collections.ArrayList
 
 /**
  * @author 刘振林
  */
 class LocalVideoListModel(context: Context) : BaseModel<MutableList<VideoListItem>?>(context) {
 
-    private var mLoader: LoadVideosTask? = null
     private var mOnReloadVideosListeners: MutableList<OnReloadVideosListener>? = null
 
     fun addOnReloadVideosListener(listener: OnReloadVideosListener) {
@@ -33,9 +31,8 @@ class LocalVideoListModel(context: Context) : BaseModel<MutableList<VideoListIte
             mOnReloadVideosListeners!!.add(listener)
     }
 
-    fun removeOnReloadVideosListener(listener: OnReloadVideosListener) {
-        mOnReloadVideosListeners?.remove(listener)
-    }
+    fun removeOnReloadVideosListener(listener: OnReloadVideosListener) =
+            mOnReloadVideosListeners?.remove(listener)
 
     private fun notifyListenersOnReloadVideos(videos: ArrayList<Video>?) =
             mOnReloadVideosListeners?.let {
@@ -49,31 +46,16 @@ class LocalVideoListModel(context: Context) : BaseModel<MutableList<VideoListIte
                 }
             }
 
-    override fun startLoader() {
-        // 不在加载视频时才加载
-        if (mLoader == null) {
-            mLoader = LoadVideosTask()
-            mLoader!!.executeOnExecutor(ParallelThreadExecutor.getSingleton())
-        }
-    }
-
-    override fun stopLoader() {
-        val loader = mLoader
-        if (loader != null) {
-            mLoader = null
-            loader.cancel(false)
-        }
+    override fun createAndStartLoader(): AsyncTask<*, *, *> {
+        val loader = LoadVideosTask()
+        loader.executeOnExecutor(ParallelThreadExecutor.getSingleton())
+        return loader
     }
 
     @SuppressLint("StaticFieldLeak")
     private inner class LoadVideosTask : AsyncTask<Void, Void, Array<*>?>() {
-        override fun onPreExecute() {
-            mOnLoadListeners?.let {
-                for (listener in it.toTypedArray()) {
-                    listener.onLoadStart()
-                }
-            }
-        }
+
+        override fun onPreExecute() = onLoadStart()
 
         override fun doInBackground(vararg voids: Void): Array<*>? {
             val dao = VideoListItemDao.getSingleton(mContext)
@@ -108,27 +90,11 @@ class LocalVideoListModel(context: Context) : BaseModel<MutableList<VideoListIte
         }
 
         override fun onPostExecute(result: Array<*>?) {
-            mLoader = null
-            mOnLoadListeners?.let {
-                for (listener in it.toTypedArray()) {
-                    @Suppress("UNCHECKED_CAST")
-                    listener.onLoadFinish(result?.get(0) as MutableList<VideoListItem>?)
-                }
-            }
+            @Suppress("UNCHECKED_CAST")
+            onLoadFinish(result?.get(0) as MutableList<VideoListItem>?)
 
             @Suppress("UNCHECKED_CAST")
             notifyListenersOnReloadVideos(result?.get(1) as ArrayList<Video>?)
-        }
-
-        override fun onCancelled(result: Array<*>?) {
-            if (mLoader == null) {
-                mOnLoadListeners?.let {
-                    for (listener in it.toTypedArray()) {
-                        @Suppress("UNCHECKED_CAST")
-                        listener.onLoadFinish(result?.get(0) as MutableList<VideoListItem>?)
-                    }
-                }
-            }
         }
     }
 }

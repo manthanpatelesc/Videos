@@ -16,7 +16,8 @@ import java.util.*
 abstract class BaseModel<Result>(context: Context) {
 
     protected val mContext: Context = context.applicationContext
-    protected var mOnLoadListeners: MutableList<OnLoadListener<Result>>? = null
+    private var mLoader: AsyncTask<*, *, *>? = null
+    private var mOnLoadListeners: MutableList<OnLoadListener<Result>>? = null
 
     fun addOnLoadListener(listener: OnLoadListener<Result>) {
         if (mOnLoadListeners == null)
@@ -25,37 +26,66 @@ abstract class BaseModel<Result>(context: Context) {
             mOnLoadListeners!!.add(listener)
     }
 
-    fun removeOnLoadListener(listener: OnLoadListener<Result>) {
-        mOnLoadListeners?.remove(listener)
+    fun removeOnLoadListener(listener: OnLoadListener<Result>) =
+            mOnLoadListeners?.remove(listener)
+
+    protected fun onLoadStart() {
+        mOnLoadListeners?.let {
+            for (listener in it.toTypedArray()) {
+                listener.onLoadStart()
+            }
+        }
     }
 
-    abstract fun startLoader()
-    abstract fun stopLoader()
+    protected fun onLoadFinish(result: Result) {
+        mLoader = null
+        mOnLoadListeners?.let {
+            for (listener in it.toTypedArray()) {
+                listener.onLoadFinish(result)
+            }
+        }
+    }
+
+    private fun onLoadCanceled() {
+        mLoader = null
+        mOnLoadListeners?.let {
+            for (listener in it.toTypedArray()) {
+                listener.onLoadCanceled()
+            }
+        }
+    }
+
+    protected fun onLoadError(cause: Throwable) {
+        mLoader!!.cancel(true)
+        mLoader = null
+        mOnLoadListeners?.let {
+            for (listener in it.toTypedArray()) {
+                listener.onLoadError(cause)
+            }
+        }
+    }
+
+    fun startLoader() {
+        if (mLoader == null) {
+            mLoader = createAndStartLoader()
+        }
+    }
+
+    fun stopLoader() {
+        val loader = mLoader
+        if (loader != null) {
+            loader.cancel(true)
+            onLoadCanceled()
+        }
+    }
+
+    protected abstract fun createAndStartLoader(): AsyncTask<*, *, *>
 
     @SuppressLint("StaticFieldLeak")
     protected abstract inner class Loader<Params, Progress> : AsyncTask<Params, Progress, Result>() {
-        override fun onPreExecute() {
-            mOnLoadListeners?.let {
-                for (listener in it.toTypedArray()) {
-                    listener.onLoadStart()
-                }
-            }
-        }
 
-        override fun onPostExecute(result: Result) {
-            mOnLoadListeners?.let {
-                for (listener in it.toTypedArray()) {
-                    listener.onLoadFinish(result)
-                }
-            }
-        }
+        override fun onPreExecute() = onLoadStart()
 
-        override fun onCancelled(result: Result) {
-            mOnLoadListeners?.let {
-                for (listener in it.toTypedArray()) {
-                    listener.onLoadCanceled(result)
-                }
-            }
-        }
+        override fun onPostExecute(result: Result) = onLoadFinish(result)
     }
 }
