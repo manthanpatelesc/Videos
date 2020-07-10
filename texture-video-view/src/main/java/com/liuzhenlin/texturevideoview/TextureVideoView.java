@@ -2353,7 +2353,7 @@ public class TextureVideoView extends AbsTextureVideoView implements ViewHostEve
                 content.setTag(null);
 
                 if (playing && mVideoPlayer != null) {
-                    mVideoPlayer.play(mVideoPlayer.isPlayerCreated());
+                    mVideoPlayer.play(mVideoPlayer.isInnerPlayerCreated());
                 }
             }
 

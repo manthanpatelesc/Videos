@@ -26,7 +26,7 @@ public class VlcVideoPlayer extends VideoPlayer {
   }
 
   @Override
-  protected boolean isPlayerCreated() {
+  protected boolean isInnerPlayerCreated() {
     return false;
   }
 

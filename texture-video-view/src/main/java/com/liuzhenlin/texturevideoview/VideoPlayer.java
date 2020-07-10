@@ -112,7 +112,7 @@ public abstract class VideoPlayer implements IVideoPlayer {
    */
   protected float mPlaybackSpeed = DEFAULT_PLAYBACK_SPEED;
   /**
-   * Caches the speed the user sets for the player at any time, even when the player has not
+   * Caches the speed the user sets for the player at any time, even when the inner player has not
    * been created.
    * <p>
    * This may fail if the value is not supported by the framework.
@@ -346,15 +346,15 @@ public abstract class VideoPlayer implements IVideoPlayer {
       onVideoDurationChanged(TIME_UNSET);
       mInternalFlags &= ~$FLAG_VIDEO_DURATION_DETERMINED;
       setTrackSelections(TRACK_SELECTION_UNSPECIFIED, TRACK_SELECTION_UNSPECIFIED, TRACK_SELECTION_UNSPECIFIED);
-      if (isPlayerCreated()) {
+      if (isInnerPlayerCreated()) {
         restartVideo(false);
       } else {
         // Removes the $FLAG_VIDEO_PAUSED_BY_USER flag and resets mSeekOnPlay to TIME_UNSET
-        // in case the player was previously released and has not been initialized yet.
+        // in case the inner player was previously released and has not been instantiated yet.
         mInternalFlags &= ~$FLAG_VIDEO_PAUSED_BY_USER;
         mSeekOnPlay = TIME_UNSET;
         if (uri == null) {
-          // Sets the playback state to idle directly when the player is not created
+          // Sets the playback state to idle directly when the inner player is not created
           // and no video is set
           setPlaybackState(PLAYBACK_STATE_IDLE);
         } else {
@@ -377,9 +377,9 @@ public abstract class VideoPlayer implements IVideoPlayer {
   protected abstract void restartVideo(boolean restoreTrackSelections);
 
   /**
-   * @return whether or not the player object is created for playing the video(s)
+   * @return whether or not the inner player object is created for playing the video(s)
    */
-  protected abstract boolean isPlayerCreated();
+  protected abstract boolean isInnerPlayerCreated();
 
   /**
    * Called when the surface used as a sink for the video portion of the media changes
@@ -679,9 +679,9 @@ public abstract class VideoPlayer implements IVideoPlayer {
         // First, checks the completed playback state here to see if it was changed in
         // the above calls to the onVideoStopped() methods of the VideoListeners.
         && currentState == PLAYBACK_STATE_COMPLETED && currentState == mPlaybackState
-        // Then, checks whether or not the player object is released (whether the closeVideo()
+        // Then, checks whether or not the inner player object is released (whether the closeVideo()
         // method was called unexpectedly by the client within the same calls as above).
-        && isPlayerCreated()) {
+        && isInnerPlayerCreated()) {
       // If all of the conditions above hold, skips to the next if possible.
       skipToNextIfPossible();
     }

@@ -232,7 +232,7 @@ public class ExoVideoPlayer extends VideoPlayer {
   }
 
   @Override
-  protected boolean isPlayerCreated() {
+  protected boolean isInnerPlayerCreated() {
     return mExoPlayer != null;
   }
 
@@ -471,8 +471,10 @@ public class ExoVideoPlayer extends VideoPlayer {
   }
 
   private void resetExoPlayer() {
-    resetTracks(true);
-    mExoPlayer.stop(true);
+    if (getPlaybackState() != PLAYBACK_STATE_IDLE) {
+      resetTracks(true);
+      mExoPlayer.stop(true);
+    }
   }
 
   @Override
@@ -583,24 +585,29 @@ public class ExoVideoPlayer extends VideoPlayer {
 
   @Override
   protected void closeVideoInternal(boolean fromUser) {
-    final boolean playerCreated = mExoPlayer != null;
+    final boolean innerPlayerCreated = mExoPlayer != null;
     if (mVideoView != null) {
-      mVideoView.cancelDraggingVideoSeekBar(playerCreated);
+      mVideoView.cancelDraggingVideoSeekBar(innerPlayerCreated);
     }
-    if (playerCreated) {
-      final boolean playing = isPlaying();
 
-      if (mSeekOnPlay == TIME_UNSET && getPlaybackState() != PLAYBACK_STATE_COMPLETED) {
-        mSeekOnPlay = getVideoProgress();
+    if (innerPlayerCreated) {
+      final int playbackState = getPlaybackState();
+      final boolean playing = playbackState == PLAYBACK_STATE_PLAYING;
+
+      if (playbackState != PLAYBACK_STATE_IDLE) {
+        if (mSeekOnPlay == TIME_UNSET && playbackState != PLAYBACK_STATE_COMPLETED) {
+          mSeekOnPlay = getVideoProgress();
+        }
+        saveTrackSelections();
+
+//        pause(fromUser);
+        if (playing) {
+          mExoPlayer.setPlayWhenReady(false);
+          mInternalFlags = mInternalFlags & ~$FLAG_VIDEO_PAUSED_BY_USER
+              | (fromUser ? $FLAG_VIDEO_PAUSED_BY_USER : 0);
+        }
+        mExoPlayer.stop(false);
       }
-      saveTrackSelections();
-//      pause(fromUser);
-      if (playing) {
-        mExoPlayer.setPlayWhenReady(false);
-        mInternalFlags = mInternalFlags & ~$FLAG_VIDEO_PAUSED_BY_USER
-            | (fromUser ? $FLAG_VIDEO_PAUSED_BY_USER : 0);
-      }
-      mExoPlayer.stop(false);
       mExoPlayer.release();
       mExoPlayer = null;
       mTrackSelector = null;
@@ -889,7 +896,7 @@ public class ExoVideoPlayer extends VideoPlayer {
         TrackGroupArray trackGroups = mappedTrackInfo.getTrackGroups(rendererIndex);
         DefaultTrackSelector.SelectionOverride override =
             trackSelectorParams.getSelectionOverride(rendererIndex, trackGroups);
-        // No override. Track was fully determined by the internal player engine.
+        // No override. Track was fully determined by the inner player engine.
         if (override == null) {
           TrackGroupArray currTrackGroups = mExoPlayer.getCurrentTrackGroups();
           for (int currGroupIndex = 0; currGroupIndex < currTrackGroups.length; currGroupIndex++) {
