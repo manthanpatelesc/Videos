@@ -35,7 +35,6 @@ live streams that you can find to play in the `Online Videos` section of the app
 
 #### Project branches
 - Development work happens on the `dev` branch. Pull requests should normally be made to this branch.
-- The `beta` branch contains all the versions published, including tests.
 - The `release` branch holds the most recent release.
 
 #### Using Android Studio
