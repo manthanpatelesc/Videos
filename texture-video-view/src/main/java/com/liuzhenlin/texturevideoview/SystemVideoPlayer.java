@@ -208,10 +208,8 @@ public class SystemVideoPlayer extends VideoPlayer {
       mMediaPlayer.setOnBufferingUpdateListener(
           (mp, percent) -> mBuffering = (int) (mVideoDuration * percent / 100f + 0.5f));
       mMediaPlayer.setOnErrorListener((mp, what, extra) -> {
-        if (InternalConsts.DEBUG) {
-          Log.e(TAG, "Error occurred while playing video: what= " + what + "; extra= " + extra);
-        }
-        showVideoErrorMsg(extra);
+        Log.e(TAG, "Error occurred while playing video: what= " + what + "; extra= " + extra);
+        showVideoErrorToast(extra);
 
         onVideoBufferingStateChanged(false);
         final boolean playing = isPlaying();
@@ -250,7 +248,7 @@ public class SystemVideoPlayer extends VideoPlayer {
     }
   }
 
-  private void showVideoErrorMsg(int errorType) {
+  private void showVideoErrorToast(int errorType) {
     final int stringRes;
     switch (errorType) {
       case MediaPlayer.MEDIA_ERROR_IO:
@@ -290,7 +288,7 @@ public class SystemVideoPlayer extends VideoPlayer {
 //        mMediaPlayer.setLooping(isSingleVideoLoopPlayback());
       } catch (IOException e) {
         e.printStackTrace();
-        showVideoErrorMsg(/* MediaPlayer.MEDIA_ERROR_IO */ -1004);
+        showVideoErrorToast(/* MediaPlayer.MEDIA_ERROR_IO */ -1004);
         setPlaybackState(PLAYBACK_STATE_ERROR);
       }
     } else {
@@ -400,9 +398,7 @@ public class SystemVideoPlayer extends VideoPlayer {
         //@formatter:on
         switch (result) {
           case AudioManager.AUDIOFOCUS_REQUEST_FAILED:
-            if (InternalConsts.DEBUG) {
-              Log.w(TAG, "Failed to request audio focus");
-            }
+            Log.w(TAG, "Failed to request audio focus");
             // Starts to play video even if the audio focus is not gained, but it is
             // best not to happen.
           case AudioManager.AUDIOFOCUS_REQUEST_GRANTED:
