@@ -2896,7 +2896,9 @@ public class SlidingDrawerLayout extends ViewGroup {
          */
         private void copyNodeInfoNoChildren(AccessibilityNodeInfoCompat dest,
                                             AccessibilityNodeInfoCompat src) {
+            //noinspection deprecation
             src.getBoundsInParent(tmpRect);
+            //noinspection deprecation
             dest.setBoundsInParent(tmpRect);
 
             src.getBoundsInScreen(tmpRect);
